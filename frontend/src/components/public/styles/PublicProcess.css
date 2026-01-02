@@ -1,0 +1,81 @@
+.public-process {
+  padding: 5rem 0;
+  background: rgba(15, 20, 25, 0.4);
+  position: relative;
+}
+
+.public-process-card {
+  background: linear-gradient(135deg, var(--parity-bg-elevated) 0%, rgba(6, 10, 19, 0.8) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--parity-border);
+  border-radius: var(--parity-radius-lg);
+  padding: 2rem;
+  height: 100%;
+  transition: all var(--parity-transition-smooth);
+  opacity: 0;
+  transform: translateY(30px);
+  position: relative;
+  overflow: hidden;
+}
+
+.public-process-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--parity-accent), var(--parity-purple));
+  opacity: 0;
+  transition: opacity var(--parity-transition-base);
+}
+
+.public-process-card--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.public-process-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--parity-shadow-lg);
+  border-color: rgba(0, 242, 255, 0.3);
+}
+
+.public-process-card:hover::before {
+  opacity: 1;
+}
+
+.public-process-card__number {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--parity-accent) 0%, var(--parity-purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 1.5rem;
+}
+
+.public-process-card__title {
+  color: var(--parity-text-primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.public-process-card__text {
+  color: var(--parity-text-muted);
+  font-size: 1rem;
+  line-height: 1.8;
+  margin: 0;
+}
+
+@media (max-width: 992px) {
+  .public-process {
+    padding: 3rem 0;
+  }
+  
+  .public-process-card {
+    margin-bottom: 1.5rem;
+  }
+}
