@@ -54,16 +54,17 @@ const AdminUpload = () => {
 
       setNotification({
         type: 'success',
-        message: 'Document registered successfully!'
+        message: 'Document registered successfully! Hash will remain visible for 10 seconds.'
       });
 
+      // Reset after 10 seconds (10000ms) to give user time to copy hash
       setTimeout(() => {
         setSelectedFile(null);
         setDocumentType('Barangay Clearance');
         setReference('');
         setCurrentHash('');
         setNotification(null);
-      }, 2000);
+      }, 10000);
     } catch (err) {
       setNotification({
         type: 'danger',
@@ -156,7 +157,7 @@ const AdminUpload = () => {
                     <Form.Label>Reference ID (Optional)</Form.Label>
                     <Form.Control
                       type="text"
-                      placeholder="BGY-2025-XXXX"
+                      placeholder="BGY-2026-XXXX"
                       value={reference}
                       onChange={(e) => setReference(e.target.value)}
                       className="admin-upload__input"
@@ -166,13 +167,13 @@ const AdminUpload = () => {
                 </Col>
               </Row>
 
-              {/* Fingerprint Display */}
+              {/* Fingerprint Display - Stays visible for 10 seconds */}
               {currentHash && (
                 <div className="admin-upload__hash-box">
                   <div className="admin-upload__hash-header">
                     <span>
                       <i className="bi bi-shield-lock me-2"></i>
-                      Document Fingerprint
+                      Document Fingerprint (visible for 10 seconds)
                     </span>
                     <Button 
                       size="sm" 

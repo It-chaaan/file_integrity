@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Button, Nav, Badge } from 'react-bootstrap';
+import { Button, Nav, Badge, Dropdown } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import './styles/AdminLayout.css';
 
@@ -8,6 +8,8 @@ const AdminLayout = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   const handleLogout = () => {
     logout();
@@ -32,7 +34,19 @@ const AdminLayout = () => {
     return 'AD';
   };
 
-  return (
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return ( 
     <div className="admin-layout">
       <div className="admin-layout__container">
         {/* Sidebar */}
@@ -113,14 +127,6 @@ const AdminLayout = () => {
               </span>
             </Nav.Link>
           </Nav>
-
-          <Button
-            className="admin-sidebar__logout"
-            onClick={handleLogout}
-          >
-            <i className="bi bi-box-arrow-right me-2"></i>
-            End Session
-          </Button>
         </aside>
 
         {/* Main Content */}
@@ -128,10 +134,41 @@ const AdminLayout = () => {
           {/* Header */}
           <div className="admin-header">
             <h1 className="admin-header__title">{getPageTitle()}</h1>
-            <div className="admin-header__user">
-              <div className="admin-user-avatar" title={user?.username || 'Admin User'}>
+            <div className="admin-header__user" ref={dropdownRef}>
+              <div 
+                className="admin-user-avatar" 
+                title={user?.username || 'Admin User'}
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              >
                 {getUserInitials()}
               </div>
+              
+              {/* Profile Dropdown */}
+              {showProfileDropdown && (
+                <div className="admin-profile-dropdown">
+                  <div className="admin-profile-dropdown__header">
+                    <div className="admin-profile-dropdown__avatar">
+                      {getUserInitials()}
+                    </div>
+                    <div className="admin-profile-dropdown__info">
+                      <div className="admin-profile-dropdown__name">
+                        {user?.username || 'Admin User'}
+                      </div>
+                      <div className="admin-profile-dropdown__role">
+                        Administrator
+                      </div>
+                    </div>
+                  </div>
+                  <div className="admin-profile-dropdown__divider"></div>
+                  <button
+                    className="admin-profile-dropdown__logout"
+                    onClick={handleLogout}
+                  >
+                    <i className="bi bi-box-arrow-right me-2"></i>
+                    End Session
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
