@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Row, Col, Button } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import { useRegistry } from '../../../contexts/RegistryContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { formatTimestamp, downloadFile } from '../../../utils/crypto';
@@ -9,6 +10,7 @@ import '../styles/AdminDashboard.css';
 const AdminDashboard = () => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const navigate = useNavigate();
   const { registry } = useRegistry();
   const { user } = useAuth();
 
@@ -18,6 +20,9 @@ const AdminDashboard = () => {
   };
 
   const recentActivity = [...registry].reverse().slice(0, 5);
+
+  // Count pending tickets (mock data - replace with actual logic)
+  const pendingTickets = 3;
 
   return (
     <div className="admin-dashboard">
@@ -62,8 +67,8 @@ const AdminDashboard = () => {
               <i className="bi bi-exclamation-triangle"></i>
             </div>
             <div className="admin-dashboard__stat-info">
-              <div className="admin-dashboard__stat-value">3</div>
-              <div className="admin-dashboard__stat-label">Pending Issues</div>
+              <div className="admin-dashboard__stat-value">{pendingTickets}</div>
+              <div className="admin-dashboard__stat-label">Pending Tickets</div>
             </div>
           </div>
         </Col>
@@ -125,7 +130,10 @@ const AdminDashboard = () => {
               <h5>Quick Actions</h5>
             </div>
             <div className="admin-dashboard__quick-actions">
-              <Button className="admin-dashboard__quick-action-btn">
+              <Button 
+                className="admin-dashboard__quick-action-btn"
+                onClick={() => navigate('/admin/upload')}
+              >
                 <i className="bi bi-cloud-upload"></i>
                 <span>Upload Document</span>
               </Button>
@@ -136,7 +144,7 @@ const AdminDashboard = () => {
             <div className="admin-dashboard__panel-header">
               <div className="d-flex justify-content-between align-items-center w-100">
                 <h5>System Alerts</h5>
-                <span className="badge bg-danger rounded-pill">3</span>
+                <span className="badge bg-danger rounded-pill">{pendingTickets}</span>
               </div>
             </div>
             <div className="admin-dashboard__alert-list">

@@ -7,11 +7,14 @@
 }
 
 .admin-registry__panel {
+  max-width: 100%;
+  width: 100%;
   background: linear-gradient(135deg, rgba(15, 20, 25, 0.8) 0%, rgba(6, 10, 19, 0.9) 100%);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(30px);
   border: 1px solid rgba(0, 242, 255, 0.1);
-  border-radius: 12px;
+  border-radius: var(--parity-radius-xl);
   overflow: hidden;
+  box-shadow: var(--parity-shadow-md);
 }
 
 /* ============================================

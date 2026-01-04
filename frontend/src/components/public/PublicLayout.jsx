@@ -19,7 +19,7 @@ const PublicLayout = () => {
       <footer className="public-layout__footer">
         <div className="container py-4 text-center">
           <p className="mb-0 text-muted">
-            &copy; {new Date().getFullYear()} Parity Data - Document Integrity System
+            &copy; {new Date().getFullYear()} Parity - LGU Document Integrity Verification System 
           </p>
         </div>
       </footer>

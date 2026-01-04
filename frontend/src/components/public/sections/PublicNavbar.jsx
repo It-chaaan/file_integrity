@@ -121,7 +121,7 @@ const PublicNavbar = () => {
             onClick={() => setShowLogin(true)}
           >
             <i className="bi bi-shield-lock me-2"></i>
-            <span className="d-none d-lg-inline">Staff Portal</span>
+            <span className="d-none d-lg-inline">Admin Portal</span>
             <span className="d-inline d-lg-none">Portal</span>
           </Button>
         </Container>

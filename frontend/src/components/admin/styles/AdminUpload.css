@@ -3,7 +3,7 @@
    ============================================ */
 
 .admin-upload {
-  width: 100%;
+  width: 100%;   
 }
 
 .admin-upload__panel {
@@ -14,6 +14,10 @@
   overflow: hidden;
   margin-bottom: 2rem;
 }
+
+/*============================================
+  HEADER
+  ============================================ */
 
 .admin-upload__panel-header {
   padding: 1.5rem;

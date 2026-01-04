@@ -80,7 +80,7 @@ const StaffLoginModal = ({ show, onHide }) => {
                 />
               </svg>
               <h5 className="staff-login-modal__brand-title">PARITY</h5>
-              <small className="staff-login-modal__brand-subtitle">Integrity System</small>
+              <small className="staff-login-modal__brand-subtitle">Automated Document Integrity Verification System</small>
             </div>
           </Col>
 
@@ -92,7 +92,7 @@ const StaffLoginModal = ({ show, onHide }) => {
                   <i className="bi bi-shield-lock"></i>
                 </div>
                 <div>
-                  <h5 className="staff-login-modal__title">Staff Portal</h5>
+                  <h5 className="staff-login-modal__title">Admin Portal</h5>
                   <p className="staff-login-modal__subtitle">Authorized access only</p>
                 </div>
               </div>
