@@ -46,14 +46,17 @@ function TwoFactor() {
     setIsLoading(true);
     
     try {
-      await verify2FA(codeString);
+      const verifiedSession = await verify2FA(codeString);
       setShowSession(true);
       
-      // Navigate to appropriate dashboard after 2 seconds
+      // Get fresh session data to ensure we have the latest verified state
       setTimeout(() => {
-        if (session?.user?.role === 'admin') {
+        const currentSession = getCurrentSession();
+        const userRole = currentSession?.user?.role || session?.user?.role;
+        
+        if (userRole === 'admin') {
           navigate('/admin/dashboard');
-        } else if (session?.user?.role === 'staff') {
+        } else if (userRole === 'staff') {
           navigate('/staff/dashboard');
         } else {
           navigate('/login');

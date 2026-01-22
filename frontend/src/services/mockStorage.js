@@ -221,7 +221,11 @@ export const mockLogService = {
       id: `LOG-${Date.now()}`
     };
     return create(STORAGE_KEYS.LOGS, logEntry);
-  }
+  },
+  // Key operations
+  getKeys: () => getAll(STORAGE_KEYS.KEYS),
+  createKey: (key) => create(STORAGE_KEYS.KEYS, key),
+  deleteKey: (id) => remove(STORAGE_KEYS.KEYS, id)
 };
 
 // Key-specific operations

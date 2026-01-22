@@ -9,7 +9,7 @@ function Dashboard() {
   const { users, loading: usersLoading } = useUsers();
   const { tickets, loading: ticketsLoading } = useTickets();
   const { logs, loading: logsLoading } = useLogs();
-  const { keys = [], loading: keysLoading } = useKeys?.() || {};
+  const { keys = [], loading: keysLoading } = useKeys();
   
   const [stats, setStats] = useState({
     totalDocuments: 0,

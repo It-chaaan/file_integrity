@@ -213,85 +213,97 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1
 
 ## 🔌 Backend Integration
 
-### Prerequisites
-
-Before connecting to backend:
-1. Backend API must be running
-2. CORS must be enabled for frontend origin
-3. JWT authentication implemented
-4. API endpoints match documented format
-
-### Integration Steps
-
-**Step 1: Configure Environment**
+### Quick Start (1 Minute)
 
 ```bash
-# Edit .env file
-VITE_API_MODE=REAL
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-```
+# 1. Switch to real API
+# Edit .env:
+VITE_USE_MOCK_API=false
 
-**Step 2: Start Backend**
-
-```bash
-# Start your backend server (example)
+# 2. Start backend (Django example)
 cd ../backend
 python manage.py runserver
-```
 
-**Step 3: Start Frontend**
-
-```bash
+# 3. Start frontend
+cd ../frontend
 npm run dev
+
+# 4. Test at http://localhost:5173/login
 ```
 
-**Step 4: Test Login**
+### Prerequisites
 
-- Navigate to `http://localhost:5173/login`
-- Enter credentials from backend database
-- Verify token is stored and API calls work
+Your backend API must have:
+- ✅ Running at `http://localhost:8000/api/v1`
+- ✅ CORS enabled for `http://localhost:5173`
+- ✅ JWT authentication endpoints
+- ✅ All CRUD endpoints implemented
+- ✅ Response format matches documentation
 
-### Troubleshooting
+### Common Issues
 
-**CORS Errors:**
-```javascript
-// Backend must allow frontend origin
-Access-Control-Allow-Origin: http://localhost:5173
+**CORS Error:**
 ```
+Access to XMLHttpRequest blocked by CORS policy
+```
+→ Enable CORS in backend settings
+
+**Connection Refused:**
+```
+GET http://localhost:8000/api/v1/... net::ERR_CONNECTION_REFUSED
+```
+→ Backend server is not running. Start it first.
 
 **401 Unauthorized:**
-- Check token is being sent in Authorization header
-- Verify backend JWT configuration
-- Check token expiration
+→ Check token in localStorage and JWT configuration
 
-**API Format Mismatch:**
-- Review [BACKEND_INTEGRATION_GUIDE.md](./BACKEND_INTEGRATION_GUIDE.md)
-- Ensure response format matches documentation
+**Duplicate Path Error:**
+```
+GET http://localhost:8000/api/v1/v1/auth/me/
+```
+→ Remove `/v1` from `VITE_API_BASE_URL` if backend already prefixes it
+
+### Detailed Integration
+
+📖 See **[BACKEND_INTEGRATION_GUIDE.md](./BACKEND_INTEGRATION_GUIDE.md)** for:
+- Complete API endpoint reference
+- Authentication flow details
+- Request/response format examples
+- Testing procedures
+- Troubleshooting guide
 
 ---
 
 ## 📚 Documentation
 
-Comprehensive documentation for backend integration:
+Complete guides for backend integration and development:
 
-| Document | Purpose | Location |
-|----------|---------|----------|
-| **Backend Integration Guide** | Complete API reference, endpoints, authentication | [BACKEND_INTEGRATION_GUIDE.md](./BACKEND_INTEGRATION_GUIDE.md) |
-| **Authentication Flow** | Login, 2FA, token management | [AUTHENTICATION_FLOW.md](./AUTHENTICATION_FLOW.md) |
-| **Error Handling Guide** | Error codes, validation, standards | [ERROR_HANDLING_GUIDE.md](./ERROR_HANDLING_GUIDE.md) |
-| **Component Data Flow** | Architecture, data flow, hooks | [COMPONENT_DATA_FLOW.md](./COMPONENT_DATA_FLOW.md) |
-| **API Constants** | Endpoints, status codes, roles | [src/constants/api.constants.js](./src/constants/api.constants.js) |
+| Document | Purpose |
+|----------|---------|
+| **[BACKEND_INTEGRATION_GUIDE.md](./BACKEND_INTEGRATION_GUIDE.md)** | 📖 Complete API reference, endpoints, authentication, testing |
+| **[.env.example](./.env.example)** | ⚙️ Environment configuration template |
 
-### Quick Links
+### Quick Reference
 
-**For Frontend Developers:**
-- [Component Data Flow](./COMPONENT_DATA_FLOW.md) - Understand component architecture
-- [API Constants](./src/constants/api.constants.js) - Use centralized constants
+**Login Credentials (Mock Mode)**
+- Admin: `admin` / `admin123`
+- Staff: `staff` / `staff123`
 
-**For Backend Developers:**
-- [Backend Integration Guide](./BACKEND_INTEGRATION_GUIDE.md) - API requirements
-- [Authentication Flow](./AUTHENTICATION_FLOW.md) - JWT implementation
-- [Error Handling Guide](./ERROR_HANDLING_GUIDE.md) - Response formats
+**API Endpoints (Real Mode)**
+- Base: `http://localhost:8000/api/v1`
+- Auth: `/auth/login`, `/auth/verify-2fa`
+- Docs: `/documents`, `/documents/:id`
+- Users: `/users`, `/users/:id`
+- See [BACKEND_INTEGRATION_GUIDE.md](./BACKEND_INTEGRATION_GUIDE.md) for complete list
+
+**API Constants**
+- Endpoints: `src/constants/api.constants.js`
+- Status codes and role mappings included
+
+**Development**
+- Component architecture: `src/` folder structure above
+- Custom hooks: `src/hooks/useData.js`
+- Mock data: `src/mock/*.js` (removed after backend integration)
 
 ---
 
@@ -316,26 +328,60 @@ npm run test:coverage    # Test coverage report
 
 ## ⚙️ Environment Configuration
 
+### Quick Setup
+
+```bash
+# Copy environment template
+cp .env.example .env
+```
+
+### Mock vs Real API
+
+**Mock Mode (Default - No Backend Required):**
+```env
+VITE_USE_MOCK_API=true
+```
+
+Test without backend. Uses local mock data:
+- Admin: `admin` / `admin123`
+- Staff: `staff` / `staff123`
+
+**Real Mode (Connect to Backend):**
+```env
+VITE_USE_MOCK_API=false
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
+
 ### Required Variables
 
 ```env
-# API Mode
-VITE_API_MODE=MOCK              # MOCK | REAL
+# API Configuration
+VITE_USE_MOCK_API=true                    # true=mock, false=real API
 
-# Backend URL (when REAL mode)
+# Backend URL (when VITE_USE_MOCK_API=false)
 VITE_API_BASE_URL=http://localhost:8000/api/v1
 
+# Security
+VITE_TOKEN_KEY=parity_auth_token          # LocalStorage key for token
+VITE_REFRESH_KEY=parity_refresh_token     # LocalStorage key for refresh token
+
+# Application
+VITE_APP_NAME=PARITY
+VITE_ENV=development                      # development | staging | production
+
 # Optional
-VITE_API_TIMEOUT=30000          # Request timeout (ms)
-VITE_MAX_FILE_SIZE=10485760     # Max file size (bytes)
+VITE_API_TIMEOUT=30000                    # Request timeout (ms)
+VITE_MAX_FILE_SIZE=5242880                # Max file size (5MB)
+VITE_DEBUG=true                           # Enable debug logs
+VITE_HTTPS_ONLY=false                     # Enforce HTTPS
 ```
 
 ### Feature Flags
 
 ```env
-VITE_ENABLE_2FA=true            # Enable 2FA feature
-VITE_ENABLE_FILE_UPLOAD=true    # Enable file upload
-VITE_DEBUG=true                 # Enable debug logs
+VITE_ENABLE_2FA=true            # Enable 2FA authentication
+VITE_ENABLE_FILE_UPLOAD=true    # Enable document upload
+VITE_ENABLE_PUBLIC_VERIFY=true  # Enable public verification
 ```
 
 See [.env.example](./.env.example) for complete configuration options.

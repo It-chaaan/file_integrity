@@ -418,6 +418,61 @@ export const getUserActivityLogs = async (userId, params = {}) => {
   return await realLogsAPI.getUserAuditLogs(userId, params);
 };
 
+/**
+ * Get logs (alias for getAuditLogs for compatibility)
+ * @param {Object} params 
+ * @returns {Promise<Object>}
+ */
+export const getLogs = async (params = {}) => {
+  return await getAuditLogs(params);
+};
+
+// ============================================================================
+// SECURITY KEYS ADAPTER
+// ============================================================================
+
+/**
+ * Get all security keys
+ * @param {Object} params 
+ * @returns {Promise<Object>}
+ */
+export const getKeys = async (params = {}) => {
+  if (USE_MOCK_API) {
+    const keys = await mockLogService.getKeys();
+    return {
+      results: keys,
+      count: keys.length,
+      next: null,
+      previous: null
+    };
+  }
+  return await realLogsAPI.getKeys(params);
+};
+
+/**
+ * Create a new security key
+ * @param {Object} keyData 
+ * @returns {Promise<Object>}
+ */
+export const createKey = async (keyData) => {
+  if (USE_MOCK_API) {
+    return await mockLogService.createKey(keyData);
+  }
+  return await realLogsAPI.createKey(keyData);
+};
+
+/**
+ * Delete a security key
+ * @param {string} keyId 
+ * @returns {Promise<void>}
+ */
+export const deleteKey = async (keyId) => {
+  if (USE_MOCK_API) {
+    return await mockLogService.deleteKey(keyId);
+  }
+  return await realLogsAPI.deleteKey(keyId);
+};
+
 // ============================================================================
 // EXPORT ALL ADAPTERS
 // ============================================================================
@@ -460,4 +515,10 @@ export default {
   // Logs
   getAuditLogs,
   getUserActivityLogs,
+  getLogs,
+  
+  // Keys
+  getKeys,
+  createKey,
+  deleteKey,
 };

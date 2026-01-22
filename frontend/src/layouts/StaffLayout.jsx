@@ -6,13 +6,24 @@ import { getCurrentUser, isAuthenticated } from '../services/auth';
 
 const StaffLayout = () => {
   const navigate = useNavigate();
+  const [isReady, setIsReady] = React.useState(false);
   const currentUser = getCurrentUser();
   
   // Redirect to login if not authenticated
   React.useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate('/login');
-    }
+    // Check authentication status
+    const checkAuth = () => {
+      const authenticated = isAuthenticated();
+      if (!authenticated) {
+        navigate('/login');
+      } else {
+        setIsReady(true);
+      }
+    };
+    
+    // Use a small delay to ensure session is updated
+    const timer = setTimeout(checkAuth, 100);
+    return () => clearTimeout(timer);
   }, [navigate]);
   
   // Prepare user object with fallback
