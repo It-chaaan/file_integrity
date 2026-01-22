@@ -3,7 +3,7 @@ import DataTable from '../../components/DataTable';
 import { useTickets } from '../../hooks/useData';
 
 function Tickets() {
-  const { tickets, loading, updateTicket, createTicket, deleteTicket, error } = useTickets();
+  const { tickets = [], loading = false, updateTicket, createTicket, deleteTicket, error } = useTickets?.() || {};
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -19,13 +19,6 @@ function Tickets() {
     status: 'open',
     category: 'general'
   });
-
-  useEffect(() => {
-    console.log('Tickets component mounted, tickets:', tickets);
-    if (error) {
-      console.error('Tickets hook error:', error);
-    }
-  }, [tickets, error]);
 
   const getPriorityBadge = (priority) => {
     const badges = {

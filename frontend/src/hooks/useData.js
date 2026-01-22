@@ -1,381 +1,429 @@
-// Custom React Hooks for Data Management
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  mockDocumentService, 
-  mockUserService, 
-  mockTicketService, 
-  mockLogService, 
-  mockKeyService 
-} from '../services/mockStorage';
-import { parseSearchQuery, filterData, sortData, paginateData } from '../services/utils';
+/**
+ * Data Hooks for API Integration
+ * Provides custom hooks for fetching and managing data from API endpoints
+ * Works with both mock and real API through the adapter pattern
+ */
 
-// Generic data fetching hook
-export const useData = (service, initialLoad = true) => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(initialLoad);
+import { useState, useEffect, useCallback } from 'react';
+import * as adapter from '../api/adapter';
+
+/**
+ * Generic data fetching hook
+ * @param {Function} fetchFn - Function that fetches data
+ * @param {Array} dependencies - Dependencies for re-fetching
+ */
+export const useData = (fetchFn, dependencies = []) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const result = await service.getAll();
+      const result = await fetchFn();
       setData(result);
     } catch (err) {
-      setError(err.message);
+      setError(err);
     } finally {
       setLoading(false);
     }
-  }, [service]);
+  }, dependencies);
 
   useEffect(() => {
-    if (initialLoad) {
-      fetchData();
-    }
-  }, [fetchData, initialLoad]);
+    fetchData();
+  }, [fetchData]);
 
   return { data, loading, error, refetch: fetchData };
 };
 
-// Documents hook
+/**
+ * Hook for document operations
+ */
 export const useDocuments = () => {
-  const { data, loading, error, refetch } = useData(mockDocumentService);
-  
-  const createDocument = async (docData) => {
-    const result = await mockDocumentService.create(docData);
-    await refetch();
-    return result;
-  };
-  
-  const updateDocument = async (id, updates) => {
-    const result = await mockDocumentService.update(id, updates);
-    await refetch();
-    return result;
-  };
-  
-  const deleteDocument = async (id) => {
-    await mockDocumentService.delete(id);
-    await refetch();
-  };
-  
-  const searchDocuments = async (term) => {
-    return await mockDocumentService.search(term);
-  };
-  
-  const verifyDocument = async (hash) => {
-    return await mockDocumentService.verifyHash(hash);
-  };
-  
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchDocuments = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await adapter.getDocuments();
+      setDocuments(result || []);
+    } catch (err) {
+      setError(err);
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createDocument = useCallback(async (documentData) => {
+    try {
+      const result = await adapter.createDocument(documentData);
+      await fetchDocuments(); // Refresh list
+      return result;
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchDocuments]);
+
+  const updateDocument = useCallback(async (id, documentData) => {
+    try {
+      const result = await adapter.updateDocument(id, documentData);
+      await fetchDocuments(); // Refresh list
+      return result;
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchDocuments]);
+
+  const deleteDocument = useCallback(async (id) => {
+    try {
+      await adapter.deleteDocument(id);
+      await fetchDocuments(); // Refresh list
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchDocuments]);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
+
   return {
-    documents: data,
+    documents,
     loading,
     error,
-    refetch,
     createDocument,
     updateDocument,
     deleteDocument,
-    searchDocuments,
-    verifyDocument
+    refetch: fetchDocuments,
   };
 };
 
-// Users hook
+/**
+ * Hook for user operations
+ */
 export const useUsers = () => {
-  const { data, loading, error, refetch } = useData(mockUserService);
-  
-  const createUser = async (userData) => {
-    const result = await mockUserService.create(userData);
-    await refetch();
-    return result;
-  };
-  
-  const updateUser = async (id, updates) => {
-    const result = await mockUserService.update(id, updates);
-    await refetch();
-    return result;
-  };
-  
-  const deleteUser = async (id) => {
-    await mockUserService.delete(id);
-    await refetch();
-  };
-  
-  const searchUsers = async (term) => {
-    return await mockUserService.search(term);
-  };
-  
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await adapter.getUsers();
+      setUsers(result || []);
+    } catch (err) {
+      setError(err);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createUser = useCallback(async (userData) => {
+    try {
+      const result = await adapter.createUser(userData);
+      await fetchUsers(); // Refresh list
+      return result;
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchUsers]);
+
+  const updateUser = useCallback(async (id, userData) => {
+    try {
+      const result = await adapter.updateUser(id, userData);
+      await fetchUsers(); // Refresh list
+      return result;
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchUsers]);
+
+  const deleteUser = useCallback(async (id) => {
+    try {
+      await adapter.deleteUser(id);
+      await fetchUsers(); // Refresh list
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
   return {
-    users: data,
+    users,
     loading,
     error,
-    refetch,
     createUser,
     updateUser,
     deleteUser,
-    searchUsers
+    refetch: fetchUsers,
   };
 };
 
-// Tickets hook
+/**
+ * Hook for ticket operations
+ */
 export const useTickets = () => {
-  const { data, loading, error, refetch } = useData(mockTicketService);
-  
-  const createTicket = async (ticketData) => {
-    const result = await mockTicketService.create(ticketData);
-    await refetch();
-    return result;
-  };
-  
-  const updateTicket = async (id, updates) => {
-    const result = await mockTicketService.update(id, updates);
-    await refetch();
-    return result;
-  };
-  
-  const deleteTicket = async (id) => {
-    await mockTicketService.delete(id);
-    await refetch();
-  };
-  
-  const searchTickets = async (term) => {
-    return await mockTicketService.search(term);
-  };
-  
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchTickets = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await adapter.getTickets();
+      setTickets(result || []);
+    } catch (err) {
+      setError(err);
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createTicket = useCallback(async (ticketData) => {
+    try {
+      const result = await adapter.createTicket(ticketData);
+      await fetchTickets(); // Refresh list
+      return result;
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchTickets]);
+
+  const updateTicket = useCallback(async (id, ticketData) => {
+    try {
+      const result = await adapter.updateTicket(id, ticketData);
+      await fetchTickets(); // Refresh list
+      return result;
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchTickets]);
+
+  const deleteTicket = useCallback(async (id) => {
+    try {
+      await adapter.deleteTicket(id);
+      await fetchTickets(); // Refresh list
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchTickets]);
+
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
+
   return {
-    tickets: data,
+    tickets,
     loading,
     error,
-    refetch,
     createTicket,
     updateTicket,
     deleteTicket,
-    searchTickets
+    refetch: fetchTickets,
   };
 };
 
-// Keys hook
+/**
+ * Hook for security keys operations
+ */
 export const useKeys = () => {
-  const { data, loading, error, refetch } = useData(mockKeyService);
-  
-  const createKey = async (keyData) => {
-    const result = await mockKeyService.create(keyData);
-    await refetch();
-    return result;
-  };
-  
-  const updateKey = async (id, updates) => {
-    const result = await mockKeyService.update(id, updates);
-    await refetch();
-    return result;
-  };
-  
-  const rotateKey = async (keyId) => {
-    const result = await mockKeyService.rotate(keyId);
-    await refetch();
-    return result;
-  };
-  
-  return {
-    keys: data,
-    loading,
-    error,
-    refetch,
-    createKey,
-    updateKey,
-    rotateKey
-  };
-};
+  const [keys, setKeys] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-// Logs hook (read-only)
-export const useLogs = () => {
-  const { data, loading, error, refetch } = useData(mockLogService);
-  
-  const addLog = async (logData) => {
-    await mockLogService.create(logData);
-    await refetch();
-  };
-  
-  return {
-    logs: data,
-    loading,
-    error,
-    refetch,
-    addLog
-  };
-};
+  const fetchKeys = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await adapter.getKeys();
+      setKeys(result || []);
+    } catch (err) {
+      setError(err);
+      setKeys([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-// Table state management hook
-export const useTableState = (initialData = []) => {
-  const [filteredData, setFilteredData] = useState(initialData);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({});
-  const [sortBy, setSortBy] = useState('');
-  const [sortOrder, setSortOrder] = useState('asc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const createKey = useCallback(async (keyData) => {
+    try {
+      const result = await adapter.createKey(keyData);
+      await fetchKeys(); // Refresh list
+      return result;
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchKeys]);
+
+  const deleteKey = useCallback(async (id) => {
+    try {
+      await adapter.deleteKey(id);
+      await fetchKeys(); // Refresh list
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  }, [fetchKeys]);
 
   useEffect(() => {
-    let result = [...initialData];
-    
-    // Apply search
-    if (searchTerm) {
-      const query = parseSearchQuery(searchTerm);
-      result = result.filter(item =>
-        Object.values(item).some(val =>
-          String(val).toLowerCase().includes(query)
-        )
-      );
-    }
-    
-    // Apply filters
-    result = filterData(result, filters);
-    
-    // Apply sorting
-    if (sortBy) {
-      result = sortData(result, sortBy, sortOrder);
-    }
-    
-    setFilteredData(result);
-    setCurrentPage(1); // Reset to first page when data changes
-  }, [initialData, searchTerm, filters, sortBy, sortOrder]);
+    fetchKeys();
+  }, [fetchKeys]);
 
-  const paginatedResult = paginateData(filteredData, currentPage, pageSize);
-
-  const handleSearch = (term) => {
-    setSearchTerm(term);
+  return {
+    keys,
+    loading,
+    error,
+    createKey,
+    deleteKey,
+    refetch: fetchKeys,
   };
+};
 
-  const handleFilter = (newFilters) => {
-    setFilters({ ...filters, ...newFilters });
+/**
+ * Hook for audit logs
+ */
+export const useLogs = () => {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchLogs = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await adapter.getLogs();
+      setLogs(result || []);
+    } catch (err) {
+      setError(err);
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  return {
+    logs,
+    loading,
+    error,
+    refetch: fetchLogs,
   };
+};
 
-  const handleSort = (field) => {
+/**
+ * Hook for table state management (sorting, filtering, pagination)
+ */
+export const useTableState = (initialState = {}) => {
+  const [sortBy, setSortBy] = useState(initialState.sortBy || null);
+  const [sortOrder, setSortOrder] = useState(initialState.sortOrder || 'asc');
+  const [filters, setFilters] = useState(initialState.filters || {});
+  const [currentPage, setCurrentPage] = useState(initialState.currentPage || 1);
+  const [pageSize, setPageSize] = useState(initialState.pageSize || 10);
+
+  const handleSort = useCallback((field) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(field);
       setSortOrder('asc');
     }
-  };
+  }, [sortBy, sortOrder]);
 
-  const handlePageChange = (page) => {
+  const handleFilter = useCallback((filterKey, value) => {
+    setFilters(prev => ({ ...prev, [filterKey]: value }));
+    setCurrentPage(1); // Reset to first page when filtering
+  }, []);
+
+  const handlePageChange = useCallback((page) => {
     setCurrentPage(page);
-  };
+  }, []);
 
-  const handlePageSizeChange = (size) => {
+  const handlePageSizeChange = useCallback((size) => {
     setPageSize(size);
-    setCurrentPage(1);
-  };
+    setCurrentPage(1); // Reset to first page when changing page size
+  }, []);
 
-  const clearFilters = () => {
-    setSearchTerm('');
+  const resetFilters = useCallback(() => {
     setFilters({});
-    setSortBy('');
-    setSortOrder('asc');
     setCurrentPage(1);
-  };
+  }, []);
 
   return {
-    data: paginatedResult.data,
-    totalItems: paginatedResult.total,
-    currentPage: paginatedResult.page,
-    pageSize: paginatedResult.pageSize,
-    totalPages: paginatedResult.totalPages,
-    searchTerm,
-    filters,
     sortBy,
     sortOrder,
-    handleSearch,
-    handleFilter,
+    filters,
+    currentPage,
+    pageSize,
     handleSort,
+    handleFilter,
     handlePageChange,
     handlePageSizeChange,
-    clearFilters
+    resetFilters,
   };
 };
 
-// Form state management hook
-export const useForm = (initialState = {}, validationRules = {}) => {
-  const [values, setValues] = useState(initialState);
+/**
+ * Hook for form state management
+ */
+export const useForm = (initialValues = {}) => {
+  const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setValues(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-    
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
+  const handleChange = useCallback((name, value) => {
+    setValues(prev => ({ ...prev, [name]: value }));
+  }, []);
 
-  const handleBlur = (e) => {
-    const { name } = e.target;
+  const handleBlur = useCallback((name) => {
     setTouched(prev => ({ ...prev, [name]: true }));
-    
-    // Validate field on blur
-    if (validationRules[name]) {
-      const error = validationRules[name](values[name], values);
-      if (error) {
-        setErrors(prev => ({ ...prev, [name]: error }));
-      }
-    }
-  };
+  }, []);
 
-  const validate = () => {
-    const newErrors = {};
-    Object.keys(validationRules).forEach(field => {
-      const error = validationRules[field](values[field], values);
-      if (error) {
-        newErrors[field] = error;
-      }
-    });
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const setFieldError = useCallback((name, error) => {
+    setErrors(prev => ({ ...prev, [name]: error }));
+  }, []);
 
-  const handleSubmit = async (onSubmit) => {
-    setIsSubmitting(true);
-    const isValid = validate();
-    
-    if (isValid) {
-      try {
-        await onSubmit(values);
-        return true;
-      } catch (error) {
-        setErrors({ submit: error.message });
-        return false;
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else {
-      setIsSubmitting(false);
-      return false;
-    }
-  };
-
-  const reset = () => {
-    setValues(initialState);
+  const resetForm = useCallback(() => {
+    setValues(initialValues);
     setErrors({});
     setTouched({});
-    setIsSubmitting(false);
-  };
+  }, [initialValues]);
+
+  const isValid = Object.keys(errors).length === 0;
 
   return {
     values,
     errors,
     touched,
-    isSubmitting,
+    isValid,
     handleChange,
     handleBlur,
-    handleSubmit,
-    reset,
+    setFieldError,
+    resetForm,
     setValues,
-    setErrors
   };
 };

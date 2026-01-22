@@ -3,7 +3,7 @@ import DataTable from '../../components/DataTable';
 import { useTickets } from '../../hooks/useData';
 
 function Tickets() {
-  const { tickets, loading, updateTicket, createTicket, deleteTicket, error } = useTickets();
+  const { tickets = [], loading = false, updateTicket, createTicket, deleteTicket, error } = useTickets?.() || {};
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -19,13 +19,6 @@ function Tickets() {
     status: 'open',
     category: 'general'
   });
-
-  useEffect(() => {
-    console.log('Tickets component mounted, tickets:', tickets);
-    if (error) {
-      console.error('Tickets hook error:', error);
-    }
-  }, [tickets, error]);
 
   const getPriorityBadge = (priority) => {
     const badges = {
@@ -65,8 +58,8 @@ function Tickets() {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(t => 
-        t.ticketId.toLowerCase().includes(term) || 
-        t.title.toLowerCase().includes(term)
+        (t.ticketId || '').toLowerCase().includes(term) || 
+        (t.title || '').toLowerCase().includes(term)
       );
     }
     
@@ -139,7 +132,7 @@ function Tickets() {
       sortable: true,
       render: (value) => (
         <span style={{ fontSize: '14px', color: '#1F2937' }}>
-          {new Date(value).toLocaleString()}
+          {value ? new Date(value).toLocaleString() : '—'}
         </span>
       )
     }
@@ -164,7 +157,7 @@ function Tickets() {
 
   const handleSubmitAction = async (e) => {
     e.preventDefault();
-    if (selectedTicket) {
+    if (selectedTicket && updateTicket) {
       const newStatus = actionType === 'resolve' ? 'resolved' : actionType === 'progress' ? 'in-progress' : 'closed';
       await updateTicket(selectedTicket.id, { status: newStatus });
     }
@@ -181,9 +174,9 @@ function Tickets() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (selectedTicket) {
+    if (selectedTicket && updateTicket) {
       await updateTicket(selectedTicket.id, formData);
-    } else {
+    } else if (createTicket) {
       await createTicket(formData);
     }
     setShowEditModal(false);
@@ -208,6 +201,16 @@ function Tickets() {
       category: 'general'
     });
   };
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -273,22 +276,29 @@ function Tickets() {
       {/* DataTable */}
       <div className="card border-0 shadow-sm">
         <div className="card-body">
-          <DataTable
-            columns={columns}
-            data={filteredTickets}
-            actions={actions}
-            loading={loading}
-            searchable={false}
-          />
+          {filteredTickets && filteredTickets.length > 0 ? (
+            <DataTable
+              columns={columns}
+              data={filteredTickets}
+              actions={actions}
+              loading={loading}
+              searchable={false}
+            />
+          ) : (
+            <div className="text-center py-5">
+              <i className="bi bi-inbox text-muted" style={{ fontSize: '3rem' }}></i>
+              <p className="text-muted mt-2">No tickets found</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Edit/Create Modal */}
       {showEditModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content border-0 shadow">
-              <div className="modal-header" style={{ backgroundColor: '#0D1526', borderBottom: 'none' }}>
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered" style={{ position: 'relative', zIndex: 1051 }}>
+            <div className="modal-content border-0 shadow" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+              <div className="modal-header" style={{ backgroundColor: '#0D1526', borderBottom: 'none', position: 'sticky', top: 0, zIndex: 1052 }}>
                 <h5 className="modal-title text-white">
                   <i className="bi bi-ticket-detailed me-2"></i>
                   {selectedTicket ? 'Edit Ticket' : 'Create Ticket'}
@@ -383,7 +393,7 @@ function Tickets() {
                         Created At
                       </label>
                       <p style={{ fontSize: '14px', color: '#1F2937' }}>
-                        {new Date(selectedTicket.createdAt).toLocaleString()}
+                        {selectedTicket.createdAt ? new Date(selectedTicket.createdAt).toLocaleString() : '—'}
                       </p>
                     </div>
                   )}
@@ -405,10 +415,10 @@ function Tickets() {
 
       {/* Action Modal */}
       {showActionModal && selectedTicket && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content border-0 shadow">
-              <div className="modal-header" style={{ backgroundColor: '#0D1526', borderBottom: 'none' }}>
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered" style={{ position: 'relative', zIndex: 1051 }}>
+            <div className="modal-content border-0 shadow" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+              <div className="modal-header" style={{ backgroundColor: '#0D1526', borderBottom: 'none', position: 'sticky', top: 0, zIndex: 1052 }}>
                 <h5 className="modal-title text-white">
                   <i className="bi bi-lightning-charge me-2"></i>
                   Take Action on Ticket

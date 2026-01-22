@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDocuments } from '../../hooks/useData';
-import { getCurrentUser } from '../../services/mockAuth';
+import { getCurrentUser } from '../../services/auth';
 import { generateHash, shortHash, generateDocumentId, formatFileSize, validateFileType, validateFileSize } from '../../services/utils';
-import { mockLogService } from '../../services/mockStorage';
 
 function Upload() {
   const navigate = useNavigate();
@@ -16,32 +15,34 @@ function Upload() {
     type: '',
     department: ''
   });
+  const [otherType, setOtherType] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedDoc, setUploadedDoc] = useState(null);
   const [error, setError] = useState('');
 
   const documentTypes = [
-    'Business Permit',
-    'BIR Certificate',
-    'Tax Certificate',
-    'License',
-    'Clearance',
-    'Contract',
-    'Resolution',
-    'Ordinance',
+    'Barangay Clearance',
+    'Certificate of Residency',
+    'Certificate of Indigency',
+    'Business Permit (Barangay)',
+    'Barangay ID',
+    'Solo Parent Certification',
+    'Barangay Blotter Report',
+    'Barangay Certification',
     'Other'
   ];
 
   const departments = [
-    'Business Affairs',
-    'Treasury',
-    'Legal',
-    'IT Department',
-    'Human Resources',
-    'Finance',
-    'Health Services',
-    'Engineering'
+    'Barangay Captain Office',
+    'Barangay Council',
+    'Barangay Treasurer',
+    'Barangay Secretary',
+    'Barangay Health Station',
+    'Barangay Peace and Order',
+    'Barangay DRRM',
+    'Barangay Nutrition',
+    'Barangay Operations Center'
   ];
 
   const handleFileChange = (e) => {
@@ -53,16 +54,16 @@ function Upload() {
       return;
     }
 
-    // Validate file type
-    if (!validateFileType(selectedFile, ['pdf', 'image'])) {
-      setError('Invalid file type. Please upload PDF or image files only.');
+    // Validate file type (PDF, DOC, DOCX, TXT only)
+    if (!validateFileType(selectedFile, ['pdf', 'doc', 'docx', 'txt'])) {
+      setError('Invalid file type. Allowed: PDF, DOC, DOCX, TXT.');
       setFile(null);
       return;
     }
 
-    // Validate file size (10MB max)
-    if (!validateFileSize(selectedFile, 10)) {
-      setError('File size exceeds 10MB limit.');
+    // Validate file size (5MB max)
+    if (!validateFileSize(selectedFile, 5)) {
+      setError('File size exceeds 5MB limit.');
       setFile(null);
       return;
     }
@@ -105,21 +106,30 @@ function Upload() {
       const docId = generateDocumentId();
 
       // Create document record
+      const docType = formData.type === 'Other' ? otherType.trim() : formData.type;
+
+      if (!docType) {
+        setError('Please specify a document type.');
+        setUploading(false);
+        return;
+      }
+
       const newDocument = {
-        id: docId,
+        documentId: docId,
         title: formData.title,
-        type: formData.type,
+        type: docType,
+        documentType: docType, // alias for compatibility
         department: formData.department,
         uploadedBy: currentUser?.name || 'Unknown',
         date: new Date().toISOString().split('T')[0],
         hash: hash,
         shortHash: shortHash(hash),
-        status: 'Active',
-        size: formatFileSize(file.size),
+        status: 'pending',
+        fileSize: file.size, // store raw bytes for registry formatting
         uploadDate: new Date().toISOString().replace('T', ' ').split('.')[0],
         signature: '3045022100' + hash.substring(0, 56),
         fileName: file.name,
-        fileType: file.type
+        fileType: file.type || file.name.split('.').pop()
       };
 
       // Wait for "upload" to complete
@@ -130,15 +140,15 @@ function Upload() {
       // Save to mock storage
       await createDocument(newDocument);
 
-      // Log the upload
-      await mockLogService.create({
-        userId: currentUser?.id || 'UNKNOWN',
-        userName: currentUser?.name || 'Unknown',
-        ip: '192.168.1.' + Math.floor(Math.random() * 255),
-        action: 'DOCUMENT_UPLOAD',
-        details: `Uploaded ${file.name}`,
-        status: 'Success'
-      });
+      // TODO: Backend Integration - Implement audit logging
+      // Once backend is ready, uncomment and use real audit log API:
+      // import { createAuditLog } from '../../api/logs.api';
+      // await createAuditLog({
+      //   action: 'DOCUMENT_UPLOAD',
+      //   resource_type: 'document',
+      //   resource_id: docId,
+      //   details: `Uploaded document: ${newDocument.title}`
+      // });
 
       setUploadedDoc(newDocument);
 
@@ -174,7 +184,7 @@ function Upload() {
 
       <div className="row">
         {/* Upload Form */}
-        <div className="col-lg-8">
+        <div className="col-12">
           <div className="card border-0 shadow-sm">
             <div className="card-body p-4">
               <form onSubmit={handleSubmit}>
@@ -187,7 +197,7 @@ function Upload() {
                       id="fileInput"
                       className="d-none"
                       onChange={handleFileChange}
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept=".pdf,.doc,.docx,.txt"
                       disabled={uploading}
                     />
                     <label htmlFor="fileInput" className="w-100" style={{ cursor: uploading ? 'not-allowed' : 'pointer' }}>
@@ -201,7 +211,7 @@ function Upload() {
                         <div>
                           <i className="bi bi-cloud-upload text-muted" style={{ fontSize: '3rem' }}></i>
                           <p className="mt-2 mb-1">Click to select file or drag and drop</p>
-                          <p className="text-muted small mb-0">PDF, JPG, PNG up to 10MB</p>
+                          <p className="text-muted small mb-0">PDF, DOC, DOCX, TXT up to 5MB</p>
                         </div>
                       )}
                     </label>
@@ -228,7 +238,11 @@ function Upload() {
                   <select
                     className="form-select"
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({ ...formData, type: value });
+                      if (value !== 'Other') setOtherType('');
+                    }}
                     required
                     disabled={uploading}
                   >
@@ -237,6 +251,17 @@ function Upload() {
                       <option key={idx} value={type}>{type}</option>
                     ))}
                   </select>
+                  {formData.type === 'Other' && (
+                    <input
+                      type="text"
+                      className="form-control mt-2"
+                      placeholder="Specify document type"
+                      value={otherType}
+                      onChange={(e) => setOtherType(e.target.value)}
+                      required
+                      disabled={uploading}
+                    />
+                  )}
                 </div>
 
                 {/* Department */}
@@ -326,36 +351,41 @@ function Upload() {
           </div>
         </div>
 
-        {/* Info Sidebar */}
-        <div className="col-lg-4">
-          <div className="card border-0 shadow-sm mb-3">
+      </div>
+
+      {/* Info Section at Bottom */}
+      <div className="row mt-4">
+        <div className="col-md-6">
+          <div className="card border-0 shadow-sm">
             <div className="card-body">
-              <h6 className="card-title">
+              <h6 className="card-title text-primary">
                 <i className="bi bi-info-circle me-2"></i>
                 Upload Guidelines
               </h6>
               <ul className="small mb-0">
-                <li>Maximum file size: 10MB</li>
-                <li>Supported formats: PDF, JPG, PNG</li>
-                <li>Each document gets a unique hash</li>
-                <li>Hash is used for verification</li>
-                <li>All uploads are logged</li>
+                <li><i className="bi bi-check-circle text-success me-2"></i>Maximum file size: 5MB</li>
+                <li><i className="bi bi-check-circle text-success me-2"></i>Supported formats: PDF, DOC, DOCX, TXT</li>
+                <li><i className="bi bi-check-circle text-success me-2"></i>Each document gets a unique hash</li>
+                <li><i className="bi bi-check-circle text-success me-2"></i>Hash is used for verification</li>
+                <li><i className="bi bi-check-circle text-success me-2"></i>All uploads are logged</li>
               </ul>
             </div>
           </div>
+        </div>
 
+        <div className="col-md-6">
           <div className="card border-0 shadow-sm">
             <div className="card-body">
-              <h6 className="card-title">
+              <h6 className="card-title text-primary">
                 <i className="bi bi-shield-check me-2"></i>
                 Security Features
               </h6>
               <ul className="small mb-0">
-                <li>SHA-256 hash generation</li>
-                <li>ECDSA digital signatures</li>
-                <li>Tamper detection</li>
-                <li>Audit trail logging</li>
-                <li>Role-based access</li>
+                <li><i className="bi bi-shield text-info me-2"></i>SHA-256 hash generation</li>
+                <li><i className="bi bi-shield text-info me-2"></i>ECDSA digital signatures</li>
+                <li><i className="bi bi-shield text-info me-2"></i>Tamper detection</li>
+                <li><i className="bi bi-shield text-info me-2"></i>Audit trail logging</li>
+                <li><i className="bi bi-shield text-info me-2"></i>Role-based access</li>
               </ul>
             </div>
           </div>

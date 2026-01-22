@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../../assets/icons/Logo - Integrity Verification.png';
-import { mockLogin, initializeMockUsers } from '../../services/mockAuth';
-import { initializeMockData } from '../../services/mockStorage';
+import { login, initAuth } from '../../services/auth';
 
 function Login() {
   const navigate = useNavigate();
@@ -14,16 +13,92 @@ function Login() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Rate limiting state
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState(null);
+  const [remainingLockoutSeconds, setRemainingLockoutSeconds] = useState(0);
 
   useEffect(() => {
-    // Initialize mock data on app load
-    initializeMockUsers();
-    initializeMockData();
+    // Initialize auth system
+    initAuth();
+    
+    // Restore failed attempts from localStorage
+    const stored = localStorage.getItem('login_attempts');
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        if (data.lockoutTime && Date.now() < data.lockoutTime) {
+          setLockoutTime(data.lockoutTime);
+          setFailedAttempts(data.attempts || 0);
+        } else {
+          // Clear expired lockout
+          localStorage.removeItem('login_attempts');
+        }
+      } catch (e) {
+        localStorage.removeItem('login_attempts');
+      }
+    }
   }, []);
+
+  // Update remaining lockout time
+  useEffect(() => {
+    if (lockoutTime) {
+      const interval = setInterval(() => {
+        const remaining = Math.ceil((lockoutTime - Date.now()) / 1000);
+        if (remaining <= 0) {
+          setLockoutTime(null);
+          setFailedAttempts(0);
+          setRemainingLockoutSeconds(0);
+          localStorage.removeItem('login_attempts');
+        } else {
+          setRemainingLockoutSeconds(remaining);
+        }
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [lockoutTime]);
+
+  // Validation functions
+  const validateUsername = (username) => {
+    if (!username || username.trim().length === 0) {
+      return 'Username is required';
+    }
+    if (username.length < 3) {
+      return 'Username must be at least 3 characters';
+    }
+    if (username.length > 50) {
+      return 'Username must not exceed 50 characters';
+    }
+    // Allow alphanumeric, underscore, hyphen, dot, @
+    if (!/^[a-zA-Z0-9._@-]+$/.test(username)) {
+      return 'Username contains invalid characters';
+    }
+    return null;
+  };
+
+  const validatePassword = (password) => {
+    if (!password || password.length === 0) {
+      return 'Password is required';
+    }
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    if (password.length > 128) {
+      return 'Password must not exceed 128 characters';
+    }
+    return null;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Check lockout
+    if (lockoutTime && Date.now() < lockoutTime) {
+      setError(`Too many failed attempts. Please try again in ${remainingLockoutSeconds} seconds.`);
+      return;
+    }
     
     // Check if reCAPTCHA is verified
     if (!isVerified) {
@@ -31,21 +106,61 @@ function Login() {
       return;
     }
     
-    if (!username || !password) {
-      setError('Please enter both username and password');
+    // Validate username
+    const usernameError = validateUsername(username);
+    if (usernameError) {
+      setError(usernameError);
+      return;
+    }
+    
+    // Validate password
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
     setIsLoading(true);
     
     try {
-      // Use mock authentication service
-      const session = await mockLogin(username, password);
+      // Using unified auth service (works with both mock and real API)
+      const session = await login(username, password);
+      
+      // Success - clear failed attempts
+      setFailedAttempts(0);
+      localStorage.removeItem('login_attempts');
       
       // Navigate to 2FA
       navigate('/two-factor');
     } catch (err) {
-      setError(err.message || 'Invalid credentials. Use admin/admin123 or staff/staff123');
+      // Increment failed attempts
+      const attempts = failedAttempts + 1;
+      setFailedAttempts(attempts);
+      
+      // Apply rate limiting after 5 failed attempts
+      if (attempts >= 5) {
+        const lockout = Date.now() + 15 * 60 * 1000; // 15 minutes
+        setLockoutTime(lockout);
+        setRemainingLockoutSeconds(15 * 60);
+        
+        // Persist to localStorage
+        localStorage.setItem('login_attempts', JSON.stringify({
+          attempts,
+          lockoutTime: lockout
+        }));
+        
+        setError('Account temporarily locked due to too many failed attempts. Please try again in 15 minutes.');
+      } else if (attempts >= 3) {
+        // Persist attempts after 3 failures
+        localStorage.setItem('login_attempts', JSON.stringify({
+          attempts,
+          lockoutTime: null
+        }));
+        
+        setError(`Invalid credentials. ${5 - attempts} attempt${5 - attempts === 1 ? '' : 's'} remaining before temporary lockout.`);
+      } else {
+        setError(err.message || 'Invalid credentials. Please check your username and password.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -296,19 +411,24 @@ function Login() {
                     <button 
                       type="submit" 
                       className="btn w-100 text-white fw-bold" 
-                      disabled={isLoading || !isVerified}
+                      disabled={isLoading || !isVerified || lockoutTime}
                       style={{ 
-                        backgroundColor: isLoading || !isVerified ? '#6B7280' : '#0D1526', 
+                        backgroundColor: isLoading || !isVerified || lockoutTime ? '#6B7280' : '#0D1526', 
                         padding: '14px', 
                         borderRadius: '8px',
                         border: 'none',
                         fontSize: '14px',
                         letterSpacing: '0.5px',
-                        cursor: isLoading || !isVerified ? 'not-allowed' : 'pointer',
-                        opacity: isLoading || !isVerified ? 0.6 : 1
+                        cursor: isLoading || !isVerified || lockoutTime ? 'not-allowed' : 'pointer',
+                        opacity: isLoading || !isVerified || lockoutTime ? 0.6 : 1
                       }}
                     >
-                      {isLoading ? (
+                      {lockoutTime ? (
+                        <>
+                          <i className="bi bi-lock me-2"></i>
+                          LOCKED ({remainingLockoutSeconds}s)
+                        </>
+                      ) : isLoading ? (
                         <>
                           <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                           SIGNING IN...

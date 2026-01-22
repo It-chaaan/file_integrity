@@ -4,7 +4,7 @@ import { useDocuments } from '../../hooks/useData';
 import { formatFileSize } from '../../services/utils';
 
 function Registry() {
-  const { documents, loading } = useDocuments();
+  const { documents = [], loading = false } = useDocuments?.() || {};
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,14 +19,15 @@ function Registry() {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(doc =>
-        doc.documentId.toLowerCase().includes(term) ||
-        doc.fileName.toLowerCase().includes(term) ||
-        doc.department.toLowerCase().includes(term)
+        (doc.documentId || '').toLowerCase().includes(term) ||
+        (doc.fileName || '').toLowerCase().includes(term) ||
+        (doc.department || '').toLowerCase().includes(term) ||
+        (doc.type || '').toLowerCase().includes(term)
       );
     }
     
     if (statusFilter !== 'all') {
-      result = result.filter(doc => doc.status === statusFilter);
+      result = result.filter(doc => (doc.status || '').toLowerCase() === statusFilter);
     }
     
     return result;
@@ -40,7 +41,7 @@ function Registry() {
       filterable: true,
       render: (value) => (
         <span className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
-          {value}
+          {value || '—'}
         </span>
       )
     },
@@ -50,17 +51,20 @@ function Registry() {
       sortable: true,
       filterable: true,
       render: (value) => (
-        <span style={{ fontSize: '14px', color: '#1E3A8A' }}>{value}</span>
+        <span style={{ fontSize: '14px', color: '#1E3A8A' }}>{value || '—'}</span>
       )
     },
     {
-      key: 'fileType',
-      label: 'Type',
+      key: 'type',
+      label: 'Document Type',
       sortable: true,
       filterable: true,
-      render: (value) => (
-        <span style={{ fontSize: '14px', color: '#1F2937' }}>{value}</span>
-      )
+      render: (value, row) => {
+        const display = value || row?.documentType || row?.fileType || '—';
+        return (
+          <span style={{ fontSize: '14px', color: '#1F2937' }}>{display}</span>
+        );
+      }
     },
     {
       key: 'department',
@@ -68,7 +72,7 @@ function Registry() {
       sortable: true,
       filterable: true,
       render: (value) => (
-        <span style={{ fontSize: '14px', color: '#8B4513' }}>{value}</span>
+        <span style={{ fontSize: '14px', color: '#8B4513' }}>{value || '—'}</span>
       )
     },
     {
@@ -76,7 +80,7 @@ function Registry() {
       label: 'Size',
       sortable: true,
       render: (value) => (
-        <span style={{ fontSize: '14px', color: '#1F2937' }}>{formatFileSize(value)}</span>
+        <span style={{ fontSize: '14px', color: '#1F2937' }}>{value ? formatFileSize(value) : '—'}</span>
       )
     },
     {
@@ -86,7 +90,7 @@ function Registry() {
       filterable: true,
       render: (value) => (
         <span style={{ fontSize: '14px', color: '#1F2937' }}>
-          {new Date(value).toLocaleDateString()}
+          {value ? new Date(value).toLocaleDateString() : '—'}
         </span>
       )
     },
@@ -135,6 +139,16 @@ function Registry() {
     setShowDetailsModal(false);
     setSelectedDoc(null);
   };
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -187,22 +201,29 @@ function Registry() {
       {/* DataTable with search, filter, sort, pagination */}
       <div className="card border-0 shadow-sm">
         <div className="card-body">
-          <DataTable
-            columns={columns}
-            data={filteredDocuments}
-            actions={actions}
-            loading={loading}
-            searchable={false}
-          />
+          {filteredDocuments && filteredDocuments.length > 0 ? (
+            <DataTable
+              columns={columns}
+              data={filteredDocuments}
+              actions={actions}
+              loading={loading}
+              searchable={false}
+            />
+          ) : (
+            <div className="text-center py-5">
+              <i className="bi bi-inbox text-muted" style={{ fontSize: '3rem' }}></i>
+              <p className="text-muted mt-2">No documents found</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Document Details Modal */}
       {showDetailsModal && selectedDoc && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content border-0 shadow">
-              <div className="modal-header" style={{ backgroundColor: '#0D1526', borderBottom: 'none' }}>
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered" style={{ position: 'relative', zIndex: 1051 }}>
+            <div className="modal-content border-0 shadow" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+              <div className="modal-header" style={{ backgroundColor: '#0D1526', borderBottom: 'none', position: 'sticky', top: 0, zIndex: 1052 }}>
                 <h5 className="modal-title text-white">
                   <i className="bi bi-file-earmark-text me-2"></i>
                   Document Details
@@ -216,7 +237,7 @@ function Registry() {
                       Document ID
                     </label>
                     <p className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
-                      {selectedDoc.documentId}
+                      {selectedDoc.documentId || '—'}
                     </p>
                   </div>
                   <div className="col-md-6">
@@ -225,7 +246,7 @@ function Registry() {
                     </label>
                     <p>
                       <span className={`badge bg-${selectedDoc.status === 'verified' ? 'success' : 'warning'}`}>
-                        {selectedDoc.status}
+                        {selectedDoc.status || 'pending'}
                       </span>
                     </p>
                   </div>
@@ -234,33 +255,33 @@ function Registry() {
                       File Name
                     </label>
                     <p className="fw-semibold" style={{ fontSize: '14px', color: '#1E3A8A' }}>
-                      {selectedDoc.fileName}
+                      {selectedDoc.fileName || '—'}
                     </p>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                       File Type
                     </label>
-                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.fileType}</p>
+                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.fileType || '—'}</p>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                       File Size
                     </label>
-                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{formatFileSize(selectedDoc.fileSize)}</p>
+                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.fileSize ? formatFileSize(selectedDoc.fileSize) : '—'}</p>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                       Department
                     </label>
-                    <p style={{ fontSize: '14px', color: '#8B4513' }}>{selectedDoc.department}</p>
+                    <p style={{ fontSize: '14px', color: '#8B4513' }}>{selectedDoc.department || '—'}</p>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                       Upload Date
                     </label>
                     <p style={{ fontSize: '14px', color: '#1F2937' }}>
-                      {new Date(selectedDoc.uploadDate).toLocaleDateString()}
+                      {selectedDoc.uploadDate ? new Date(selectedDoc.uploadDate).toLocaleDateString() : '—'}
                     </p>
                   </div>
                   <div className="col-12">
@@ -278,14 +299,14 @@ function Registry() {
                         color: '#374151'
                       }}
                     >
-                      {selectedDoc.hash}
+                      {selectedDoc.hash || '—'}
                     </div>
                   </div>
                   <div className="col-12">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                       Uploaded By
                     </label>
-                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.uploadedBy}</p>
+                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.uploadedBy || '—'}</p>
                   </div>
                 </div>
               </div>

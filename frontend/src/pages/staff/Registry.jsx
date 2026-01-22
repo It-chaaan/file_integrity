@@ -4,7 +4,7 @@ import { useDocuments } from '../../hooks/useData';
 import { formatFileSize } from '../../services/utils';
 
 function Registry() {
-  const { documents, loading } = useDocuments();
+  const { documents = [], loading = false } = useDocuments?.() || {};
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');

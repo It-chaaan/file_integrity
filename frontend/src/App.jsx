@@ -8,15 +8,21 @@ import staffRoutes from './routes/staff.routes';
 import publicRoutes from './routes/public.routes';
 import Login from './pages/auth/Login';
 import TwoFactor from './pages/auth/TwoFactor';
+// UPDATED: Use unified auth initialization instead of direct mock
+import { initAuth } from './services/auth';
 import { initializeMockData } from './services/mockStorage';
 
 function App() {
   useEffect(() => {
-    // Initialize mock data on app startup
+    // UPDATED: Initialize auth system (handles both mock and real API)
     try {
-      initializeMockData();
+      initAuth();
+      // Initialize mock data ONLY when in mock mode
+      if (import.meta.env.VITE_USE_MOCK_API !== 'false') {
+        initializeMockData();
+      }
     } catch (error) {
-      console.error('Error initializing mock data:', error);
+      console.error('Error initializing auth:', error);
     }
   }, []);
 

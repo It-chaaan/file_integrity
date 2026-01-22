@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
+import { validateFileType, validateFileSize } from '../../services/utils';
 
 function Verify() {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const allowedTypes = ['pdf', 'doc', 'docx', 'txt'];
+  const maxSizeMB = 5;
 
   const steps = [
     { number: 1, title: 'Upload File' },
@@ -14,28 +19,42 @@ function Verify() {
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      setCurrentStep(2);
-      setIsVerifying(true);
-      
-      // Simulate hash computation
-      setTimeout(() => {
-        setIsVerifying(false);
-        setCurrentStep(3);
-        setVerificationResult({
-          filename: file.name,
-          documentId: 'DOC-2026-001847',
-          documentType: 'BIR Certificate',
-          fileSize: '2.4 MB',
-          uploadDate: '2026-01-08 14:32:15',
-          uploadedBy: 'Martin Luspo',
-          hash: 'd4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35',
-          signature: '3045022100f1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0',
-          isAuthentic: true
-        });
-      }, 2000);
+    setError('');
+
+    if (!file) return;
+
+    if (!validateFileType(file, allowedTypes)) {
+      setError('Only PDF, DOC, DOCX, or TXT files are allowed.');
+      setSelectedFile(null);
+      return;
     }
+
+    if (!validateFileSize(file, maxSizeMB)) {
+      setError(`File size exceeds ${maxSizeMB}MB limit.`);
+      setSelectedFile(null);
+      return;
+    }
+
+    setSelectedFile(file);
+    setCurrentStep(2);
+    setIsVerifying(true);
+    
+    // Simulate hash computation
+    setTimeout(() => {
+      setIsVerifying(false);
+      setCurrentStep(3);
+      setVerificationResult({
+        filename: file.name,
+        documentId: 'DOC-2026-001847',
+        documentType: 'BIR Certificate',
+        fileSize: '2.4 MB',
+        uploadDate: '2026-01-08 14:32:15',
+        uploadedBy: 'Martin Luspo',
+        hash: 'd4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35',
+        signature: '3045022100f1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0',
+        isAuthentic: true
+      });
+    }, 2000);
   };
 
   const resetVerification = () => {
@@ -98,15 +117,18 @@ function Verify() {
                 type="file"
                 id="fileUpload"
                 className="d-none"
-                accept=".pdf,.doc,.docx"
+                accept=".pdf,.doc,.docx,.txt"
                 onChange={handleFileSelect}
               />
               <label htmlFor="fileUpload" className="btn btn-primary">
                 Select File
               </label>
               <p className="text-muted small mt-3 mb-0">
-                Supported formats: PDF, DOC, DOCX • Max size: 50MB
+                Supported formats: PDF, DOC, DOCX, TXT • Max size: 5MB
               </p>
+              {error && (
+                <p className="text-danger small mt-2 mb-0">{error}</p>
+              )}
             </div>
           </div>
         </div>
@@ -193,6 +215,23 @@ function Verify() {
           </div>
         </div>
       )}
+
+      <div className="card border-0 shadow-sm mt-4">
+        <div className="card-body d-flex">
+          <div className="me-3 d-flex align-items-start">
+            <span className="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-inline-flex">
+              <i className="bi bi-shield-lock fs-4"></i>
+            </span>
+          </div>
+          <div>
+            <h5 className="mb-2">How Verification Works</h5>
+            <p className="mb-0 text-muted">
+              The system computes a SHA-256 cryptographic hash of your uploaded document and compares it with the hash stored in our registry.
+              If the hashes match, the document is authentic. Any modification to the document, even a single character, will result in a completely different hash.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
