@@ -4,7 +4,7 @@ import DataTable from '../../components/DataTable';
 import { useKeys } from '../../hooks/useData';
 
 function Security() {
-  const { keys = [], updateKey, loading = false } = useKeys?.() || {};
+  const { keys = [], updateKey, loading = false } = useKeys();
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showRotateModal, setShowRotateModal] = useState(false);
   const [selectedKey, setSelectedKey] = useState(null);

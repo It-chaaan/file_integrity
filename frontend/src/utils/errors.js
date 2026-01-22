@@ -1,14 +1,3 @@
-/**
- * Error Handling Utilities
- * 
- * Provides comprehensive error handling, parsing, and user-friendly error messages
- * for the entire application.
- */
-
-/**
- * Error Types
- * Categorizes different types of errors for proper handling
- */
 export const ErrorTypes = {
   NETWORK: 'NETWORK',
   AUTHENTICATION: 'AUTHENTICATION',

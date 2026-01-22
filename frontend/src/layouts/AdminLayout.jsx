@@ -1,24 +1,124 @@
+/**
+ * =============================================================================
+ * ADMIN LAYOUT - ADMINISTRATOR PORTAL WRAPPER
+ * =============================================================================
+ * 
+ * This layout component wraps all administrator portal pages and provides:
+ * - Authentication protection (redirects to login if not authenticated)
+ * - Navigation sidebar with admin menu items
+ * - Top navigation bar with user info and logout
+ * - Responsive layout that adapts to mobile, tablet, and desktop
+ * 
+ * AUTHENTICATION:
+ * - Checks authentication status on mount
+ * - Redirects unauthenticated users to /login
+ * - Uses 100ms delay to ensure session data is loaded
+ * 
+ * RESPONSIVE BEHAVIOR:
+ * - Mobile (<576px): Sidebar overlay, collapsible
+ * - Tablet (576-992px): Fixed sidebar, 220px width
+ * - Desktop (>992px): Fixed sidebar, 250px width
+ * 
+ * FOR BACKEND DEVELOPERS:
+ * - Authentication check uses isAuthenticated() from services/auth.js
+ * - User data retrieved via getCurrentUser()
+ * - Logout clears session and redirects to /login
+ * 
+ * FOR TESTERS:
+ * - Test authentication: Try accessing /admin without login
+ * - Test responsive: Resize browser window to test sidebar behavior
+ * - Test logout: Click user profile → logout button
+ * =============================================================================
+ */
+
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
+
+// ============================================================================
+// SHARED COMPONENTS
+// ============================================================================
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
+
+// ============================================================================
+// AUTHENTICATION SERVICES
+// ============================================================================
 import { getCurrentUser, isAuthenticated } from '../services/auth';
 
+/**
+ * Admin Layout Component
+ * 
+ * Provides the layout structure for all admin portal pages.
+ * Handles authentication, responsive design, and navigation.
+ * 
+ * @component
+ * @returns {JSX.Element} Admin layout with sidebar, topbar, and page content
+ */
 const AdminLayout = () => {
   const navigate = useNavigate();
+  
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
+  
+  // Track if authentication check is complete
+  const [isReady, setIsReady] = React.useState(false);
+  
+  // Get current user data from authentication service
   const currentUser = getCurrentUser();
   
-  // Redirect to login if not authenticated
+  // ============================================================================
+  // AUTHENTICATION PROTECTION
+  // ============================================================================
+  /**
+   * Authentication Guard Effect
+   * 
+   * Runs on component mount to verify user is authenticated.
+   * Uses a 100ms delay to ensure session data is fully loaded.
+   * 
+   * Flow:
+   * 1. Wait 100ms for session to load
+   * 2. Check authentication status
+   * 3. Redirect to /login if not authenticated
+   * 4. Set isReady=true if authenticated
+   */
   React.useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate('/login');
-    }
+    const checkAuth = () => {
+      const authenticated = isAuthenticated();
+      
+      if (!authenticated) {
+        // User is not authenticated, redirect to login
+        navigate('/login');
+      } else {
+        // User is authenticated, allow access
+        setIsReady(true);
+      }
+    };
+    
+    // Small delay ensures session data is loaded
+    // Important for handling page refresh and direct URL access
+    const timer = setTimeout(checkAuth, 100);
+    
+    // Cleanup: Clear timeout if component unmounts
+    return () => clearTimeout(timer);
   }, [navigate]);
   
-  // Prepare user object with fallback
+  // ============================================================================
+  // USER DATA PREPARATION
+  // ============================================================================
+  /**
+   * Prepare user object with fallback values
+   * 
+   * Extracts user info for display in topbar:
+   * - name: Full name or "Admin User" as fallback
+   * - initials: First letters of name for avatar (e.g., "JD" for "John Doe")
+   * - role: User role (admin, staff)
+   */
   const user = currentUser ? {
     name: currentUser.name || 'Admin User',
-    initials: currentUser.name ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'AD',
+    initials: currentUser.name 
+      ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) 
+      : 'AD',
     role: currentUser.role || 'admin'
   } : {
     name: 'Loading...',
@@ -26,52 +126,109 @@ const AdminLayout = () => {
     role: 'admin'
   };
 
-  // Responsive state management
+  // ============================================================================
+  // RESPONSIVE LAYOUT STATE
+  // ============================================================================
+  /**
+   * Responsive breakpoints:
+   * - Mobile: < 576px (sidebar overlay)
+   * - Tablet: 576-992px (sidebar 220px)
+   * - Desktop: > 992px (sidebar 250px)
+   */
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 576);
   const [isTablet, setIsTablet] = React.useState(window.innerWidth >= 576 && window.innerWidth < 992);
-  const [sidebarOpen, setSidebarOpen] = React.useState(window.innerWidth >= 576); // Open by default on desktop/tablet
+  const [sidebarOpen, setSidebarOpen] = React.useState(window.innerWidth >= 576);
 
+  /**
+   * Window Resize Handler
+   * 
+   * Updates responsive state when browser window is resized.
+   * Automatically opens/closes sidebar based on screen size.
+   */
   React.useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
+      
+      // Update breakpoint states
       setIsMobile(width < 576);
       setIsTablet(width >= 576 && width < 992);
       
-      // Auto-close mobile sidebar when resizing to larger screens, auto-open on larger screens
+      // Auto-manage sidebar visibility
       if (width < 576) {
-        setSidebarOpen(false);
+        setSidebarOpen(false); // Close on mobile
       } else if (width >= 576) {
-        setSidebarOpen(true);
+        setSidebarOpen(true); // Open on tablet/desktop
       }
     };
 
+    // Register resize listener
     window.addEventListener('resize', handleResize);
+    
+    // Cleanup: Remove listener on unmount
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
+  
+  /**
+   * Logout Handler
+   * 
+   * Prompts user for confirmation before logging out.
+   * Redirects to login page on confirmation.
+   * 
+   * Note: Full page navigation clears all state and session data.
+   */
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       window.location.href = '/login';
     }
   };
 
+  /**
+   * Sidebar Toggle Handler
+   * 
+   * Opens/closes sidebar (primarily for mobile/tablet views).
+   */
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  // Calculate sidebar width for layout adjustments
+  // ============================================================================
+  // LAYOUT CALCULATIONS
+  // ============================================================================
+  
+  /**
+   * Calculate Sidebar Width
+   * 
+   * Determines sidebar width based on screen size and open/closed state.
+   * 
+   * @returns {number} Sidebar width in pixels
+   * - 0px: Sidebar hidden or mobile (overlay mode)
+   * - 220px: Tablet
+   * - 250px: Desktop
+   */
   const getSidebarWidth = () => {
-    if (!sidebarOpen) return 0; // Sidebar is hidden
-    if (isMobile) return 0; // On mobile, sidebar is overlay
+    if (!sidebarOpen) return 0;
+    if (isMobile) return 0; // Overlay on mobile, doesn't affect layout
     if (isTablet) return 220;
     return 250;
   };
 
   const sidebarWidth = getSidebarWidth();
 
+  // ============================================================================
+  // RENDER
+  // ============================================================================
   return (
     <div style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
-      {/* Sidebar - Responsive */}
+      {/* ================================================================ */}
+      {/* SIDEBAR - Navigation Menu                                        */}
+      {/* ================================================================ */}
+      {/* Displays admin menu items: Dashboard, Users, Security, etc.     */}
+      {/* Responsive: Overlay on mobile, fixed on tablet/desktop           */}
+      {/* ================================================================ */}
       <Sidebar
         role="admin"
         onLogout={handleLogout}
@@ -79,7 +236,12 @@ const AdminLayout = () => {
         onToggle={toggleSidebar}
       />
 
-      {/* Main Content Area - Adjusts based on screen size */}
+      {/* ================================================================ */}
+      {/* MAIN CONTENT AREA                                                */}
+      {/* ================================================================ */}
+      {/* Adjusts width based on sidebar visibility                        */}
+      {/* Contains topbar and page content (via <Outlet />)                */}
+      {/* ================================================================ */}
       <div style={{
         marginLeft: `${sidebarWidth}px`,
         width: `calc(100% - ${sidebarWidth}px)`,

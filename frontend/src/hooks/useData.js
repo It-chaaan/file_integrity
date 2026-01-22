@@ -1,16 +1,71 @@
 /**
- * Data Hooks for API Integration
- * Provides custom hooks for fetching and managing data from API endpoints
- * Works with both mock and real API through the adapter pattern
+ * =============================================================================
+ * USE DATA HOOKS - DATA FETCHING AND STATE MANAGEMENT
+ * =============================================================================
+ * 
+ * This file provides custom React hooks for fetching and managing data from
+ * the backend API. All hooks work seamlessly with both mock and real API modes.
+ * 
+ * AVAILABLE HOOKS:
+ * - useData()       → Generic data fetching hook
+ * - useDocuments()  → Document CRUD operations
+ * - useUsers()      → User management operations
+ * - useTickets()    → Support ticket operations
+ * - useKeys()       → Security key management
+ * - useLogs()       → Audit log access
+ * 
+ * FEATURES:
+ * - Automatic loading states
+ * - Error handling
+ * - Data refetching
+ * - Pagination support (handles both paginated and non-paginated responses)
+ * - CRUD operations (Create, Read, Update, Delete)
+ * 
+ * FOR BACKEND DEVELOPERS:
+ * - Hooks call adapter functions (src/api/adapter.js)
+ * - Adapter routes to real API when VITE_USE_MOCK_API=false
+ * - Response format: { results: [...], count: n } for paginated data
+ * - Or direct array [...] for non-paginated data
+ * 
+ * FOR TESTERS:
+ * - loading: true while fetching data
+ * - error: contains error object if request fails
+ * - refetch(): manually trigger data reload
+ * - CRUD operations automatically refresh data list
+ * 
+ * USAGE EXAMPLE:
+ * ```javascript
+ * const { documents, loading, error, createDocument } = useDocuments();
+ * 
+ * if (loading) return <Spinner />;
+ * if (error) return <ErrorMessage error={error} />;
+ * 
+ * return <DocumentList documents={documents} onCreate={createDocument} />;
+ * ```
+ * =============================================================================
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import * as adapter from '../api/adapter';
 
+// =============================================================================
+// GENERIC DATA HOOK
+// =============================================================================
+
 /**
- * Generic data fetching hook
- * @param {Function} fetchFn - Function that fetches data
- * @param {Array} dependencies - Dependencies for re-fetching
+ * Generic Data Fetching Hook
+ * 
+ * Provides reusable data fetching logic with loading and error states.
+ * 
+ * @param {Function} fetchFn - Async function that fetches data
+ * @param {Array} dependencies - Dependencies that trigger refetch
+ * @returns {Object} { data, loading, error, refetch }
+ * 
+ * @example
+ * const { data, loading } = useData(
+ *   () => adapter.getDocuments({ status: 'active' }),
+ *   [status]
+ * );
  */
 export const useData = (fetchFn, dependencies = []) => {
   const [data, setData] = useState(null);
@@ -37,20 +92,56 @@ export const useData = (fetchFn, dependencies = []) => {
   return { data, loading, error, refetch: fetchData };
 };
 
+// =============================================================================
+// DOCUMENT OPERATIONS HOOK
+// =============================================================================
+
 /**
- * Hook for document operations
+ * Document Operations Hook
+ * 
+ * Manages document data and provides CRUD operations.
+ * 
+ * @returns {Object} {
+ *   documents: Array of document objects
+ *   loading: Boolean indicating fetch status
+ *   error: Error object if fetch failed
+ *   createDocument: Function to create new document
+ *   updateDocument: Function to update document
+ *   deleteDocument: Function to delete document
+ *   refetch: Function to manually refresh data
+ * }
+ * 
+ * DOCUMENT OBJECT STRUCTURE:
+ * {
+ *   id: string,
+ *   fileName: string,
+ *   type: string,
+ *   status: 'pending' | 'verified' | 'rejected',
+ *   hash: string,
+ *   uploadedBy: string,
+ *   uploadDate: string (ISO format),
+ *   ...
+ * }
  */
 export const useDocuments = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  /**
+   * Fetch all documents
+   * Handles both paginated ({ results: [...] }) and array responses
+   */
   const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const result = await adapter.getDocuments();
-      setDocuments(result || []);
+      
+      // Handle both paginated and non-paginated responses
+      // Backend may return: { results: [...], count: n } or just [...]
+      const docs = result?.results || result || [];
+      setDocuments(Array.isArray(docs) ? docs : []);
     } catch (err) {
       setError(err);
       setDocuments([]);
@@ -59,10 +150,17 @@ export const useDocuments = () => {
     }
   }, []);
 
+  /**
+   * Create new document
+   * 
+   * @param {Object} documentData - Document data to create
+   * @returns {Promise<Object>} Created document object
+   * @throws {Error} If creation fails
+   */
   const createDocument = useCallback(async (documentData) => {
     try {
       const result = await adapter.createDocument(documentData);
-      await fetchDocuments(); // Refresh list
+      await fetchDocuments(); // Refresh list after creation
       return result;
     } catch (err) {
       setError(err);
@@ -70,10 +168,18 @@ export const useDocuments = () => {
     }
   }, [fetchDocuments]);
 
+  /**
+   * Update existing document
+   * 
+   * @param {string} id - Document ID
+   * @param {Object} documentData - Updated document data
+   * @returns {Promise<Object>} Updated document object
+   * @throws {Error} If update fails
+   */
   const updateDocument = useCallback(async (id, documentData) => {
     try {
       const result = await adapter.updateDocument(id, documentData);
-      await fetchDocuments(); // Refresh list
+      await fetchDocuments(); // Refresh list after update
       return result;
     } catch (err) {
       setError(err);
@@ -81,16 +187,24 @@ export const useDocuments = () => {
     }
   }, [fetchDocuments]);
 
+  /**
+   * Delete document
+   * 
+   * @param {string} id - Document ID to delete
+   * @returns {Promise<void>}
+   * @throws {Error} If deletion fails
+   */
   const deleteDocument = useCallback(async (id) => {
     try {
       await adapter.deleteDocument(id);
-      await fetchDocuments(); // Refresh list
+      await fetchDocuments(); // Refresh list after deletion
     } catch (err) {
       setError(err);
       throw err;
     }
   }, [fetchDocuments]);
 
+  // Fetch documents on mount
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
@@ -119,7 +233,9 @@ export const useUsers = () => {
       setLoading(true);
       setError(null);
       const result = await adapter.getUsers();
-      setUsers(result || []);
+      // Handle both paginated and non-paginated responses
+      const userData = result?.results || result || [];
+      setUsers(Array.isArray(userData) ? userData : []);
     } catch (err) {
       setError(err);
       setUsers([]);
@@ -188,7 +304,9 @@ export const useTickets = () => {
       setLoading(true);
       setError(null);
       const result = await adapter.getTickets();
-      setTickets(result || []);
+      // Handle both paginated and non-paginated responses
+      const ticketData = result?.results || result || [];
+      setTickets(Array.isArray(ticketData) ? ticketData : []);
     } catch (err) {
       setError(err);
       setTickets([]);
@@ -257,7 +375,9 @@ export const useKeys = () => {
       setLoading(true);
       setError(null);
       const result = await adapter.getKeys();
-      setKeys(result || []);
+      // Handle both paginated and non-paginated responses
+      const keyData = result?.results || result || [];
+      setKeys(Array.isArray(keyData) ? keyData : []);
     } catch (err) {
       setError(err);
       setKeys([]);
@@ -314,7 +434,9 @@ export const useLogs = () => {
       setLoading(true);
       setError(null);
       const result = await adapter.getLogs();
-      setLogs(result || []);
+      // Handle both paginated and non-paginated responses
+      const logData = result?.results || result || [];
+      setLogs(Array.isArray(logData) ? logData : []);
     } catch (err) {
       setError(err);
       setLogs([]);

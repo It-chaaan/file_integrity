@@ -9,8 +9,8 @@
  * Usage: node backend-validation.test.js
  */
 
-const https = require('https');
-const http = require('http');
+import https from 'https';
+import http from 'http';
 
 // Configuration
 const config = {
