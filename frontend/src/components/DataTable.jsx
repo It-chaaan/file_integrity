@@ -92,43 +92,45 @@ const DataTable = ({
   };
 
   return (
-    <div>
-      {/* Search and Filters */}
+    <div className="data-table-container">
+      {/* Search and Filters - Responsive Layout */}
       {(searchable || filterable) && (
-        <div className="row mb-3">
+        <div className="row g-3 mb-3">
           {searchable && (
-            <div className="col-md-6">
+            <div className="col-12 col-md-6 col-lg-8">
               <div className="input-group">
-                <span className="input-group-text bg-white">
-                  <i className="bi bi-search"></i>
+                <span className="input-group-text bg-white border-end-0">
+                  <i className="bi bi-search text-muted"></i>
                 </span>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-control border-start-0 ps-0"
                   placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
+                  style={{ fontSize: '0.95rem' }}
                 />
               </div>
             </div>
           )}
-          
+
           {filterable && filters.length > 0 && (
-            <div className="col-md-6">
-              <div className="d-flex gap-2">
-                {filters.map((filter, idx) => (
+            <div className="col-12 col-md-6 col-lg-4">
+              <div className="d-flex flex-wrap gap-2">
+                {filters.map((filter) => (
                   <select
-                    key={idx}
-                    className="form-select"
+                    key={filter.key}
+                    className="form-select form-select-sm flex-grow-1"
                     value={activeFilters[filter.key] || 'all'}
                     onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                    style={{ minWidth: '120px', fontSize: '0.9rem' }}
                   >
                     <option value="all">{filter.label}: All</option>
-                    {filter.options.map((option, optIdx) => (
-                      <option key={optIdx} value={option.value}>
+                    {filter.options.map((option) => (
+                      <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
                     ))}
@@ -139,57 +141,75 @@ const DataTable = ({
           )}
         </div>
       )}
-      
-      {/* Table */}
+
+      {/* Table Container with Responsive Wrapper */}
       <div className="table-responsive">
-        <table className="table table-hover align-middle">
+        <table className="table table-hover align-middle mb-0">
           <thead className="table-light">
             <tr>
-              {columns.map((col, idx) => (
+              {columns.map((col) => (
                 <th 
-                  key={idx} 
-                  style={{ 
-                    fontSize: '0.85rem', 
-                    fontWeight: '600',
-                    cursor: sortable && col.sortable !== false ? 'pointer' : 'default',
-                    userSelect: 'none'
-                  }}
+                  key={col.key} 
                   onClick={() => col.sortable !== false && handleSort(col.key)}
+                  style={{ 
+                    cursor: col.sortable !== false ? 'pointer' : 'default',
+                    userSelect: 'none',
+                    whiteSpace: 'nowrap',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    padding: '0.875rem 0.75rem'
+                  }}
                 >
-                  <div className="d-flex align-items-center justify-content-between">
-                    <span>{col.label}</span>
-                    {sortable && col.sortable !== false && (
-                      <i className={`bi ${getSortIcon(col.key)} ms-2 text-muted`} style={{ fontSize: '0.75rem' }}></i>
+                  <div className="d-flex align-items-center gap-2">
+                    {col.label}
+                    {col.sortable !== false && (
+                      <i 
+                        className={`bi ${getSortIcon(col.key)} text-muted`}
+                        style={{ fontSize: '0.75rem' }}
+                      ></i>
                     )}
                   </div>
                 </th>
               ))}
-              {actions && <th style={{ fontSize: '0.85rem', fontWeight: '600', width: '150px' }}>Actions</th>}
+              {actions && <th style={{ width: '150px', fontSize: '0.9rem', fontWeight: '600' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (actions ? 1 : 0)} className="text-center py-5">
-                  <i className="bi bi-inbox text-muted" style={{ fontSize: '3rem' }}></i>
-                  <p className="text-muted mt-2">{emptyMessage}</p>
+                <td 
+                  colSpan={columns.length + (actions ? 1 : 0)} 
+                  className="text-center text-muted py-5"
+                  style={{ fontSize: '0.95rem' }}
+                >
+                  <i className="bi bi-inbox fs-1 d-block mb-3 text-muted opacity-50"></i>
+                  {emptyMessage}
                 </td>
               </tr>
             ) : (
-              paginatedData.map((row, rowIdx) => (
+              paginatedData.map((row, idx) => (
                 <tr 
-                  key={rowIdx}
+                  key={idx}
                   onClick={() => onRowClick && onRowClick(row)}
-                  style={{ cursor: onRowClick ? 'pointer' : 'default' }}
+                  style={{ 
+                    cursor: onRowClick ? 'pointer' : 'default',
+                    transition: 'background-color 0.15s'
+                  }}
                 >
-                  {columns.map((col, colIdx) => (
-                    <td key={colIdx} style={{ fontSize: '0.9rem' }}>
+                  {columns.map((col) => (
+                    <td 
+                      key={col.key}
+                      style={{ 
+                        fontSize: '0.9rem',
+                        padding: '0.875rem 0.75rem'
+                      }}
+                    >
                       {col.render ? col.render(row[col.key], row) : row[col.key]}
                     </td>
                   ))}
                   {actions && (
-                    <td>
-                      <div className="d-flex gap-1">
+                    <td style={{ padding: '0.875rem 0.75rem' }}>
+                      <div className="d-flex gap-2 flex-wrap">
                         {actions(row)}
                       </div>
                     </td>
@@ -200,17 +220,28 @@ const DataTable = ({
           </tbody>
         </table>
       </div>
-      
-      {/* Pagination */}
-      {sortedData.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          totalItems={sortedData.length}
-          startIndex={(currentPage - 1) * pageSize}
-          endIndex={Math.min(currentPage * pageSize, sortedData.length)}
-        />
+
+      {/* Pagination Footer - Responsive */}
+      {paginatedData.length > 0 && (
+        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 mt-3 pt-3 border-top">
+          {/* Results Info */}
+          <div className="text-muted small text-center text-sm-start">
+            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, sortedData.length)} of {sortedData.length} results
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="d-flex align-items-center gap-2 flex-wrap justify-content-center">
+            {/* Pagination Component */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              totalItems={sortedData.length}
+              startIndex={(currentPage - 1) * pageSize}
+              endIndex={Math.min(currentPage * pageSize, sortedData.length)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

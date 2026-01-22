@@ -1,35 +1,34 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function Dashboard() {
+  const navigate = useNavigate();
+
   const stats = [
     {
       title: 'Documents Verified',
       value: '47',
       icon: 'bi-shield-check',
       bgColor: '#10B981',
-      iconColor: '#FFFFFF'
+      iconColor: '#FFFFFF',
+      onClick: () => navigate('/staff/verify')
     },
     {
       title: 'Documents Uploaded',
       value: '23',
       icon: 'bi-cloud-upload',
       bgColor: '#3B82F6',
-      iconColor: '#FFFFFF'
+      iconColor: '#FFFFFF',
+      onClick: () => navigate('/staff/upload')
     },
     {
-      title: 'Assigned Tickets',
+      title: 'Tickets',
       value: '5',
       icon: 'bi-ticket-detailed',
       bgColor: '#F59E0B',
-      iconColor: '#FFFFFF'
+      iconColor: '#FFFFFF',
+      onClick: () => navigate('/staff/tickets')
     },
-    {
-      title: 'Pending Actions',
-      value: '2',
-      icon: 'bi-clock',
-      bgColor: '#6B7280',
-      iconColor: '#FFFFFF'
-    }
   ];
 
   const assignedTickets = [
@@ -99,7 +98,13 @@ function Dashboard() {
       <div className="row g-3 mb-4">
         {stats.map((stat, index) => (
           <div key={index} className="col-md-3">
-            <div className="card border-0 shadow-sm h-100">
+            <div 
+              className="card border-0 shadow-sm h-100"
+              style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+              onClick={stat.onClick}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
               <div className="card-body">
                 <div className="d-flex align-items-center">
                   <div className="rounded p-3 me-3" style={{ backgroundColor: stat.bgColor }}>

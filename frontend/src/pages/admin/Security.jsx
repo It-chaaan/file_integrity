@@ -4,7 +4,7 @@ import DataTable from '../../components/DataTable';
 import { useKeys } from '../../hooks/useData';
 
 function Security() {
-  const { keys = [], updateKey } = useKeys();
+  const { keys = [], updateKey, loading = false } = useKeys?.() || {};
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showRotateModal, setShowRotateModal] = useState(false);
   const [selectedKey, setSelectedKey] = useState(null);
@@ -21,22 +21,22 @@ function Security() {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(key =>
-        key.keyId.toLowerCase().includes(term) ||
-        key.algorithm.toLowerCase().includes(term)
+        (key.keyId || '').toLowerCase().includes(term) ||
+        (key.algorithm || '').toLowerCase().includes(term)
       );
     }
     
     if (statusFilter !== 'all') {
-      result = result.filter(key => key.status === statusFilter);
+      result = result.filter(key => (key.status || '').toLowerCase() === statusFilter);
     }
     
     return result;
   }, [keys, searchTerm, statusFilter]);
 
   const stats = [
-    { label: 'Active Keys', value: keys.filter(k => k.status === 'active').length, color: 'success' },
-    { label: 'Revoked Keys', value: keys.filter(k => k.status === 'revoked').length, color: 'warning' },
-    { label: 'Expired Keys', value: keys.filter(k => k.status === 'expired').length, color: 'danger' }
+    { label: 'Active Keys', value: keys.filter(k => (k.status || '').toLowerCase() === 'active').length, color: 'success' },
+    { label: 'Revoked Keys', value: keys.filter(k => (k.status || '').toLowerCase() === 'revoked').length, color: 'warning' },
+    { label: 'Expired Keys', value: keys.filter(k => (k.status || '').toLowerCase() === 'expired').length, color: 'danger' }
   ];
 
   const columns = [
@@ -48,7 +48,11 @@ function Security() {
       key: 'status',
       label: 'Status',
       sortable: true,
-      render: (value) => <StatusBadge status={value} />
+      render: (value) => (
+        <span className={`badge bg-${value === 'active' ? 'success' : value === 'revoked' ? 'warning' : 'danger'}`}>
+          {value || 'Unknown'}
+        </span>
+      )
     },
     { key: 'lastUsed', label: 'Last Used', sortable: true }
   ];
@@ -57,6 +61,16 @@ function Security() {
     setSelectedKey(key);
     setRotationReason('');
     setShowRotateModal(true);
+  };
+
+  const handleRevokeKey = (key) => {
+    if (updateKey && key) {
+      updateKey(key.id, {
+        ...key,
+        status: 'revoked',
+        lastUsed: 'Revoked now'
+      });
+    }
   };
 
   const handleRotateKey = () => {
@@ -76,7 +90,11 @@ function Security() {
 
   const actions = (row) => {
     // Only show rotate button for active keys
-    const isActive = row.status === 'active' || row.status === 'Active';
+    const isActive = (row.status || '').toLowerCase() === 'active';
+    const isRevoked = (row.status || '').toLowerCase() === 'revoked';
+    const isExpired = (row.status || '').toLowerCase() === 'expired';
+    const canRevoke = !isRevoked && !isExpired;
+    
     return (
       <div className="btn-group" role="group">
         {isActive && (
@@ -88,9 +106,36 @@ function Security() {
             <i className="bi bi-arrow-repeat"></i> Rotate
           </button>
         )}
+        {canRevoke && (
+          <button
+            className="btn btn-sm"
+            onClick={() => handleRevokeKey(row)}
+            title="Revoke this key"
+            style={{ 
+              border: '1.5px solid #dc3545', 
+              color: '#dc3545',
+              padding: '0.4rem 0.75rem',
+              fontWeight: '500'
+            }}
+            onMouseEnter={(e) => { e.target.style.backgroundColor = '#dc3545'; e.target.style.color = '#fff'; }}
+            onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#dc3545'; }}
+          >
+            <i className="bi bi-slash-circle"></i> Revoke
+          </button>
+        )}
       </div>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '60vh' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid p-4">
@@ -156,22 +201,29 @@ function Security() {
       {/* Keys Table */}
       <div className="card border-0 shadow-sm">
         <div className="card-body">
-          <DataTable
-            data={filteredKeys}
-            columns={columns}
-            actions={actions}
-            title="ECDSA Key Pairs"
-            searchable={false}
-          />
+          {filteredKeys && filteredKeys.length > 0 ? (
+            <DataTable
+              data={filteredKeys}
+              columns={columns}
+              actions={actions}
+              title="ECDSA Key Pairs"
+              searchable={false}
+            />
+          ) : (
+            <div className="text-center py-5">
+              <i className="bi bi-key text-muted" style={{ fontSize: '3rem' }}></i>
+              <p className="text-muted mt-2">No keys found</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Generate Key Modal */}
       {showGenerateModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+          <div className="modal-dialog modal-dialog-centered" style={{ position: 'relative', zIndex: 1051 }}>
+            <div className="modal-content" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+              <div className="modal-header" style={{ position: 'sticky', top: 0, zIndex: 1052 }}>
                 <h5 className="modal-title">Generate New Key Pair</h5>
                 <button
                   type="button"
@@ -220,10 +272,10 @@ function Security() {
 
       {/* Rotate Key Modal */}
       {showRotateModal && selectedKey && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+          <div className="modal-dialog modal-dialog-centered" style={{ position: 'relative', zIndex: 1051 }}>
+            <div className="modal-content" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+              <div className="modal-header" style={{ position: 'sticky', top: 0, zIndex: 1052 }}>
                 <h5 className="modal-title">Rotate Key</h5>
                 <button
                   type="button"

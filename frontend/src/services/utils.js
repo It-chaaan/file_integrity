@@ -64,10 +64,31 @@ export const formatDateTime = (dateString) => {
   });
 };
 
-// Validate file type
+// Validate file type against a whitelist of extensions/MIME types
 export const validateFileType = (file, allowedTypes = []) => {
+  if (!file) return false;
   if (allowedTypes.length === 0) return true;
-  return allowedTypes.some(type => file.type.includes(type));
+
+  const normalized = allowedTypes.map(type => type.replace(/^\./, '').toLowerCase());
+  const fileExtension = (file.name?.split('.').pop() || '').toLowerCase();
+  const fileMime = (file.type || '').toLowerCase();
+
+  // Quick extension check
+  if (normalized.includes(fileExtension)) return true;
+
+  // Fallback MIME match for common office types
+  const mimeMap = {
+    pdf: ['application/pdf'],
+    doc: ['application/msword'],
+    docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    txt: ['text/plain'],
+  };
+
+  return normalized.some(type => {
+    const mimes = mimeMap[type];
+    if (!mimes) return fileMime.includes(type);
+    return mimes.some(mime => fileMime === mime);
+  });
 };
 
 // Validate file size

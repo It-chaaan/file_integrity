@@ -1,17 +1,17 @@
 import React from 'react';
 
 const Pagination = ({ 
-  currentPage, 
-  totalPages, 
-  onPageChange, 
-  totalItems,
-  startIndex,
-  endIndex
+  currentPage = 1, 
+  totalPages = 1, 
+  onPageChange = () => {}, 
+  totalItems = 0,
+  startIndex = 0,
+  endIndex = 0
 }) => {
   return (
     <div className="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
       <small className="text-muted">
-        Showing {totalItems > 0 ? startIndex + 1 : 0} of {totalItems.toLocaleString()} entries
+        Showing {totalItems > 0 ? startIndex + 1 : 0} to {endIndex} of {(totalItems || 0).toLocaleString()} entries
       </small>
 
       <nav aria-label="Page navigation">

@@ -1,16 +1,37 @@
 import React, { useState } from 'react';
+import { validateFileType, validateFileSize } from '../../services/utils';
 
 function Verify() {
   const [file, setFile] = useState(null);
-  const [documentId, setDocumentId] = useState('');
-  const [issuerName, setIssuerName] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const allowedTypes = ['pdf', 'doc', 'docx', 'txt'];
+  const maxSizeMB = 5;
 
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+    const selected = e.target.files?.[0];
+    setError('');
+
+    if (!selected) {
+      setFile(null);
+      return;
     }
+
+    if (!validateFileType(selected, allowedTypes)) {
+      setError('Only PDF, DOC, DOCX, or TXT files are allowed.');
+      setFile(null);
+      return;
+    }
+
+    if (!validateFileSize(selected, maxSizeMB)) {
+      setError(`File size exceeds ${maxSizeMB}MB limit.`);
+      setFile(null);
+      return;
+    }
+
+    setFile(selected);
   };
 
   const handleVerify = (e) => {
@@ -24,7 +45,7 @@ function Verify() {
       setIsVerifying(false);
       setResult({
         isValid: Math.random() > 0.3, // 70% success rate
-        documentId: documentId || 'DOC-2026-001847',
+        documentId: 'DOC-2026-001847',
         fileName: file.name,
         hash: 'd4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35',
         signature: '3045022100f1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0',
@@ -35,8 +56,6 @@ function Verify() {
 
   const resetForm = () => {
     setFile(null);
-    setDocumentId('');
-    setIssuerName('');
     setResult(null);
   };
 
@@ -130,7 +149,7 @@ function Verify() {
   return (
     <div className="container py-5">
       <div className="row justify-content-center">
-        <div className="col-lg-8">
+        <div className="col-lg-9">
           <div className="text-center mb-5">
             <h1 className="fw-bold mb-3">Verify Your Document</h1>
             <p className="text-muted lead">Upload your document and verify its authenticity using cryptographic validation</p>
@@ -158,37 +177,16 @@ function Verify() {
                       type="file"
                       id="fileInput"
                       className="d-none"
-                      accept=".pdf,.doc,.docx"
+                      accept=".pdf,.doc,.docx,.txt"
                       onChange={handleFileChange}
                     />
                     <label htmlFor="fileInput" className="btn btn-primary">
                       {file ? 'Change File' : 'Select File'}
                     </label>
-                    <p className="text-muted small mt-3 mb-0">Supports PDF, DOC, DOCX files</p>
-                  </div>
-                </div>
-
-                {/* Optional Fields */}
-                <div className="row g-3 mb-4">
-                  <div className="col-md-6">
-                    <label className="form-label">Document ID <span className="text-muted">(Optional)</span></label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Enter document reference ID"
-                      value={documentId}
-                      onChange={(e) => setDocumentId(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Issuer Name <span className="text-muted">(Optional)</span></label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Enter issuer organization"
-                      value={issuerName}
-                      onChange={(e) => setIssuerName(e.target.value)}
-                    />
+                    <p className="text-muted small mt-3 mb-0">Supports PDF, DOC, DOCX, TXT (max 5MB)</p>
+                    {error && (
+                      <p className="text-danger small mt-2 mb-0">{error}</p>
+                    )}
                   </div>
                 </div>
 
@@ -209,6 +207,23 @@ function Verify() {
               <i className="bi bi-shield-check me-2"></i>
               Your document is processed securely and is never stored on our servers
             </p>
+          </div>
+
+          <div className="card border-0 shadow-sm mt-4">
+            <div className="card-body d-flex">
+              <div className="me-3 d-flex align-items-start">
+                <span className="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-inline-flex">
+                  <i className="bi bi-shield-lock fs-4"></i>
+                </span>
+              </div>
+              <div>
+                <h5 className="mb-2">How Verification Works</h5>
+                <p className="mb-0 text-muted">
+                  The system computes a SHA-256 cryptographic hash of your uploaded document and compares it with the hash stored in our registry.
+                  If the hashes match, the document is authentic. Any modification to the document, even a single character, will result in a completely different hash.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

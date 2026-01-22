@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../../assets/icons/Logo - Integrity Verification.png';
-import { mockVerify2FA, getCurrentSession } from '../../services/mockAuth';
+import { verify2FA, getCurrentSession } from '../../services/auth';
 
 function TwoFactor() {
   const navigate = useNavigate();
@@ -46,7 +46,7 @@ function TwoFactor() {
     setIsLoading(true);
     
     try {
-      await mockVerify2FA(codeString);
+      await verify2FA(codeString);
       setShowSession(true);
       
       // Navigate to appropriate dashboard after 2 seconds

@@ -5,6 +5,7 @@ import Registry from '../pages/staff/Registry';
 import Tickets from '../pages/staff/Tickets';
 import Settings from '../pages/staff/Settings';
 import Report from '../pages/staff/Report';
+import Profile from '../pages/staff/Profile';
 
 const staffRoutes = [
   { path: 'dashboard', element: <Dashboard /> },
@@ -14,6 +15,7 @@ const staffRoutes = [
   { path: 'tickets', element: <Tickets /> },
   { path: 'settings', element: <Settings /> },
   { path: 'report', element: <Report /> },
+  { path: 'profile', element: <Profile /> },
   { path: '', element: <Dashboard /> }
 ];
 

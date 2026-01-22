@@ -1,0 +1,609 @@
+/* ==================== RESPONSIVE DESIGN ==================== */
+/* Mobile-first approach with Bootstrap grid integration */
+
+/* ==================== BASE RESPONSIVE UTILITIES ==================== */
+/* Prevent horizontal scrolling on all devices */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Responsive images and media */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Touch-friendly interactive elements */
+@media (hover: none) and (pointer: coarse) {
+  button, a, .btn, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.6rem 1rem;
+  }
+  
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Mobile Devices (< 576px) */
+@media (max-width: 575.98px) {
+  :root {
+    --sidebar-width: 0px;
+  }
+  
+  body {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  
+  /* Responsive typography */
+  h1 { font-size: 1.75rem; line-height: 1.2; }
+  h2 { font-size: 1.5rem; line-height: 1.3; }
+  h3 { font-size: 1.25rem; line-height: 1.3; }
+  h4 { font-size: 1.1rem; line-height: 1.4; }
+  h5 { font-size: 1rem; line-height: 1.4; }
+  h6 { font-size: 0.9rem; line-height: 1.4; }
+
+  /* Bootstrap container adjustments */
+  .container, .container-fluid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Navbar responsive */
+  .navbar {
+    padding: 0.75rem 1rem;
+  }
+
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+
+  /* Button responsive sizing - touch-friendly */
+  .btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    min-height: 44px;
+  }
+
+  .btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    min-height: 38px;
+  }
+
+  .btn-lg {
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  /* Responsive spacing utilities */
+  .p-1 { padding: 0.25rem !important; }
+  .p-2 { padding: 0.5rem !important; }
+  .p-3 { padding: 0.75rem !important; }
+  .p-4 { padding: 1rem !important; }
+  .p-5 { padding: 1.5rem !important; }
+
+  .m-1 { margin: 0.25rem !important; }
+  .m-2 { margin: 0.5rem !important; }
+  .m-3 { margin: 0.75rem !important; }
+  .m-4 { margin: 1rem !important; }
+  .m-5 { margin: 1.5rem !important; }
+
+  /* Gap utilities for flexbox/grid */
+  .gap-1 { gap: 0.25rem !important; }
+  .gap-2 { gap: 0.5rem !important; }
+  .gap-3 { gap: 0.75rem !important; }
+  .gap-4 { gap: 1rem !important; }
+
+  /* Table responsive wrapper */
+  .table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    font-size: 0.85rem;
+    min-width: 600px; /* Ensures table doesn't become too cramped */
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+    white-space: nowrap;
+  }
+
+  /* Card responsive */
+  .card {
+    margin-bottom: 1rem;
+    border-radius: 8px;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  .card-header {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Modal responsive */
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+
+  .modal-content {
+    border-radius: 12px;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  /* Form responsive */
+  .form-control,
+  .form-select {
+    font-size: 1rem; /* Prevents zoom on iOS */
+    padding: 0.75rem;
+  }
+
+  .form-label {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Hero section mobile */
+  .hero-section {
+    min-height: 400px;
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+
+  /* Navbar collapse for mobile menu */
+  .navbar-collapse {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  
+  /* Force full width on mobile */
+  .col-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  /* Stack columns on mobile */
+  .row > [class*="col-"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  /* Mobile utility classes */
+  .mobile-hidden {
+    display: none !important;
+  }
+
+  .mobile-text-center {
+    text-align: center !important;
+  }
+
+  /* Responsive dropdowns */
+  .dropdown-menu {
+    min-width: 200px;
+    max-width: 90vw;
+  }
+
+  /* Alert responsive */
+  .alert {
+    font-size: 0.9rem;
+    padding: 0.75rem;
+  }
+
+  /* Badge responsive */
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+  }
+}
+
+/* Tablet Devices (576px - 991px) */
+@media (min-width: 576px) and (max-width: 991.98px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  /* Responsive typography for tablets */
+  h1 { font-size: 2rem; line-height: 1.2; }
+  h2 { font-size: 1.75rem; line-height: 1.3; }
+  h3 { font-size: 1.5rem; line-height: 1.3; }
+  h4 { font-size: 1.25rem; line-height: 1.4; }
+  h5 { font-size: 1.1rem; line-height: 1.4; }
+
+  .container {
+    max-width: 720px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Button sizing for tablets */
+  .btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  .btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  /* Responsive spacing */
+  .p-sm-2 { padding: 0.75rem !important; }
+  .p-sm-3 { padding: 1rem !important; }
+  .p-sm-4 { padding: 1.5rem !important; }
+
+  .m-sm-2 { margin: 0.75rem !important; }
+  .m-sm-3 { margin: 1rem !important; }
+  .m-sm-4 { margin: 1.5rem !important; }
+
+  .gap-sm-2 { gap: 0.75rem !important; }
+  .gap-sm-3 { gap: 1rem !important; }
+
+  /* Table responsive on tablets */
+  .table {
+    font-size: 0.9rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.75rem;
+  }
+
+  /* Card responsive */
+  .card-body {
+    padding: 1.25rem;
+  }
+
+  /* Hero section */
+  .hero-section {
+    min-height: 450px;
+    padding: 3rem 1.5rem;
+  }
+  
+  /* Bootstrap grid for tablets */
+  .col-sm-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  .col-sm-4 {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
+  }
+
+  .col-sm-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  /* Modal responsive */
+  .modal-dialog {
+    max-width: 600px;
+    margin: 1.75rem auto;
+  }
+
+  /* Form elements */
+  .form-control,
+  .form-select {
+    font-size: 0.95rem;
+  }
+}
+
+/* Desktop Devices (>= 992px) */
+@media (min-width: 992px) {
+  :root {
+    --sidebar-width: 250px;
+  }
+
+  body {
+    font-size: 15px;
+  }
+
+  /* Desktop typography */
+  h1 { font-size: 2.25rem; line-height: 1.2; }
+  h2 { font-size: 2rem; line-height: 1.25; }
+  h3 { font-size: 1.75rem; line-height: 1.3; }
+  h4 { font-size: 1.5rem; line-height: 1.4; }
+  h5 { font-size: 1.25rem; line-height: 1.4; }
+
+  .container {
+    max-width: 960px;
+  }
+
+  /* Button sizing for desktop */
+  .btn {
+    padding: 0.65rem 1.25rem;
+    font-size: 1rem;
+  }
+
+  .btn-sm {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-lg {
+    padding: 0.85rem 1.5rem;
+    font-size: 1.125rem;
+  }
+
+  /* Hero section desktop */
+  .hero-section {
+    min-height: 520px;
+    padding: 4rem 2rem;
+  }
+  
+  /* Bootstrap grid for desktop */
+  .col-lg-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .col-lg-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  .col-lg-4 {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
+  }
+
+  .col-lg-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  .col-lg-2 {
+    flex: 0 0 16.666%;
+    max-width: 16.666%;
+  }
+
+  /* Card enhanced for desktop */
+  .card {
+    border-radius: 12px;
+  }
+
+  .card-body {
+    padding: 1.75rem;
+  }
+
+  .card-header {
+    padding: 1.25rem 1.75rem;
+  }
+
+  /* Table desktop */
+  .table {
+    font-size: 0.95rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 1rem;
+  }
+
+  /* Modal desktop */
+  .modal-dialog {
+    max-width: 700px;
+    margin: 3rem auto;
+  }
+
+  .modal-lg {
+    max-width: 900px;
+  }
+}
+
+/* Extra Large Devices (>= 1200px) */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1140px;
+  }
+
+  /* Extra large grid system */
+  .col-xl-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .col-xl-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  .col-xl-4 {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
+  }
+
+  .col-xl-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  .col-xl-2 {
+    flex: 0 0 16.666%;
+    max-width: 16.666%;
+  }
+
+  /* Increased spacing on XL screens */
+  .row > * {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Hero section XL */
+  .hero-section {
+    min-height: 600px;
+  }
+}
+
+/* XXL Devices (>= 1400px) */
+@media (min-width: 1400px) {
+  .container {
+    max-width: 1320px;
+  }
+
+  body {
+    font-size: 16px;
+  }
+
+  /* XXL grid */
+  .col-xxl-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  .col-xxl-4 {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
+  }
+
+  .col-xxl-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+}
+
+/* Landscape Mobile (max 767px landscape) */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero-section {
+    min-height: 300px;
+    padding: 1.5rem 1rem;
+  }
+  
+  .navbar {
+    padding: 0.5rem 1rem;
+  }
+  
+  .card {
+    margin-bottom: 0.75rem;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  /* Reduce modal height in landscape */
+  .modal-dialog {
+    max-height: 80vh;
+  }
+
+  .modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+}
+
+/* Print Styles */
+@media print {
+  /* Hide navigation and interactive elements */
+  .navbar,
+  .sidebar,
+  .topbar,
+  footer,
+  .btn,
+  .dropdown,
+  .modal,
+  button {
+    display: none !important;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    font-size: 12pt;
+    color: #000;
+    background: #fff;
+  }
+  
+  /* Full width for print */
+  main,
+  .container,
+  .container-fluid {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* Optimize page breaks */
+  .card,
+  .table {
+    page-break-inside: avoid;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+
+  /* Show links in print */
+  a[href]:after {
+    content: " (" attr(href) ")";
+  }
+
+  /* Simplify colors for print */
+  .card {
+    border: 1px solid #000;
+    box-shadow: none;
+  }
+}
+
+/* Dark Mode Support (if implemented) */
+@media (prefers-color-scheme: dark) {
+  /* Placeholder for future dark mode implementation */
+  /* body {
+    background-color: #1a1a1a;
+    color: #f0f0f0;
+  } */
+}
+
+/* Reduced Motion for Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .btn {
+    border: 2px solid currentColor;
+  }
+
+  .card {
+    border: 2px solid currentColor;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+}

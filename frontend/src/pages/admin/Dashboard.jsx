@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDocuments, useUsers, useTickets, useLogs } from '../../hooks/useData';
+import { useDocuments, useUsers, useTickets, useLogs, useKeys } from '../../hooks/useData';
 import { calculateStats } from '../../services/utils';
 
 function Dashboard() {
@@ -9,6 +9,7 @@ function Dashboard() {
   const { users, loading: usersLoading } = useUsers();
   const { tickets, loading: ticketsLoading } = useTickets();
   const { logs, loading: logsLoading } = useLogs();
+  const { keys = [], loading: keysLoading } = useKeys?.() || {};
   
   const [stats, setStats] = useState({
     totalDocuments: 0,
@@ -23,7 +24,7 @@ function Dashboard() {
     todayVerifications: 0
   });
 
-  const loading = docsLoading || usersLoading || ticketsLoading || logsLoading;
+  const loading = docsLoading || usersLoading || ticketsLoading || logsLoading || keysLoading;
 
   useEffect(() => {
     if (!loading) {
@@ -51,6 +52,10 @@ function Dashboard() {
     }
   };
 
+  const activeKeys = Array.isArray(keys)
+    ? keys.filter(k => (k.status || '').toLowerCase() === 'active').length
+    : 0;
+
   const statCards = [
     {
       title: 'Total Documents',
@@ -61,12 +66,12 @@ function Dashboard() {
       onClick: () => handleCardClick('documents')
     },
     {
-      title: 'Active Documents',
-      value: stats.activeDocuments,
-      subtitle: `${stats.todayVerifications} verified today`,
-      icon: 'bi-check-circle',
+      title: 'Active ECDSA Keys',
+      value: activeKeys,
+      subtitle: 'Keys ready for signing',
+      icon: 'bi-key',
       color: 'success',
-      onClick: () => handleCardClick('documents')
+      onClick: () => navigate('/admin/security')
     },
     {
       title: 'Open Tickets',
@@ -87,10 +92,11 @@ function Dashboard() {
   ];
 
   return (
-    <div>
-      <div className="mb-4">
+    <div className="dashboard-container">
+      {/* Page Header - Responsive */}
+      <div className="mb-3 mb-md-4">
         <h2 className="mb-1">Dashboard</h2>
-        <p className="text-muted">Overview of document integrity system</p>
+        <p className="text-muted mb-0">Overview of document integrity system</p>
       </div>
 
       {loading ? (
@@ -102,10 +108,10 @@ function Dashboard() {
         </div>
       ) : (
         <>
-          {/* Stats Cards */}
-          <div className="row g-3 mb-4">
+          {/* Stats Cards - Responsive Grid using Bootstrap */}
+          <div className="row g-3 g-md-4 mb-4">
             {statCards.map((stat, index) => (
-              <div key={index} className="col-md-3">
+              <div key={index} className="col-12 col-sm-6 col-lg-3">
                 <div 
                   className="card border-0 shadow-sm h-100" 
                   style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
@@ -113,10 +119,10 @@ function Dashboard() {
                   onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                  <div className="card-body">
+                  <div className="card-body p-3 p-md-4">
                     <div className="d-flex align-items-center mb-3">
-                      <div className={`bg-${stat.color} bg-opacity-10 p-3 rounded me-3`}>
-                        <i className={`bi ${stat.icon} text-${stat.color} fs-4`}></i>
+                      <div className={`bg-${stat.color} bg-opacity-10 p-2 p-md-3 rounded me-3`}>
+                        <i className={`bi ${stat.icon} text-${stat.color}`} style={{ fontSize: '1.5rem' }}></i>
                       </div>
                       <div className="flex-grow-1">
                         <h6 className="text-muted mb-1 fw-normal small">{stat.title}</h6>
@@ -133,13 +139,13 @@ function Dashboard() {
             ))}
           </div>
 
-          {/* Recent Activity */}
+          {/* Recent Activity - Responsive Card */}
           <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="card-body p-3 p-md-4">
+              <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 mb-md-4 gap-2">
                 <h5 className="card-title mb-0">Recent Activity</h5>
                 <button 
-                  className="btn btn-sm btn-outline-secondary"
+                  className="btn btn-sm btn-outline-secondary w-100 w-sm-auto"
                   onClick={() => navigate('/admin/audit-logs')}
                 >
                   View All Logs

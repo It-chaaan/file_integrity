@@ -3,7 +3,9 @@ import { mockDocuments } from '../mock/documents';
 import { mockUsers } from '../mock/users';
 import { mockTicketsAdmin, mockTicketsStaff } from '../mock/tickets';
 import { mockLogs, mockKeys } from '../mock/logs';
-import { getCurrentUser } from './mockAuth';
+// UPDATED: Import from unified auth service instead of mockAuth
+// This maintains backward compatibility while using the new system
+import { getCurrentUser } from './auth';
 
 const STORAGE_KEYS = {
   DOCUMENTS: 'parity_documents',
@@ -27,6 +29,25 @@ export const initializeMockData = () => {
 
 // Generic CRUD operations
 const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Heuristic mapper to infer logical document type from file name when missing
+const deriveTypeFromFileName = (fileName = '') => {
+  const name = fileName.toLowerCase();
+  const map = [
+    { match: ['clearance'], type: 'Barangay Clearance' },
+    { match: ['residency'], type: 'Certificate of Residency' },
+    { match: ['indigency'], type: 'Certificate of Indigency' },
+    { match: ['business', 'permit'], type: 'Business Permit (Barangay)' },
+    { match: ['blotter'], type: 'Barangay Blotter Report' },
+    { match: ['certification'], type: 'Barangay Certification' },
+    { match: ['solo parent'], type: 'Solo Parent Certification' },
+    { match: ['id'], type: 'Barangay ID' },
+  ];
+  for (const rule of map) {
+    if (rule.match.every(token => name.includes(token))) return rule.type;
+  }
+  return undefined;
+};
 
 // GET operations
 export const getAll = async (storageKey) => {
@@ -102,7 +123,20 @@ export { STORAGE_KEYS };
 
 // Document-specific operations
 export const mockDocumentService = {
-  getAll: () => getAll(STORAGE_KEYS.DOCUMENTS),
+  getAll: async () => {
+    const docs = await getAll(STORAGE_KEYS.DOCUMENTS);
+    // Normalize types for display: prefer type/documentType; avoid MIME strings
+    return docs.map((doc) => {
+      const isMime = (doc.fileType || '').includes('/');
+      const inferredType = deriveTypeFromFileName(doc.fileName);
+      const normalizedType = doc.type || doc.documentType || (!isMime ? doc.fileType : undefined) || inferredType;
+      return {
+        ...doc,
+        type: normalizedType,
+        documentType: doc.documentType || normalizedType,
+      };
+    });
+  },
   getById: (id) => getById(STORAGE_KEYS.DOCUMENTS, id),
   create: (doc) => create(STORAGE_KEYS.DOCUMENTS, doc),
   update: (id, updates) => update(STORAGE_KEYS.DOCUMENTS, id, updates),
@@ -134,18 +168,9 @@ export const mockUserService = {
 // Ticket-specific operations
 export const mockTicketService = {
   getAll: async () => {
-    const user = getCurrentUser();
-    const userRole = user?.role || 'public';
-    
-    // Return role-specific tickets directly from mock data
+    // Always return all tickets - filtering will be handled by components
     await delay();
-    if (userRole === 'admin') {
-      return [...mockTicketsAdmin];
-    } else if (userRole === 'staff') {
-      return [...mockTicketsStaff];
-    }
-    
-    return [];
+    return [...mockTicketsAdmin, ...mockTicketsStaff];
   },
   getById: async (id) => {
     await delay();
@@ -155,12 +180,11 @@ export const mockTicketService = {
   create: async (ticket) => {
     await delay(500);
     const user = getCurrentUser();
-    const userRole = user?.role || 'public';
     
     const newTicket = {
       ...ticket,
       id: `TKT-${Date.now()}`,
-      ticketId: `TKT-${userRole === 'admin' ? 'SYS' : 'DOC'}-${Date.now()}`,
+      ticketId: `TKT-${Date.now()}`,
       createdBy: user?.name || 'User',
       createdAt: new Date().toISOString()
     };

@@ -7,6 +7,7 @@ import Security from '../pages/admin/Security';
 import Settings from '../pages/admin/Settings';
 import AuditLogs from '../pages/admin/AuditLogs';
 import Tickets from '../pages/admin/Tickets';
+import Profile from '../pages/admin/Profile';
 
 const adminRoutes = [
   { path: 'dashboard', element: <Dashboard /> },
@@ -18,6 +19,7 @@ const adminRoutes = [
   { path: 'settings', element: <Settings /> },
   { path: 'audit-logs', element: <AuditLogs /> },
   { path: 'tickets', element: <Tickets /> },
+  { path: 'profile', element: <Profile /> },
   { path: '', element: <Dashboard /> }
 ];
 
