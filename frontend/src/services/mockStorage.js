@@ -1,8 +1,5 @@
 // Mock Data Storage Service - Simulates backend database
-import { mockDocuments } from '../mock/documents';
-import { mockUsers } from '../mock/users';
-import { mockTicketsAdmin, mockTicketsStaff } from '../mock/tickets';
-import { mockLogs, mockKeys } from '../mock/logs';
+import { mockDocuments, mockUsers, mockTicketsAdmin, mockTicketsStaff, mockLogs, mockKeys } from '../mock';
 // UPDATED: Import from unified auth service instead of mockAuth
 // This maintains backward compatibility while using the new system
 import { getCurrentUser } from './auth';
@@ -25,6 +22,12 @@ export const initializeMockData = () => {
   localStorage.setItem(STORAGE_KEYS.TICKETS, JSON.stringify([...mockTicketsAdmin, ...mockTicketsStaff]));
   localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(mockLogs));
   localStorage.setItem(STORAGE_KEYS.KEYS, JSON.stringify(mockKeys));
+  console.log('✅ Mock data initialized:', {
+    documents: mockDocuments.length,
+    users: mockUsers.length,
+    logs: mockLogs.length,
+    tickets: mockTicketsAdmin.length + mockTicketsStaff.length
+  });
 };
 
 // Generic CRUD operations
@@ -213,7 +216,11 @@ export const mockTicketService = {
 
 // Log-specific operations
 export const mockLogService = {
-  getAll: () => getAll(STORAGE_KEYS.LOGS),
+  getAll: async () => {
+    const logs = await getAll(STORAGE_KEYS.LOGS);
+    console.log('📜 Mock logs fetched from storage:', logs);
+    return logs;
+  },
   create: async (log) => {
     const logEntry = {
       ...log,

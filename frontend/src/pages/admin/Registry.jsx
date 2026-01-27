@@ -4,7 +4,7 @@ import { useDocuments } from '../../hooks/useData';
 import { formatFileSize } from '../../services/utils';
 
 function Registry() {
-  const { documents = [], loading = false } = useDocuments?.() || {};
+  const { documents = [], loading = false } = useDocuments();
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -168,16 +168,15 @@ function Registry() {
           <div className="row g-3 align-items-end">
             <div className="col-md-8">
               <div className="input-group">
-                <span className="input-group-text bg-white border-end-0">
-                  <i className="bi bi-search" style={{ color: '#6B7280' }}></i>
+                <span className="input-group-text">
+                  <i className="bi bi-search"></i>
                 </span>
-                <input
+                <input  
                   type="text"
                   className="form-control border-start-0"
                   placeholder="Search by document ID, name, or department..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ borderRadius: '0 6px 6px 0' }}
                 />
               </div>
             </div>
@@ -201,7 +200,14 @@ function Registry() {
       {/* DataTable with search, filter, sort, pagination */}
       <div className="card border-0 shadow-sm">
         <div className="card-body">
-          {filteredDocuments && filteredDocuments.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p className="text-muted mt-2">Loading documents...</p>
+            </div>
+          ) : filteredDocuments && filteredDocuments.length > 0 ? (
             <DataTable
               columns={columns}
               data={filteredDocuments}

@@ -39,6 +39,17 @@ export const useApiWithToast = () => {
    * @param {Object} options - Additional options
    * @returns {Promise} - Result of API call
    */
+  /**
+   * Execute an async call with toast handling.
+   * @param {Function} apiCall - Async function that performs the request.
+   * @param {string} successMessage - Toast on success.
+   * @param {string} [errorMessage='An error occurred'] - Toast on failure (falls back to parsed error message).
+   * @param {Object} [options]
+   * @param {boolean} [options.silent=false] - Suppress toasts when true.
+   * @param {boolean} [options.rethrow=false] - Re-throw parsed error to caller.
+   * @param {Object} [options.context] - Extra error context for logging.
+   * @returns {Promise<*>} Result from apiCall or null on handled error.
+   */
   const execute = async (
     apiCall,
     successMessage,
@@ -57,9 +68,9 @@ export const useApiWithToast = () => {
       }
       
       return result;
-    } catch (err) {
+    } catch (error) {
       // Parse and handle error
-      const parsedError = handleError(err, options.context || {});
+      const parsedError = handleError(error, options.context || {});
       setError(parsedError);
       
       // Show error toast (use custom message or error message from server)
@@ -102,6 +113,18 @@ export const useMutationWithToast = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  /**
+   * Execute a mutation-style request with toast handling.
+   * @param {Function} apiCall - Async function performing create/update/delete.
+   * @param {Object} [options]
+   * @param {Function} [options.onSuccess] - Callback with result on success.
+   * @param {Function} [options.onError] - Callback with parsed error on failure.
+   * @param {string} [options.successMessage] - Toast on success.
+   * @param {string} [options.errorMessage] - Toast on failure.
+   * @param {Object} [options.context] - Error context for logging.
+   * @param {boolean} [options.rethrow=false] - Re-throw parsed error to caller.
+   * @returns {Promise<*>} Result from apiCall or null on handled error.
+   */
   const executeMutation = async (
     apiCall,
     options = {}
@@ -121,8 +144,8 @@ export const useMutationWithToast = () => {
       }
       
       return result;
-    } catch (err) {
-      const parsedError = handleError(err, options.context || {});
+    } catch (error) {
+      const parsedError = handleError(error, options.context || {});
       setError(parsedError);
       
       if (options.onError) {

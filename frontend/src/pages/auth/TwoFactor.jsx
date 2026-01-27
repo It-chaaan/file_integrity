@@ -46,24 +46,15 @@ function TwoFactor() {
     setIsLoading(true);
     
     try {
-      const verifiedSession = await verify2FA(codeString);
+      await verify2FA(codeString);
       setShowSession(true);
       
-      // Get fresh session data to ensure we have the latest verified state
+      // Short delay to ensure UI shows success, then navigate to user agreement
       setTimeout(() => {
-        const currentSession = getCurrentSession();
-        const userRole = currentSession?.user?.role || session?.user?.role;
-        
-        if (userRole === 'admin') {
-          navigate('/admin/dashboard');
-        } else if (userRole === 'staff') {
-          navigate('/staff/dashboard');
-        } else {
-          navigate('/login');
-        }
-      }, 2000);
-    } catch (err) {
-      setError(err.message || 'Invalid verification code');
+        navigate('/user-agreement', { replace: true });
+      }, 1500);
+    } catch (error) {
+      setError(error.message || 'Invalid verification code');
     } finally {
       setIsLoading(false);
     }
@@ -76,14 +67,14 @@ function TwoFactor() {
 
   if (showSession) {
     return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#F3F4F6' }}>
+      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#F3F4F6', padding: '20px' }}>
         <div className="container">
           <div className="row justify-content-center">
-            <div className="col-xl-10 col-lg-11">
+            <div className="col-xl-10 col-lg-11 col-12">
               <div className="card shadow-lg border-0" style={{ borderRadius: '16px', overflow: 'hidden' }}>
                 <div className="row g-0">
                   {/* Left side - Session Overview */}
-                  <div className="col-lg-6 p-5">
+                  <div className="col-lg-6 col-12 p-4 p-md-5">
                     {/* Shield Icon */}
                     <div className="mb-4">
                       <div className="d-inline-flex align-items-center justify-content-center" style={{
@@ -96,7 +87,7 @@ function TwoFactor() {
                       </div>
                     </div>
 
-                    <h2 className="fw-bold mb-4" style={{ color: '#0D1526', fontSize: '32px' }}>Session Overview</h2>
+                    <h2 className="fw-bold mb-4" style={{ color: '#0D1526', fontSize: 'clamp(24px, 5vw, 32px)' }}>Session Overview</h2>
 
                     {/* Access Level */}
                     <div className="mb-4">
@@ -158,12 +149,14 @@ function TwoFactor() {
                     {/* Continue Button */}
                     <button 
                       className="btn w-100 text-white fw-semibold" 
+                      onClick={() => navigate('/user-agreement', { replace: true })}
                       style={{ 
                         backgroundColor: '#0D1526', 
                         padding: '16px', 
                         borderRadius: '8px',
                         border: 'none',
-                        fontSize: '15px'
+                        fontSize: '15px',
+                        cursor: 'pointer'
                       }}
                     >
                       Continue to Workspace
@@ -171,9 +164,9 @@ function TwoFactor() {
                   </div>
 
                   {/* Right side - Navy Background with Logo */}
-                  <div className="col-lg-6 d-flex align-items-center justify-content-center p-5" style={{ backgroundColor: '#0D1526' }}>
+                  <div className="col-lg-6 col-12 d-flex align-items-center justify-content-center p-4 p-md-5" style={{ backgroundColor: '#0D1526' }}>
                     <div className="text-center text-white">
-                    <h1 className="fw-bold mb-3" style={{ fontSize: '48px', letterSpacing: '2px', color: '#FFFFFF' }}>PARITY</h1>
+                    <h1 className="fw-bold mb-3" style={{ fontSize: 'clamp(36px, 8vw, 48px)', letterSpacing: '2px', color: '#FFFFFF' }}>PARITY</h1>
                     <div style={{ width: '60px', height: '2px', backgroundColor: '#FFFFFF', margin: '0 auto 20px' }}></div>
                     <p className="mb-0" style={{ fontSize: '14px', lineHeight: '1.6', color: '#FFFFFF', opacity: '0.9' }}>
                       LGU Legal Documents<br/>Verification System
@@ -190,14 +183,14 @@ function TwoFactor() {
   }
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#F3F4F6' }}>
+    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#F3F4F6', padding: '20px' }}>
       <div className="container">
         <div className="row justify-content-center">
-          <div className="col-xl-10 col-lg-11">
+          <div className="col-xl-10 col-lg-11 col-12">
             <div className="card shadow-lg border-0" style={{ borderRadius: '16px', overflow: 'hidden' }}>
               <div className="row g-0">
                 {/* Form side - White */}
-                <div className="col-lg-6 p-5">
+                <div className="col-lg-6 col-12 p-4 p-md-5">
                   {/* Back link */}
                   <Link 
                     to="/login" 
@@ -207,8 +200,8 @@ function TwoFactor() {
                     <i className="bi bi-arrow-left me-2"></i>Back to Login
                   </Link>
 
-                  <h2 className="fw-bold mb-3" style={{ color: '#0D1526', fontSize: '32px' }}>Two-Factor Authentication</h2>
-                  <p className="text-muted mb-4" style={{ fontSize: '15px' }}>Enter the 6-digit code sent to your email</p>
+                  <h2 className="fw-bold mb-3" style={{ color: '#0D1526', fontSize: 'clamp(24px, 5vw, 32px)' }}>Two-Factor Authentication</h2>
+                  <p className="text-muted mb-4" style={{ fontSize: '14px' }}>Enter the 6-digit code sent to your email</p>
 
                   {error && (
                     <div className="alert alert-danger mb-3" style={{ borderRadius: '8px', fontSize: '14px' }}>
@@ -219,7 +212,7 @@ function TwoFactor() {
 
                   {/* Code inputs */}
                   <form onSubmit={handleSubmit}>
-                    <div className="d-flex gap-3 mb-4">
+                    <div className="d-flex gap-2 gap-md-3 mb-4 justify-content-center justify-content-lg-start flex-wrap">
                       {code.map((digit, index) => (
                         <input
                           key={index}
@@ -227,11 +220,11 @@ function TwoFactor() {
                           type="text"
                           className="form-control text-center fw-bold"
                           style={{ 
-                            width: '60px', 
-                            height: '70px', 
+                            width: 'clamp(30px, 12vw, 58px)', 
+                            height: 'clamp(30px, 12vw, 58px)', 
                             borderRadius: '12px', 
                             border: '2px solid #E5E7EB',
-                            fontSize: '24px',
+                            fontSize: 'clamp(18px, 4vw, 24px)',
                             backgroundColor: '#FFFFFF'
                           }}
                           maxLength={1}
@@ -289,9 +282,9 @@ function TwoFactor() {
                 </div>
 
                 {/* Right side - Navy Background */}
-                <div className="col-lg-6 d-flex align-items-center justify-content-center p-5" style={{ backgroundColor: '#0D1526' }}>
+                <div className="col-lg-6 col-12 d-flex align-items-center justify-content-center p-4 p-md-5" style={{ backgroundColor: '#0D1526' }}>
                   <div className="text-center text-white">
-                    <h1 className="fw-bold mb-3" style={{ fontSize: '48px', letterSpacing: '2px', color: '#FFFFFF' }}>PARITY</h1>
+                    <h1 className="fw-bold mb-3" style={{ fontSize: 'clamp(36px, 8vw, 48px)', letterSpacing: '2px', color: '#FFFFFF' }}>PARITY</h1>
                     <div style={{ width: '60px', height: '2px', backgroundColor: '#FFFFFF', margin: '0 auto 20px' }}></div>
                     <p className="mb-0" style={{ fontSize: '14px', lineHeight: '1.6', color: '#FFFFFF', opacity: '0.9' }}>
                       LGU Legal Documents<br/>Verification System

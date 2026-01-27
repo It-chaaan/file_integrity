@@ -1,5 +1,15 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
+/**
+ * Simple pagination control with item range display.
+ * @param {number} currentPage - Current page (1-based).
+ * @param {number} totalPages - Total pages available.
+ * @param {(page: number) => void} onPageChange - Callback when navigating pages.
+ * @param {number} totalItems - Total item count (for range text).
+ * @param {number} startIndex - Zero-based start index of current page slice.
+ * @param {number} endIndex - Zero-based end index (exclusive) of current page slice.
+ */
 const Pagination = ({ 
   currentPage = 1, 
   totalPages = 1, 
@@ -9,61 +19,37 @@ const Pagination = ({
   endIndex = 0
 }) => {
   return (
-    <div className="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-      <small className="text-muted">
-        Showing {totalItems > 0 ? startIndex + 1 : 0} to {endIndex} of {(totalItems || 0).toLocaleString()} entries
-      </small>
-
-      <nav aria-label="Page navigation">
-        <ul className="pagination mb-0">
-          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-            <button 
-              className="page-link"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              style={{ 
-                color: '#6B7280', 
-                border: '1px solid #D1D5DB',
-                cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-              }}
-            >
-              Previous
-            </button>
-          </li>
-
-          <li className="page-item disabled">
-            <span 
-              className="page-link"
-              style={{
-                backgroundColor: '#0D1526',
-                borderColor: '#0D1526',
-                color: '#fff',
-                minWidth: '40px',
-                textAlign: 'center'
-              }}
-            >
-              {currentPage}
-            </span>
-          </li>
-
-          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-            <button 
-              className="page-link"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              style={{ 
-                color: '#6B7280', 
-                border: '1px solid #D1D5DB',
-                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
-              }}
-            >
-              Next
-            </button>
-          </li>
-        </ul>
-      </nav>
+    <div className="d-flex justify-content-between align-items-center mt-3">
+      <p className="text-muted mb-0">
+        Showing {totalItems > 0 ? startIndex + 1 : 0} to {Math.min(startIndex + (endIndex - startIndex), totalItems)} of {(totalItems || 0).toLocaleString()} entries
+      </p>
+      <div className="btn-group">
+        <button 
+          className="btn btn-outline-secondary" 
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          <i className="bi bi-chevron-left"></i> Previous
+        </button>
+        <span className="btn btn-outline-secondary" style={{ pointerEvents: 'none', borderLeft: 'none', borderRight: 'none' }}>
+          Page {currentPage} of {totalPages}
+        </span>
+        <button 
+          className="btn btn-outline-secondary"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          Next <i className="bi bi-chevron-right"></i>
+        </button>
+      </div>
     </div>
   );
+};
+
+Pagination.propTypes = {
+  currentPage: PropTypes.number.isRequired,
+  totalPages: PropTypes.number.isRequired,
+  onPageChange: PropTypes.func.isRequired,
 };
 
 export default Pagination;

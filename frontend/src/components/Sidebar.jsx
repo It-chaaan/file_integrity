@@ -1,7 +1,17 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const Sidebar = ({ role, onLogout, isOpen, onToggle }) => {
+/**
+ * Responsive sidebar navigation for admin/staff portals.
+ * @param {Object} props
+ * @param {{name?: string}} [props.user] - Current user info for avatar/labels.
+ * @param {'admin'|'staff'} props.role - Role to determine menu set.
+ * @param {() => void} [props.onLogout] - Logout handler.
+ * @param {boolean} [props.isOpen] - Whether sidebar is visible.
+ * @param {() => void} [props.onToggle] - Toggle handler (used for mobile overlay).
+ */
+const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 576);
@@ -26,6 +36,27 @@ const Sidebar = ({ role, onLogout, isOpen, onToggle }) => {
     }
   };
 
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
+  };
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
+  const goToProfile = () => {
+    navigate(role === 'admin' ? '/admin/profile' : '/staff/profile');
+    if (isMobile && onToggle) {
+      onToggle();
+    }
+  };
+
   const adminMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'bi-grid-fill', section: 'GENERAL', path: '/admin/dashboard' },
     { id: 'upload', label: 'Upload', icon: 'bi-cloud-upload', section: 'GENERAL', path: '/admin/upload' },
@@ -40,8 +71,8 @@ const Sidebar = ({ role, onLogout, isOpen, onToggle }) => {
 
   const staffMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'bi-grid-fill', section: 'GENERAL', path: '/staff/dashboard' },
-    { id: 'verify', label: 'Verify', icon: 'bi-shield-check', section: 'GENERAL', path: '/staff/verify' },
     { id: 'upload', label: 'Upload', icon: 'bi-cloud-upload', section: 'GENERAL', path: '/staff/upload' },
+    { id: 'verify', label: 'Verify', icon: 'bi-shield-check', section: 'GENERAL', path: '/staff/verify' },
     { id: 'registry', label: 'Registry', icon: 'bi-file-text', section: 'GENERAL', path: '/staff/registry' },
     { id: 'report', label: 'Report', icon: 'bi-exclamation-triangle', section: 'ADMINISTRATION', path: '/staff/report' },
     { id: 'tickets', label: 'Tickets', icon: 'bi-ticket-detailed', section: 'ADMINISTRATION', path: '/staff/tickets' }
@@ -211,27 +242,118 @@ const Sidebar = ({ role, onLogout, isOpen, onToggle }) => {
           ))}
         </div>
 
-        {/* Footer - Logout Button (optional, can be added if needed) */}
-        {isMobile && (
-          <div 
-            style={{ 
-              padding: '1rem',
-              borderTop: '1px solid rgba(255,255,255,0.08)'
+        {/* Footer - Profile Card with Logout Icon */}
+        <div 
+          style={{ 
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            marginTop: 'auto',
+            padding: isMobile 
+              ? '1rem 0.75rem 1rem 0.25rem' 
+              : (isTablet ? '0.85rem 0.6rem 0.85rem 0.25rem' : '1rem 1rem 1rem 0.5rem')
+          }}
+        >
+          {/* Profile Card */}
+          <div
+            style={{
+              backgroundColor: 'transparent',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              textAlign: 'left'
             }}
           >
+            {/* Profile Info - Clickable */}
             <button
-              onClick={onLogout}
-              className="btn btn-outline-light w-100 d-flex align-items-center justify-content-center"
-              style={{ minHeight: '44px' }}
+              onClick={goToProfile}
+              className="btn btn-link text-white p-0 d-flex align-items-center"
+              style={{
+                flex: 1,
+                textDecoration: 'none',
+                transition: 'opacity 0.2s',
+                gap: isMobile ? '0.5rem' : '0.4rem',
+                justifyContent: 'flex-start'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
             >
-              <i className="bi bi-box-arrow-right me-2"></i>
-              Logout
+              {/* Avatar */}
+              <div
+                className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                style={{ 
+                  width: isMobile ? '36px' : '32px', 
+                  height: isMobile ? '36px' : '32px', 
+                  fontSize: isMobile ? '0.8rem' : '0.75rem',
+                  flexShrink: 0
+                }}
+              >
+                {user && getInitials(user.name)}
+              </div>
+
+              {/* User Info */}
+              <div style={{ textAlign: 'left', minWidth: 0 }}>
+                <div 
+                  style={{ 
+                    fontSize: isMobile ? '0.9rem' : (isTablet ? '0.8rem' : '0.85rem'),
+                    lineHeight: 1,
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {role === 'admin' ? 'Admin User' : 'Staff User'}
+                </div>
+                <small 
+                  style={{ 
+                    fontSize: isMobile ? '0.75rem' : (isTablet ? '0.7rem' : '0.75rem'),
+                    color: 'rgba(255,255,255,0.6)',
+                    display: 'block',
+                    lineHeight: 1,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {role === 'admin' ? 'Administrator' : 'Staff Member'}
+                </small>
+              </div>
+            </button>
+
+            {/* Logout Icon Button */}
+            <button
+              onClick={handleLogout}
+              className="btn btn-link text-white p-0 d-flex align-items-center justify-content-center"
+              style={{ 
+                fontSize: isMobile ? '1.1rem' : '1rem',
+                lineHeight: 1,
+                minWidth: '40px',
+                minHeight: '40px',
+                transition: 'opacity 0.2s',
+                marginLeft: '0.5rem'
+              }}
+              title="Logout"
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              <i className="bi bi-box-arrow-right"></i>
             </button>
           </div>
-        )}
+        </div>
       </div>
     </>
   );
+};
+
+Sidebar.propTypes = {
+  user: PropTypes.shape({
+    name: PropTypes.string
+  }),
+  role: PropTypes.oneOf(['admin', 'staff']).isRequired,
+  onLogout: PropTypes.func,
+  isOpen: PropTypes.bool,
+  onToggle: PropTypes.func
 };
 
 export default Sidebar;

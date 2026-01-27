@@ -16,30 +16,47 @@
  */
 
 import apiClient from './client';
+import { mergeQueryParams } from './utils/axiosConfig';
+import { withErrorContext } from './utils/errorContext';
+import {
+  createFormDataConfig,
+  createFormDataFromFiles,
+  validateFiles,
+} from './utils/formData';
 
 /**
- * Get paginated list of tickets with optional filters
- * 
- * @param {Object} params - Query parameters for filtering and pagination
- * @param {number} params.page - Page number (default: 1)
- * @param {number} params.page_size - Items per page (default: 10)
- * @param {string} params.search - Search query
- * @param {string} params.status - Filter by status (open, in_progress, resolved, closed)
- * @param {string} params.priority - Filter by priority (low, medium, high, urgent)
- * @param {string} params.category - Filter by category
- * @param {string} params.assigned_to - Filter by assigned staff ID
- * @param {string} params.created_by - Filter by creator user ID
- * @param {string} params.ordering - Sort field (e.g., '-created_at')
- * @returns {Promise<Object>} Paginated tickets list
- * @throws {Error} If request fails
+ * Get paginated list of tickets with optional filters (supports page_size and pageSize).
+ *
+ * @param {Object} params
+ * @param {number} [params.page=1] - Page number.
+ * @param {number} [params.page_size] - Legacy page size key.
+ * @param {number} [params.pageSize] - Page size (preferred key).
+ * @param {string} [params.search] - Search query.
+ * @param {string} [params.status] - Status filter (open|in_progress|resolved|closed).
+ * @param {string} [params.priority] - Priority filter (low|medium|high|urgent).
+ * @param {string} [params.category] - Category filter.
+ * @param {string} [params.assigned_to] - Assigned staff ID.
+ * @param {string} [params.created_by] - Creator user ID.
+ * @param {string} [params.ordering='-created_at'] - Sort field.
+ * @returns {Promise<Object>} Paginated tickets list.
  */
 export const getTickets = async (params = {}) => {
-  try {
-    const response = await apiClient.get('/v1/tickets/', { params });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const { page, page_size: pageSizeLegacy, pageSize, ordering, search, ...filters } = params;
+  const pageSizeValue = pageSize || pageSizeLegacy;
+
+  const queryParams = mergeQueryParams({
+    pagination: { page, pageSize: pageSizeValue, ordering },
+    filters,
+    search,
+  });
+
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/tickets/', { params: queryParams }),
+    'tickets.list',
+    { resource: 'tickets', action: 'list' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -50,59 +67,69 @@ export const getTickets = async (params = {}) => {
  * @throws {Error} If ticket not found or request fails
  */
 export const getTicketById = async (ticketId) => {
-  try {
-    const response = await apiClient.get(`/v1/tickets/${ticketId}/`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get(`/v1/tickets/${ticketId}/`),
+    'tickets.detail',
+    { resource: 'ticket', action: 'fetch', resourceId: ticketId }
+  );
+
+  return response.data;
 };
 
 /**
- * Create a new support ticket
- * 
- * @param {Object} ticketData - Ticket creation data
- * @param {string} ticketData.subject - Ticket subject/title
- * @param {string} ticketData.description - Detailed description of the issue
- * @param {string} ticketData.category - Ticket category (technical, billing, general, etc.)
- * @param {string} ticketData.priority - Priority level (low, medium, high, urgent)
- * @param {Array<File>} ticketData.attachments - Optional file attachments
- * @returns {Promise<Object>} Created ticket data
- * @throws {Error} If creation fails
+ * Create a new support ticket (validates attachments when present).
+ *
+ * @param {Object} ticketData
+ * @param {string} ticketData.subject
+ * @param {string} ticketData.description
+ * @param {string} ticketData.category
+ * @param {string} ticketData.priority
+ * @param {Array<File>} [ticketData.attachments]
+ * @returns {Promise<Object>} Created ticket data.
  */
 export const createTicket = async (ticketData) => {
-  try {
-    // If there are attachments, use FormData
-    if (ticketData.attachments && ticketData.attachments.length > 0) {
-      const formData = new FormData();
-      formData.append('subject', ticketData.subject);
-      formData.append('description', ticketData.description);
-      formData.append('category', ticketData.category);
-      formData.append('priority', ticketData.priority);
+  const hasAttachments = ticketData.attachments && ticketData.attachments.length > 0;
 
-      ticketData.attachments.forEach((file) => {
-        formData.append('attachments', file);
+  if (hasAttachments) {
+    const validation = validateFiles(ticketData.attachments);
+    if (!validation.valid) {
+      const errorMessages = [];
+      validation.errors.forEach((errs, fileName) => {
+        errorMessages.push(`${fileName}: ${errs.join('; ')}`);
       });
-
-      const response = await apiClient.post('/v1/tickets/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
+      throw new Error(errorMessages.join(' | '));
     }
 
-    // No attachments, send as JSON
-    const response = await apiClient.post('/v1/tickets/', {
+    const formData = createFormDataFromFiles(ticketData.attachments, {
       subject: ticketData.subject,
       description: ticketData.description,
       category: ticketData.category,
       priority: ticketData.priority,
-    });
+    }, 'attachments');
+
+    const config = createFormDataConfig();
+
+    const response = await withErrorContext(
+      () => apiClient.post('/v1/tickets/', formData, config),
+      'tickets.create',
+      { resource: 'ticket', action: 'create', attachmentCount: ticketData.attachments.length }
+    );
+
     return response.data;
-  } catch (error) {
-    throw error;
   }
+
+  const response = await withErrorContext(
+    () => apiClient.post('/v1/tickets/', {
+      subject: ticketData.subject,
+      description: ticketData.description,
+      category: ticketData.category,
+      priority: ticketData.priority,
+    }),
+    'tickets.create',
+    { resource: 'ticket', action: 'create' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -120,12 +147,13 @@ export const createTicket = async (ticketData) => {
  * @throws {Error} If update fails
  */
 export const updateTicket = async (ticketId, updateData) => {
-  try {
-    const response = await apiClient.patch(`/v1/tickets/${ticketId}/`, updateData);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.patch(`/v1/tickets/${ticketId}/`, updateData),
+    'tickets.update',
+    { resource: 'ticket', action: 'update', resourceId: ticketId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -137,12 +165,13 @@ export const updateTicket = async (ticketId, updateData) => {
  * @throws {Error} If deletion fails
  */
 export const deleteTicket = async (ticketId) => {
-  try {
-    const response = await apiClient.delete(`/v1/tickets/${ticketId}/`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.delete(`/v1/tickets/${ticketId}/`),
+    'tickets.delete',
+    { resource: 'ticket', action: 'delete', resourceId: ticketId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -155,12 +184,13 @@ export const deleteTicket = async (ticketId) => {
  * @throws {Error} If update fails
  */
 export const updateTicketStatus = async (ticketId, status) => {
-  try {
-    const response = await apiClient.patch(`/v1/tickets/${ticketId}/status/`, { status });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.patch(`/v1/tickets/${ticketId}/status/`, { status }),
+    'tickets.updateStatus',
+    { resource: 'ticket', action: 'updateStatus', resourceId: ticketId, status }
+  );
+
+  return response.data;
 };
 
 /**
@@ -173,54 +203,53 @@ export const updateTicketStatus = async (ticketId, status) => {
  * @throws {Error} If assignment fails
  */
 export const assignTicket = async (ticketId, staffId) => {
-  try {
-    const response = await apiClient.patch(`/v1/tickets/${ticketId}/assign/`, {
-      assigned_to: staffId,
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.patch(`/v1/tickets/${ticketId}/assign/`, { assigned_to: staffId }),
+    'tickets.assign',
+    { resource: 'ticket', action: 'assign', resourceId: ticketId, staffId }
+  );
+
+  return response.data;
 };
 
 /**
- * Add a comment to a ticket
- * 
- * @param {string|number} ticketId - Ticket ID
- * @param {string} comment - Comment text
- * @param {Array<File>} attachments - Optional file attachments
- * @returns {Promise<Object>} Created comment data
- * @throws {Error} If comment creation fails
+ * Add a comment to a ticket (validates attachments when provided).
+ *
+ * @param {string|number} ticketId - Ticket ID.
+ * @param {string} comment - Comment text.
+ * @param {Array<File>} [attachments] - Optional attachments.
+ * @returns {Promise<Object>} Created comment data.
  */
 export const addTicketComment = async (ticketId, comment, attachments = []) => {
-  try {
-    if (attachments.length > 0) {
-      const formData = new FormData();
-      formData.append('comment', comment);
-      
-      attachments.forEach((file) => {
-        formData.append('attachments', file);
+  if (attachments.length > 0) {
+    const validation = validateFiles(attachments);
+    if (!validation.valid) {
+      const errorMessages = [];
+      validation.errors.forEach((errs, fileName) => {
+        errorMessages.push(`${fileName}: ${errs.join('; ')}`);
       });
-
-      const response = await apiClient.post(
-        `/v1/tickets/${ticketId}/comments/`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      return response.data;
+      throw new Error(errorMessages.join(' | '));
     }
 
-    const response = await apiClient.post(`/v1/tickets/${ticketId}/comments/`, {
-      comment,
-    });
+    const formData = createFormDataFromFiles(attachments, { comment }, 'attachments');
+    const config = createFormDataConfig();
+
+    const response = await withErrorContext(
+      () => apiClient.post(`/v1/tickets/${ticketId}/comments/`, formData, config),
+      'tickets.addComment',
+      { resource: 'ticket', action: 'addComment', resourceId: ticketId, attachmentCount: attachments.length }
+    );
+
     return response.data;
-  } catch (error) {
-    throw error;
   }
+
+  const response = await withErrorContext(
+    () => apiClient.post(`/v1/tickets/${ticketId}/comments/`, { comment }),
+    'tickets.addComment',
+    { resource: 'ticket', action: 'addComment', resourceId: ticketId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -231,12 +260,13 @@ export const addTicketComment = async (ticketId, comment, attachments = []) => {
  * @throws {Error} If request fails
  */
 export const getTicketComments = async (ticketId) => {
-  try {
-    const response = await apiClient.get(`/v1/tickets/${ticketId}/comments/`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get(`/v1/tickets/${ticketId}/comments/`),
+    'tickets.comments',
+    { resource: 'ticket', action: 'comments', resourceId: ticketId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -249,14 +279,13 @@ export const getTicketComments = async (ticketId) => {
  * @throws {Error} If close fails
  */
 export const closeTicket = async (ticketId, resolution = '') => {
-  try {
-    const response = await apiClient.post(`/v1/tickets/${ticketId}/close/`, {
-      resolution,
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.post(`/v1/tickets/${ticketId}/close/`, { resolution }),
+    'tickets.close',
+    { resource: 'ticket', action: 'close', resourceId: ticketId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -268,14 +297,13 @@ export const closeTicket = async (ticketId, resolution = '') => {
  * @throws {Error} If reopen fails
  */
 export const reopenTicket = async (ticketId, reason) => {
-  try {
-    const response = await apiClient.post(`/v1/tickets/${ticketId}/reopen/`, {
-      reason,
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.post(`/v1/tickets/${ticketId}/reopen/`, { reason }),
+    'tickets.reopen',
+    { resource: 'ticket', action: 'reopen', resourceId: ticketId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -286,12 +314,13 @@ export const reopenTicket = async (ticketId, reason) => {
  * @throws {Error} If request fails
  */
 export const getTicketStats = async () => {
-  try {
-    const response = await apiClient.get('/v1/tickets/stats/');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/tickets/stats/'),
+    'tickets.stats',
+    { resource: 'tickets', action: 'stats' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -302,12 +331,13 @@ export const getTicketStats = async () => {
  * @throws {Error} If request fails
  */
 export const getTicketCategories = async () => {
-  try {
-    const response = await apiClient.get('/v1/tickets/categories/');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/tickets/categories/'),
+    'tickets.categories',
+    { resource: 'tickets', action: 'categories' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -318,14 +348,13 @@ export const getTicketCategories = async () => {
  * @throws {Error} If search fails
  */
 export const searchTickets = async (query) => {
-  try {
-    const response = await apiClient.get('/v1/tickets/search/', {
-      params: { q: query },
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/tickets/search/', { params: { q: query } }),
+    'tickets.search',
+    { resource: 'tickets', action: 'search' }
+  );
+
+  return response.data;
 };
 
 // Export all ticket functions as a grouped object for convenience

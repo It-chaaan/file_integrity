@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import DataTable from '../../components/DataTable';
 import { useTickets } from '../../hooks/useData';
 
 function Tickets() {
-  const { tickets = [], loading = false, updateTicket, createTicket, deleteTicket, error } = useTickets?.() || {};
+  const { tickets = [], loading = false, updateTicket, createTicket } = useTickets?.() || {};
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);

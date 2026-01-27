@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useDocuments } from '../../hooks/useData';
 import { getCurrentUser } from '../../services/auth';
-import { generateHash, shortHash, generateDocumentId, formatFileSize, validateFileType, validateFileSize } from '../../services/utils';
+import { shortHash, formatFileSize, validateFileType, validateFileSize } from '../../services/utils';
+import UploadArea from '../../components/UploadArea';
+import SimpleStepper from '../../components/SimpleStepper';
+import * as adapter from '../../api/adapter';
 
 function Upload() {
-  const navigate = useNavigate();
   const { createDocument } = useDocuments();
   const currentUser = getCurrentUser();
   
@@ -19,7 +20,11 @@ function Upload() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedDoc, setUploadedDoc] = useState(null);
+  const [verificationResult, setVerificationResult] = useState(null);
+  const [status, setStatus] = useState('idle'); // idle | ready | uploading | verifying | complete | error
   const [error, setError] = useState('');
+
+  const stepLabels = ['Select File', 'Enter Metadata', 'Hash & Sign', 'Complete'];
 
   const documentTypes = [
     'Barangay Clearance',
@@ -48,6 +53,10 @@ function Upload() {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     setError('');
+    setVerificationResult(null);
+    setUploadedDoc(null);
+    setStatus(selectedFile ? 'ready' : 'idle');
+    setUploadProgress(0);
     
     if (!selectedFile) {
       setFile(null);
@@ -80,6 +89,7 @@ function Upload() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setVerificationResult(null);
     setUploadProgress(0);
 
     if (!file) {
@@ -87,81 +97,75 @@ function Upload() {
       return;
     }
 
+    const docType = formData.type === 'Other' ? otherType.trim() : formData.type;
+
+    if (!docType) {
+      setError('Please specify a document type.');
+      setStatus('error');
+      return;
+    }
+
     setUploading(true);
+    setStatus('uploading');
 
     try {
-      // Simulate file upload with progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      // Generate hash for the file
-      const hash = generateHash(file);
-      const docId = generateDocumentId();
-
-      // Create document record
-      const docType = formData.type === 'Other' ? otherType.trim() : formData.type;
-
-      if (!docType) {
-        setError('Please specify a document type.');
-        setUploading(false);
-        return;
-      }
-
-      const newDocument = {
-        documentId: docId,
+      const uploadPayload = {
+        file,
         title: formData.title,
-        type: docType,
-        documentType: docType, // alias for compatibility
-        department: formData.department,
-        uploadedBy: currentUser?.name || 'Unknown',
-        date: new Date().toISOString().split('T')[0],
-        hash: hash,
-        shortHash: shortHash(hash),
-        status: 'pending',
-        fileSize: file.size, // store raw bytes for registry formatting
-        uploadDate: new Date().toISOString().replace('T', ' ').split('.')[0],
-        signature: '3045022100' + hash.substring(0, 56),
-        fileName: file.name,
-        fileType: file.type || file.name.split('.').pop()
+        document_type: docType,
+        metadata: {
+          department: formData.department,
+          uploaded_by: currentUser?.name || currentUser?.username || 'Unknown',
+          original_name: file.name,
+          original_size: file.size,
+        },
       };
 
-      // Wait for "upload" to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      clearInterval(progressInterval);
-      setUploadProgress(100);
+      const result = await createDocument(uploadPayload, {
+        onProgress: (percent) => setUploadProgress(Number.isFinite(percent) ? percent : 0),
+      });
 
-      // Save to mock storage
-      await createDocument(newDocument);
+      setUploadProgress((prev) => (prev < 100 ? 100 : prev));
+      setUploadedDoc(result);
 
-      // TODO: Backend Integration - Implement audit logging
-      // Once backend is ready, uncomment and use real audit log API:
-      // import { createAuditLog } from '../../api/logs.api';
-      // await createAuditLog({
-      //   action: 'DOCUMENT_UPLOAD',
-      //   resource_type: 'document',
-      //   resource_id: docId,
-      //   details: `Uploaded document: ${newDocument.title}`
-      // });
+      setStatus('verifying');
+      try {
+        const verifyRes = await adapter.verifyDocument(file);
+        setVerificationResult(verifyRes);
+      } catch (verificationError) {
+        setVerificationResult({ error: verificationError?.message || 'Verification failed' });
+      }
 
-      setUploadedDoc(newDocument);
+      const docId = result?.documentId || result?.document_id || result?.id;
+      try {
+        await adapter.createAuditLog({
+          action: 'DOCUMENT_UPLOAD',
+          resource_type: 'document',
+          resource_id: docId,
+          details: `Uploaded document: ${formData.title}`,
+          metadata: {
+            department: formData.department,
+            file_name: file.name,
+            file_size: file.size,
+          },
+        });
+      } catch (auditLogError) {
+        console.warn('Audit log skipped:', auditLogError?.message || auditLogError);
+      }
 
-      // Reset form after a delay
+      setStatus('complete');
+
       setTimeout(() => {
         setFile(null);
         setFormData({ title: '', type: '', department: '' });
         setUploadProgress(0);
-      }, 3000);
+        setStatus('idle');
+      }, 10000);
 
-    } catch (err) {
-      setError('Upload failed: ' + err.message);
+    } catch (error) {
+      setError('Upload failed: ' + error.message);
       setUploadProgress(0);
+      setStatus('error');
     } finally {
       setUploading(false);
     }
@@ -172,223 +176,216 @@ function Upload() {
     setFormData({ title: '', type: '', department: '' });
     setUploadProgress(0);
     setUploadedDoc(null);
+    setVerificationResult(null);
+    setStatus('idle');
     setError('');
   };
 
   return (
-    <div>
-      <div className="mb-4">
-        <h2 className="mb-1">Upload Document</h2>
-        <p className="text-muted">Upload and register new documents for verification</p>
+    <div className="upload-page">
+      <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+        <div>
+          <h2 className="mb-1">Upload Document</h2>
+          <p className="text-muted mb-0">Select a file, add details, then upload.</p>
+        </div>
+        <div className="badge text-bg-light border px-3 py-2">
+          <i className="bi bi-shield-check text-success me-2"></i>
+          Integrity safeguarded with hashing and signatures
+        </div>
       </div>
 
-      <div className="row">
-        {/* Upload Form */}
-        <div className="col-12">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body p-4">
-              <form onSubmit={handleSubmit}>
-                {/* File Upload */}
-                <div className="mb-4">
-                  <label className="form-label fw-semibold">Document File *</label>
-                  <div className="border-2 border-dashed rounded p-4 text-center" style={{ borderColor: '#e0e0e0', backgroundColor: '#fafafa' }}>
-                    <input
-                      type="file"
-                      id="fileInput"
-                      className="d-none"
-                      onChange={handleFileChange}
-                      accept=".pdf,.doc,.docx,.txt"
-                      disabled={uploading}
-                    />
-                    <label htmlFor="fileInput" className="w-100" style={{ cursor: uploading ? 'not-allowed' : 'pointer' }}>
-                      {file ? (
-                        <div>
-                          <i className="bi bi-file-earmark-check text-success" style={{ fontSize: '3rem' }}></i>
-                          <p className="mt-2 mb-1 fw-semibold">{file.name}</p>
-                          <p className="text-muted small mb-0">{formatFileSize(file.size)}</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <i className="bi bi-cloud-upload text-muted" style={{ fontSize: '3rem' }}></i>
-                          <p className="mt-2 mb-1">Click to select file or drag and drop</p>
-                          <p className="text-muted small mb-0">PDF, DOC, DOCX, TXT up to 5MB</p>
-                        </div>
-                      )}
-                    </label>
-                  </div>
-                </div>
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-body p-4">
+          <div className="mb-4">
+            <SimpleStepper status={status} labels={stepLabels} />
+          </div>
 
-                {/* Title */}
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Document Title *</label>
+          <div className="mb-4">
+            <UploadArea
+              file={file}
+              onFileChange={handleFileChange}
+              acceptedTypes={['pdf', 'doc', 'docx', 'txt']}
+              maxSizeMB={5}
+              disabled={uploading}
+              error={error && !file ? error : ''}
+            />
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            <div className="row g-3">
+              <div className="col-12">
+                <label className="form-label fw-semibold">Document Title *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Enter document title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
+                  disabled={uploading}
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Document Type *</label>
+                <select
+                  className="form-select"
+                  value={formData.type}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData({ ...formData, type: value });
+                    if (value !== 'Other') setOtherType('');
+                  }}
+                  required
+                  disabled={uploading}
+                >
+                  <option value="">Select document type</option>
+                  {documentTypes.map((type, idx) => (
+                    <option key={idx} value={type}>{type}</option>
+                  ))}
+                </select>
+                {formData.type === 'Other' && (
                   <input
                     type="text"
-                    className="form-control"
-                    placeholder="Enter document title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="form-control mt-2"
+                    placeholder="Specify document type"
+                    value={otherType}
+                    onChange={(e) => setOtherType(e.target.value)}
                     required
                     disabled={uploading}
                   />
-                </div>
-
-                {/* Type */}
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Document Type *</label>
-                  <select
-                    className="form-select"
-                    value={formData.type}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFormData({ ...formData, type: value });
-                      if (value !== 'Other') setOtherType('');
-                    }}
-                    required
-                    disabled={uploading}
-                  >
-                    <option value="">Select document type</option>
-                    {documentTypes.map((type, idx) => (
-                      <option key={idx} value={type}>{type}</option>
-                    ))}
-                  </select>
-                  {formData.type === 'Other' && (
-                    <input
-                      type="text"
-                      className="form-control mt-2"
-                      placeholder="Specify document type"
-                      value={otherType}
-                      onChange={(e) => setOtherType(e.target.value)}
-                      required
-                      disabled={uploading}
-                    />
-                  )}
-                </div>
-
-                {/* Department */}
-                <div className="mb-4">
-                  <label className="form-label fw-semibold">Department *</label>
-                  <select
-                    className="form-select"
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    required
-                    disabled={uploading}
-                  >
-                    <option value="">Select department</option>
-                    {departments.map((dept, idx) => (
-                      <option key={idx} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Error Message */}
-                {error && (
-                  <div className="alert alert-danger">
-                    <i className="bi bi-exclamation-circle me-2"></i>
-                    {error}
-                  </div>
                 )}
+              </div>
 
-                {/* Upload Progress */}
-                {uploading && (
-                  <div className="mb-4">
-                    <div className="d-flex justify-content-between mb-2">
-                      <span className="small">Uploading...</span>
-                      <span className="small fw-semibold">{uploadProgress}%</span>
-                    </div>
-                    <div className="progress" style={{ height: '8px' }}>
-                      <div
-                        className="progress-bar progress-bar-striped progress-bar-animated"
-                        role="progressbar"
-                        style={{ width: `${uploadProgress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Success Message */}
-                {uploadedDoc && uploadProgress === 100 && (
-                  <div className="alert alert-success">
-                    <i className="bi bi-check-circle me-2"></i>
-                    Document uploaded successfully!
-                    <div className="mt-2 small">
-                      <strong>Document ID:</strong> {uploadedDoc.id}<br />
-                      <strong>Hash:</strong> <code>{uploadedDoc.shortHash}</code>
-                    </div>
-                  </div>
-                )}
-
-                {/* Buttons */}
-                <div className="d-flex gap-2">
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={uploading || !file}
-                  >
-                    {uploading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-cloud-upload me-2"></i>
-                        Upload Document
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={handleReset}
-                    disabled={uploading}
-                  >
-                    Reset
-                  </button>
-                </div>
-              </form>
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Department *</label>
+                <select
+                  className="form-select"
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  required
+                  disabled={uploading}
+                >
+                  <option value="">Select department</option>
+                  {departments.map((dept, idx) => (
+                    <option key={idx} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
-        </div>
 
+            {uploading && (
+              <div className="mt-4">
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="small">Uploading...</span>
+                  <span className="small fw-semibold">{uploadProgress}%</span>
+                </div>
+                <div className="progress" style={{ height: '8px' }}>
+                  <div
+                    className="progress-bar progress-bar-striped progress-bar-animated"
+                    role="progressbar"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="alert alert-danger mt-3">
+                <i className="bi bi-exclamation-circle me-2"></i>
+                {error}
+              </div>
+            )}
+
+            {uploadedDoc && uploadProgress === 100 && (
+              <div className="alert alert-success mt-3">
+                <div className="d-flex align-items-start gap-3">
+                  <div className="status-icon success">
+                    <i className="bi bi-check2-circle"></i>
+                  </div>
+                  <div>
+                    <h6 className="mb-1">Document Uploaded Successfully</h6>
+                    <p className="text-muted mb-2 small">Integrity signature and hash stored for verification.</p>
+                    <div className="d-flex flex-wrap gap-3 small text-muted">
+                      <div><span className="text-dark fw-semibold">Document ID:</span> {uploadedDoc.documentId || uploadedDoc.document_id || uploadedDoc.id || '—'}</div>
+                      <div><span className="text-dark fw-semibold">Hash:</span> {uploadedDoc.shortHash || (uploadedDoc.hash && shortHash(uploadedDoc.hash)) || uploadedDoc.hash || '—'}</div>
+                      <div><span className="text-dark fw-semibold">Size:</span> {file ? formatFileSize(file.size) : 'N/A'}</div>
+                    </div>
+                    {verificationResult && (
+                      <div className="mt-2">
+                        <span className="badge text-bg-success-subtle text-success border px-3 py-2">Verification {verificationResult.error ? 'Skipped' : 'Completed'}</span>
+                        {!verificationResult.error && (
+                          <p className="small text-muted mb-0 mt-1">Status: {verificationResult.status || (verificationResult.found ? 'VERIFIED' : 'NOT_FOUND')}</p>
+                        )}
+                        {verificationResult.error && (
+                          <p className="small text-danger mb-0 mt-1">{verificationResult.error}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="d-flex flex-wrap gap-2 mt-4">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={uploading || status === 'verifying' || !file}
+              >
+                {uploading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-cloud-upload me-2"></i>
+                    Start Upload
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={handleReset}
+                disabled={uploading}
+              >
+                Reset
+              </button>
+              <div className="ms-auto d-flex align-items-center gap-2 text-muted small">
+                <i className="bi bi-lock-fill text-success"></i>
+                Data hashed and signed on upload
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
 
-      {/* Info Section at Bottom */}
-      <div className="row mt-4">
-        <div className="col-md-6">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h6 className="card-title text-primary">
-                <i className="bi bi-info-circle me-2"></i>
-                Upload Guidelines
-              </h6>
-              <ul className="small mb-0">
-                <li><i className="bi bi-check-circle text-success me-2"></i>Maximum file size: 5MB</li>
-                <li><i className="bi bi-check-circle text-success me-2"></i>Supported formats: PDF, DOC, DOCX, TXT</li>
-                <li><i className="bi bi-check-circle text-success me-2"></i>Each document gets a unique hash</li>
-                <li><i className="bi bi-check-circle text-success me-2"></i>Hash is used for verification</li>
-                <li><i className="bi bi-check-circle text-success me-2"></i>All uploads are logged</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-6">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body">
-              <h6 className="card-title text-primary">
-                <i className="bi bi-shield-check me-2"></i>
-                Security Features
-              </h6>
-              <ul className="small mb-0">
-                <li><i className="bi bi-shield text-info me-2"></i>SHA-256 hash generation</li>
-                <li><i className="bi bi-shield text-info me-2"></i>ECDSA digital signatures</li>
-                <li><i className="bi bi-shield text-info me-2"></i>Tamper detection</li>
-                <li><i className="bi bi-shield text-info me-2"></i>Audit trail logging</li>
-                <li><i className="bi bi-shield text-info me-2"></i>Role-based access</li>
-              </ul>
-            </div>
-          </div>
+      <div className="card border-0 shadow-sm">
+        <div className="card-body">
+          <h6 className="card-title text-primary d-flex align-items-center gap-2 mb-3">
+            <i className="bi bi-lightning-charge"></i>
+            Quick Tips
+          </h6>
+          <ul className="list-unstyled mb-0 small">
+            <li className="d-flex align-items-start gap-2 mb-2">
+              <i className="bi bi-check-circle text-success mt-1"></i>
+              Keep files under 5MB and in PDF/DOC/DOCX/TXT format.
+            </li>
+            <li className="d-flex align-items-start gap-2 mb-2">
+              <i className="bi bi-check-circle text-success mt-1"></i>
+              Use accurate titles and departments for faster search.
+            </li>
+            <li className="d-flex align-items-start gap-2 mb-2">
+              <i className="bi bi-check-circle text-success mt-1"></i>
+              Every upload is hashed and ready for verification.
+            </li>
+            <li className="d-flex align-items-start gap-2">
+              <i className="bi bi-check-circle text-success mt-1"></i>
+              Audit trails and approvals sit in the next steps.
+            </li>
+          </ul>
         </div>
       </div>
     </div>

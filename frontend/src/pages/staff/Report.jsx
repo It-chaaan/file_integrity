@@ -26,7 +26,7 @@ function Report() {
         <p className="text-muted">Report system-related problems.</p>
       </div>
 
-      <div className="row justify-content-center">
+      <div className="row justify-content-start-flex">
         <div className="col-lg-8">
           <div className="card border-0 shadow-sm">
             <div className="card-body p-4">
@@ -78,7 +78,17 @@ function Report() {
               </form>
             </div>
           </div>
-        </div>
+
+          {/* Information Box */}
+          <div className="alert alert-info mt-4">
+            <h6 className="alert-heading">Before Submitting</h6>
+            <ul className="mb-0 small">
+              <li>Make sure you have all relevant information (System issue, error messages, etc.)</li>
+              <li>For urgent security issues, please contact our 24/7 hotline: 1-800-PARITY Security Team</li>
+              <li>All reports are treated confidentially and reviewed by our security team</li>
+            </ul>
+          </div>
+        </div>  
       </div>
     </div>
   );

@@ -8,13 +8,20 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Container, Alert, Button, Card } from 'react-bootstrap';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { logError } from '../utils/errors';
 
 /**
- * Error Boundary Class Component
- * Must be a class component as hooks don't support componentDidCatch yet
+ * Error Boundary Class Component.
+ * Catches render-time errors and prevents app-wide crashes; must remain a class until React supports hooks-based error boundaries.
+ * @prop {React.ReactNode} children - The subtree to protect.
+ * @prop {boolean} [showDetails=false] - Force showing error details even outside dev.
+ * @prop {string} [name='ErrorBoundary'] - Label used in error logs.
+ * @prop {(error: Error, info: React.ErrorInfo) => void} [onError] - Optional callback when an error is captured.
+ * @prop {() => void} [onReset] - Optional callback when the boundary is reset.
+ * @prop {(args: {error: Error, errorInfo: React.ErrorInfo, resetError: () => void}) => React.ReactNode} [fallback] - Custom fallback renderer.
  */
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -31,7 +38,7 @@ class ErrorBoundary extends React.Component {
    * Update state when an error is caught
    * Called during the render phase
    */
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
@@ -61,8 +68,7 @@ class ErrorBoundary extends React.Component {
   }
 
   /**
-   * Reset error boundary state
-   * Allows user to retry after an error
+   * Reset error boundary state so children can re-render after a failure.
    */
   handleReset = () => {
     this.setState({
@@ -204,6 +210,15 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+ErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+  showDetails: PropTypes.bool,
+  name: PropTypes.string,
+  onError: PropTypes.func,
+  onReset: PropTypes.func,
+  fallback: PropTypes.func,
+};
+
 /**
  * Props validation and defaults
  */
@@ -254,6 +269,11 @@ export const PageErrorBoundary = ({ children, pageName }) => {
   );
 };
 
+PageErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+  pageName: PropTypes.string.isRequired,
+};
+
 /**
  * Component-level Error Boundary
  * Catches errors in individual components with minimal UI disruption
@@ -281,6 +301,11 @@ export const ComponentErrorBoundary = ({ children, componentName }) => {
   );
 };
 
+ComponentErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+  componentName: PropTypes.string.isRequired,
+};
+
 /**
  * Async Error Boundary
  * Specialized for handling async operations and Suspense
@@ -292,7 +317,7 @@ export const AsyncErrorBoundary = ({ children, onError }) => {
       onError={onError}
       fallback={({ error, resetError }) => (
         <Alert variant="info" className="text-center m-3">
-          <p>Failed to load data</p>
+          <p>Failed to load data{error?.message ? `: ${error.message}` : ''}</p>
           <Button size="sm" onClick={resetError}>
             Retry
           </Button>
@@ -302,6 +327,11 @@ export const AsyncErrorBoundary = ({ children, onError }) => {
       {children}
     </ErrorBoundary>
   );
+};
+
+AsyncErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+  onError: PropTypes.func,
 };
 
 export default ErrorBoundary;

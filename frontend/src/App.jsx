@@ -52,6 +52,7 @@ import publicRoutes from './routes/public.routes';
 // ============================================================================
 import Login from './pages/auth/Login';
 import TwoFactor from './pages/auth/TwoFactor';
+import UserAgreement from './pages/auth/UserAgreement';
 
 // ============================================================================
 // SERVICES
@@ -110,11 +111,13 @@ function App() {
       {/* ================================================================== */}
       {/* AUTHENTICATION ROUTES - Login and 2FA                             */}
       {/* ================================================================== */}
-      {/* /login      → Username/password authentication                     */}
-      {/* /two-factor → 2FA code verification                                */}
+      {/* /login           → Username/password authentication                */}
+      {/* /two-factor      → 2FA code verification                           */}
+      {/* /user-agreement  → User Responsibility Agreement                   */}
       {/* ================================================================== */}
       <Route path="/login" element={<Login />} />
       <Route path="/two-factor" element={<TwoFactor />} />
+      <Route path="/user-agreement" element={<UserAgreement />} />
 
       {/* ================================================================== */}
       {/* ADMIN ROUTES - Administrator portal                               */}

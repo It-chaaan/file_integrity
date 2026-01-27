@@ -15,6 +15,7 @@
  */
 
 import * as adapter from '../api/adapter';
+import * as mockAuth from './mockAuth';
 
 /**
  * Initialize authentication system
@@ -58,24 +59,27 @@ export const logout = async () => {
  * @returns {Promise<Object>|Object} User data (async for real API, sync for mock)
  */
 export const getCurrentUser = () => {
-  // For mock API, this is synchronous
-  // For real API, it would be async - components should handle both
-  if (adapter.USE_MOCK_API) {
-    return adapter.getCurrentUser();
+  // Normalize to always return a user object when possible
+  const result = adapter.getCurrentUser();
+  // Mock: synchronous session object; return nested user
+  if (adapter.USE_MOCK_API && result && result.user) {
+    return result.user;
   }
-  // Real API returns promise
-  return adapter.getCurrentUser();
+  return result; // Real API: Promise of user profile
 };
 
 /**
  * Get current session (backward compatible with mockAuth)
+ * For mock mode: returns session object synchronously
+ * For real mode: returns simple flag-based object
  * @returns {Object|null} Session object or null if not authenticated
  */
 export const getCurrentSession = () => {
   if (adapter.USE_MOCK_API) {
-    return adapter.getCurrentUser();
+    // Mock: get session directly from mockAuth (sync)
+    return mockAuth.getCurrentSession();
   }
-  // For real API, need to check token existence
+  // Real API: simple flag-based session representation
   return adapter.isAuthenticated() ? { verified: true } : null;
 };
 

@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { X } from 'lucide-react';
 
+/**
+ * Responsive modal with backdrop, body scroll lock, and size presets.
+ * @param {Object} props
+ * @param {boolean} props.show - Whether the modal is visible.
+ * @param {() => void} props.onClose - Callback when closing (backdrop or close button).
+ * @param {string|React.ReactNode} [props.title] - Modal title.
+ * @param {React.ReactNode} props.children - Modal body content.
+ * @param {React.ReactNode} [props.footer] - Footer content (e.g., action buttons).
+ * @param {'sm'|'md'|'lg'|'xl'} [props.size='md'] - Size preset.
+ */
 const Modal = ({ show, onClose, title, children, footer, size = 'md' }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 576);
 
@@ -123,6 +134,15 @@ const Modal = ({ show, onClose, title, children, footer, size = 'md' }) => {
       </div>
     </>
   );
+};
+
+Modal.propTypes = {
+  show: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  title: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
+  children: PropTypes.node.isRequired,
+  footer: PropTypes.node,
+  size: PropTypes.oneOf(['sm', 'md', 'lg', 'xl']),
 };
 
 export default Modal;

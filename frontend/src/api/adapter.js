@@ -39,17 +39,18 @@ import * as realDocsAPI from './documents.api';
 import * as realTicketsAPI from './tickets.api';
 import * as realUsersAPI from './users.api';
 import * as realLogsAPI from './logs.api';
-import { isAuthenticated as isRealAuthenticated, getAccessToken } from './client';
+import * as realProfileAPI from './profile.api';
+import { isAuthenticated as isRealAuthenticated } from './client';
 
 // Determine which mode to use from environment (default to mock unless explicitly disabled)
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API !== 'false';
+const PROFILE_PHOTO_ENABLED = import.meta.env.VITE_PROFILE_PHOTO_ENABLED === 'true';
 
 // Export for consumers that branch on mode
-export { USE_MOCK_API };
-
+export { USE_MOCK_API, PROFILE_PHOTO_ENABLED };
 // Log current mode in development
 if (import.meta.env.DEV) {
-  console.log(`🔧 API Mode: ${USE_MOCK_API ? 'MOCK' : 'REAL'}`);
+  console.log(`API Mode: ${USE_MOCK_API ? 'MOCK' : 'REAL'}`);
 }
 
 /**
@@ -58,6 +59,7 @@ if (import.meta.env.DEV) {
  */
 export const initializeApp = () => {
   if (USE_MOCK_API) {
+    // Always reinitialize mock data to ensure fresh state
     initializeMockUsers();
     initializeMockData();
   }
@@ -153,6 +155,49 @@ export const changePassword = async (passwordData) => {
   return await realAuthAPI.changePassword(passwordData);
 };
 
+/**
+ * Update current user profile
+ * @param {Object} profileData
+ * @returns {Promise<Object>}
+ */
+export const updateProfile = async (profileData) => {
+  if (USE_MOCK_API) {
+    return { success: true, data: profileData };
+  }
+  return await realAuthAPI.updateUserProfile(profileData);
+};
+
+/**
+ * Upload profile photo (if enabled)
+ * @param {File} file
+ * @returns {Promise<Object>}
+ */
+export const uploadProfilePhoto = async (file) => {
+  if (!PROFILE_PHOTO_ENABLED) {
+    throw new Error('Profile photo upload is disabled. Set VITE_PROFILE_PHOTO_ENABLED=true to enable.');
+  }
+
+  if (USE_MOCK_API) {
+    return { success: true, url: URL.createObjectURL(file) };
+  }
+  return await realProfileAPI.uploadProfilePhoto(file);
+};
+
+/**
+ * Remove profile photo (if enabled)
+ * @returns {Promise<Object>}
+ */
+export const removeProfilePhoto = async () => {
+  if (!PROFILE_PHOTO_ENABLED) {
+    throw new Error('Profile photo removal is disabled. Set VITE_PROFILE_PHOTO_ENABLED=true to enable.');
+  }
+
+  if (USE_MOCK_API) {
+    return { success: true };
+  }
+  return await realProfileAPI.removeProfilePhoto();
+};
+
 // ============================================================================
 // DOCUMENTS ADAPTER
 // ============================================================================
@@ -202,10 +247,24 @@ export const uploadDocument = async (uploadData, onProgress = null) => {
         setTimeout(() => onProgress(i), i * 50);
       }
     }
-    return await mockDocumentService.create(uploadData);
+    const syntheticHash = Math.random().toString(36).substring(2, 18);
+    const syntheticDocument = {
+      ...uploadData,
+      id: uploadData.documentId || `DOC-${Date.now()}`,
+      documentId: uploadData.documentId || `DOC-${Date.now()}`,
+      uploadedBy: uploadData?.metadata?.uploaded_by || 'Mock User',
+      uploadDate: new Date().toISOString().replace('T', ' ').split('.')[0],
+      hash: uploadData.hash || syntheticHash,
+      shortHash: syntheticHash.substring(0, 8),
+      status: 'pending',
+    };
+    return await mockDocumentService.create(syntheticDocument);
   }
   return await realDocsAPI.uploadDocument(uploadData, onProgress);
 };
+
+// Backward compatibility alias
+export const createDocument = uploadDocument;
 
 /**
  * Verify document integrity
@@ -244,6 +303,26 @@ export const deleteDocument = async (documentId) => {
     return await mockDocumentService.delete(documentId);
   }
   return await realDocsAPI.deleteDocument(documentId);
+};
+
+// ============================================================================
+// AUDIT LOGS (WRITE)
+// ============================================================================
+
+/**
+ * Create audit log entry
+ * @param {Object} logEntry { action, resource_type, resource_id, details, metadata }
+ * @returns {Promise<Object>}
+ */
+export const createAuditLog = async (logEntry) => {
+  if (USE_MOCK_API) {
+    return await mockLogService.create(logEntry);
+  }
+  if (realLogsAPI.createAuditLog) {
+    return await realLogsAPI.createAuditLog(logEntry);
+  }
+  // Fallback: no-op if backend not available
+  return { success: false, skipped: true };
 };
 
 // ============================================================================
@@ -303,6 +382,18 @@ export const updateTicket = async (ticketId, updateData) => {
     return await mockTicketService.update(ticketId, updateData);
   }
   return await realTicketsAPI.updateTicket(ticketId, updateData);
+};
+
+/**
+ * Delete ticket
+ * @param {string} ticketId
+ * @returns {Promise<void>}
+ */
+export const deleteTicket = async (ticketId) => {
+  if (USE_MOCK_API) {
+    return await mockTicketService.delete(ticketId);
+  }
+  return await realTicketsAPI.deleteTicket(ticketId);
 };
 
 /**
@@ -378,6 +469,18 @@ export const updateUser = async (userId, updateData) => {
   return await realUsersAPI.updateUser(userId, updateData);
 };
 
+/**
+ * Delete user
+ * @param {string} userId
+ * @returns {Promise<void>}
+ */
+export const deleteUser = async (userId) => {
+  if (USE_MOCK_API) {
+    return await mockUserService.delete(userId);
+  }
+  return await realUsersAPI.deleteUser(userId);
+};
+
 // ============================================================================
 // AUDIT LOGS ADAPTER
 // ============================================================================
@@ -428,13 +531,13 @@ export const getLogs = async (params = {}) => {
 };
 
 // ============================================================================
-// SECURITY KEYS ADAPTER
+// SECURITY KEYS ADAPTER (Mock-first; real API optional)
 // ============================================================================
 
 /**
- * Get all security keys
- * @param {Object} params 
- * @returns {Promise<Object>}
+ * Get all security keys (mock returns paginated shape; real API optional).
+ * @param {Object} params
+ * @returns {Promise<Object|Array>} Keys list.
  */
 export const getKeys = async (params = {}) => {
   if (USE_MOCK_API) {
@@ -443,34 +546,49 @@ export const getKeys = async (params = {}) => {
       results: keys,
       count: keys.length,
       next: null,
-      previous: null
+      previous: null,
     };
   }
-  return await realLogsAPI.getKeys(params);
+
+  if (typeof realLogsAPI.getKeys === 'function') {
+    return await realLogsAPI.getKeys(params);
+  }
+
+  return { results: [], count: 0, next: null, previous: null };
 };
 
 /**
- * Create a new security key
- * @param {Object} keyData 
- * @returns {Promise<Object>}
+ * Create a new security key.
+ * @param {Object} keyData
+ * @returns {Promise<Object>} Created key.
  */
 export const createKey = async (keyData) => {
   if (USE_MOCK_API) {
     return await mockLogService.createKey(keyData);
   }
-  return await realLogsAPI.createKey(keyData);
+
+  if (typeof realLogsAPI.createKey === 'function') {
+    return await realLogsAPI.createKey(keyData);
+  }
+
+  return { success: false, skipped: true };
 };
 
 /**
- * Delete a security key
- * @param {string} keyId 
- * @returns {Promise<void>}
+ * Delete a security key by id.
+ * @param {string} keyId
+ * @returns {Promise<Object|void>} Result of deletion.
  */
 export const deleteKey = async (keyId) => {
   if (USE_MOCK_API) {
     return await mockLogService.deleteKey(keyId);
   }
-  return await realLogsAPI.deleteKey(keyId);
+
+  if (typeof realLogsAPI.deleteKey === 'function') {
+    return await realLogsAPI.deleteKey(keyId);
+  }
+
+  return { success: false, skipped: true };
 };
 
 // ============================================================================
@@ -490,6 +608,9 @@ export default {
   isAuthenticated,
   hasRole,
   changePassword,
+  updateProfile,
+  uploadProfilePhoto,
+  removeProfilePhoto,
   
   // Documents
   getDocuments,
@@ -504,6 +625,7 @@ export default {
   getTicketById,
   createTicket,
   updateTicket,
+  deleteTicket,
   addTicketComment,
   
   // Users
@@ -511,13 +633,12 @@ export default {
   getUserById,
   createUser,
   updateUser,
+  deleteUser,
   
   // Logs
   getAuditLogs,
   getUserActivityLogs,
   getLogs,
-  
-  // Keys
   getKeys,
   createKey,
   deleteKey,

@@ -130,9 +130,21 @@ function Login() {
       setFailedAttempts(0);
       localStorage.removeItem('login_attempts');
       
-      // Navigate to 2FA
-      navigate('/two-factor');
-    } catch (err) {
+      // Navigate based on 2FA setting
+      const REQUIRE_2FA = import.meta.env.VITE_ENABLE_2FA === 'true';
+      if (REQUIRE_2FA) {
+        navigate('/two-factor');
+      } else {
+        const userRole = session?.user?.role;
+        if (userRole === 'admin') {
+          navigate('/admin/dashboard');
+        } else if (userRole === 'staff') {
+          navigate('/staff/dashboard');
+        } else {
+          navigate('/');
+        }
+      }
+    } catch (error) {
       // Increment failed attempts
       const attempts = failedAttempts + 1;
       setFailedAttempts(attempts);
@@ -159,7 +171,7 @@ function Login() {
         
         setError(`Invalid credentials. ${5 - attempts} attempt${5 - attempts === 1 ? '' : 's'} remaining before temporary lockout.`);
       } else {
-        setError(err.message || 'Invalid credentials. Please check your username and password.');
+        setError(error.message || 'Invalid credentials. Please check your username and password.');
       }
     } finally {
       setIsLoading(false);
