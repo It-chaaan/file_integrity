@@ -70,6 +70,42 @@ export const mockLogs = [
     action: 'LOGIN_ATTEMPT',
     details: 'Failed login attempt invalid credentials',
     status: 'Failed'
+  },
+  {
+    timestamp: '2026-01-08 12:15:55',
+    userId: 'USR-ADM-002',
+    userName: 'Rebecca',
+    ip: '192.168.1.105',
+    action: 'DOCUMENT_UPLOAD',
+    details: 'Uploaded Mayor_Certification_2026.pdf',
+    status: 'Success'
+  },
+  {
+    timestamp: '2026-01-08 12:00:22',
+    userId: 'USR-STF-003',
+    userName: 'Maria',
+    ip: '192.168.1.110',
+    action: 'DOCUMENT_VERIFY',
+    details: 'Verified Provincial_Permit.pdf',
+    status: 'Success'
+  },
+  {
+    timestamp: '2026-01-08 11:45:33',
+    userId: 'USR-ADM-001',
+    userName: 'Christian',
+    ip: '192.168.1.100',
+    action: 'KEY_ROTATION',
+    details: 'Rotated backup ECDSA key',
+    status: 'Success'
+  },
+  {
+    timestamp: '2026-01-08 11:30:10',
+    userId: 'USR-STF-012',
+    userName: 'James',
+    ip: '192.168.1.145',
+    action: 'LOGIN_ATTEMPT',
+    details: 'Successful login',
+    status: 'Success'
   }
 ];
 

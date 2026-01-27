@@ -15,32 +15,43 @@
  */
 
 import apiClient from './client';
+import { createDownloadConfig, mergeQueryParams } from './utils/axiosConfig';
+import { withErrorContext } from './utils/errorContext';
 
 /**
- * Get paginated list of audit logs with optional filters
- * Admin/staff only endpoint
- * 
- * @param {Object} params - Query parameters for filtering and pagination
- * @param {number} params.page - Page number (default: 1)
- * @param {number} params.page_size - Items per page (default: 20)
- * @param {string} params.search - Search query
- * @param {string} params.action - Filter by action type (login, logout, create, update, delete, etc.)
- * @param {string} params.user_id - Filter by user ID
- * @param {string} params.resource_type - Filter by resource type (document, ticket, user, etc.)
- * @param {string} params.date_from - Filter from date (YYYY-MM-DD)
- * @param {string} params.date_to - Filter to date (YYYY-MM-DD)
- * @param {string} params.severity - Filter by severity (info, warning, error, critical)
- * @param {string} params.ordering - Sort field (default: '-timestamp')
- * @returns {Promise<Object>} Paginated audit logs
- * @throws {Error} If request fails
+ * Get paginated list of audit logs with optional filters (supports both page_size and pageSize keys).
+ *
+ * @param {Object} params
+ * @param {number} [params.page=1] - Page number.
+ * @param {number} [params.page_size] - Legacy page size key.
+ * @param {number} [params.pageSize] - Page size (preferred key).
+ * @param {string} [params.search] - Search query.
+ * @param {string} [params.action] - Filter by action type.
+ * @param {string} [params.user_id] - Filter by user ID.
+ * @param {string} [params.resource_type] - Filter by resource type.
+ * @param {string} [params.date_from] - From date (YYYY-MM-DD).
+ * @param {string} [params.date_to] - To date (YYYY-MM-DD).
+ * @param {string} [params.severity] - Severity filter (info|warning|error|critical).
+ * @param {string} [params.ordering='-timestamp'] - Sort field.
+ * @returns {Promise<Object>} Paginated audit logs.
  */
 export const getAuditLogs = async (params = {}) => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/', { params });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const { page, page_size: pageSizeLegacy, pageSize, ordering, search, ...filters } = params;
+  const pageSizeValue = pageSize || pageSizeLegacy;
+
+  const queryParams = mergeQueryParams({
+    pagination: { page, pageSize: pageSizeValue, ordering },
+    filters,
+    search,
+  });
+
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/', { params: queryParams }),
+    'auditLogs.list',
+    { resource: 'auditLogs', action: 'list' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -51,34 +62,39 @@ export const getAuditLogs = async (params = {}) => {
  * @throws {Error} If log not found or request fails
  */
 export const getAuditLogById = async (logId) => {
-  try {
-    const response = await apiClient.get(`/v1/audit-logs/${logId}/`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get(`/v1/audit-logs/${logId}/`),
+    'auditLogs.detail',
+    { resource: 'auditLog', action: 'fetch', resourceId: logId }
+  );
+
+  return response.data;
 };
 
 /**
- * Get audit logs for a specific user
- * Returns all actions performed by the user
- * 
- * @param {string|number} userId - User ID
- * @param {Object} params - Additional query parameters
- * @param {number} params.page - Page number
- * @param {number} params.page_size - Items per page
- * @param {string} params.date_from - Filter from date
- * @param {string} params.date_to - Filter to date
- * @returns {Promise<Object>} Paginated user activity logs
- * @throws {Error} If request fails
+ * Get audit logs for a specific user with pagination and filters.
+ *
+ * @param {string|number} userId - User ID.
+ * @param {Object} params - Query params (page, page_size/pageSize, ordering, search, filters).
+ * @returns {Promise<Object>} Paginated user activity logs.
  */
 export const getUserAuditLogs = async (userId, params = {}) => {
-  try {
-    const response = await apiClient.get(`/v1/audit-logs/user/${userId}/`, { params });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const { page, page_size: pageSizeLegacy, pageSize, ordering, search, ...filters } = params;
+  const pageSizeValue = pageSize || pageSizeLegacy;
+
+  const queryParams = mergeQueryParams({
+    pagination: { page, pageSize: pageSizeValue, ordering },
+    filters,
+    search,
+  });
+
+  const response = await withErrorContext(
+    () => apiClient.get(`/v1/audit-logs/user/${userId}/`, { params: queryParams }),
+    'auditLogs.byUser',
+    { resource: 'auditLogs', action: 'listByUser', resourceId: userId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -91,14 +107,13 @@ export const getUserAuditLogs = async (userId, params = {}) => {
  * @throws {Error} If request fails
  */
 export const getLogsByAction = async (actionType, params = {}) => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/by-action/', {
-      params: { action: actionType, ...params },
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/by-action/', { params: { action: actionType, ...params } }),
+    'auditLogs.byAction',
+    { resource: 'auditLogs', action: 'listByAction', actionType }
+  );
+
+  return response.data;
 };
 
 /**
@@ -112,15 +127,13 @@ export const getLogsByAction = async (actionType, params = {}) => {
  * @throws {Error} If request fails
  */
 export const getResourceAuditLogs = async (resourceType, resourceId, params = {}) => {
-  try {
-    const response = await apiClient.get(
-      `/v1/audit-logs/resource/${resourceType}/${resourceId}/`,
-      { params }
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get(`/v1/audit-logs/resource/${resourceType}/${resourceId}/`, { params }),
+    'auditLogs.byResource',
+    { resource: resourceType, action: 'listByResource', resourceId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -135,12 +148,13 @@ export const getResourceAuditLogs = async (resourceType, resourceId, params = {}
  * @throws {Error} If request fails
  */
 export const getSecurityLogs = async (params = {}) => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/security/', { params });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/security/', { params }),
+    'auditLogs.security',
+    { resource: 'auditLogs', action: 'security' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -154,12 +168,13 @@ export const getSecurityLogs = async (params = {}) => {
  * @throws {Error} If request fails
  */
 export const getFailedLogins = async (params = {}) => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/failed-logins/', { params });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/failed-logins/', { params }),
+    'auditLogs.failedLogins',
+    { resource: 'auditLogs', action: 'failedLogins' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -173,12 +188,13 @@ export const getFailedLogins = async (params = {}) => {
  * @throws {Error} If request fails
  */
 export const getAuditStats = async (params = {}) => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/stats/', { params });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/stats/', { params }),
+    'auditLogs.stats',
+    { resource: 'auditLogs', action: 'stats' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -193,12 +209,13 @@ export const getAuditStats = async (params = {}) => {
  * @throws {Error} If request fails
  */
 export const getActivityTimeline = async (params = {}) => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/timeline/', { params });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/timeline/', { params }),
+    'auditLogs.timeline',
+    { resource: 'auditLogs', action: 'timeline' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -215,15 +232,33 @@ export const getActivityTimeline = async (params = {}) => {
  * @throws {Error} If export fails
  */
 export const exportAuditLogs = async (format = 'csv', filters = {}) => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/export/', {
+  const downloadConfig = createDownloadConfig();
+
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/export/', {
       params: { format, ...filters },
-      responseType: 'blob',
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+      ...downloadConfig,
+    }),
+    'auditLogs.export',
+    { resource: 'auditLogs', action: 'export', format }
+  );
+
+  return response.data;
+};
+
+/**
+ * Create a new audit log entry
+ * @param {Object} logEntry - { action, resource_type, resource_id, details, metadata }
+ * @returns {Promise<Object>} Created log record
+ */
+export const createAuditLog = async (logEntry) => {
+  const response = await withErrorContext(
+    () => apiClient.post('/v1/audit-logs/', logEntry),
+    'auditLogs.create',
+    { resource: 'auditLog', action: 'create' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -234,12 +269,13 @@ export const exportAuditLogs = async (format = 'csv', filters = {}) => {
  * @throws {Error} If request fails
  */
 export const getActionTypes = async () => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/action-types/');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/action-types/'),
+    'auditLogs.actionTypes',
+    { resource: 'auditLogs', action: 'actionTypes' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -250,12 +286,13 @@ export const getActionTypes = async () => {
  * @throws {Error} If request fails
  */
 export const getResourceTypes = async () => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/resource-types/');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/resource-types/'),
+    'auditLogs.resourceTypes',
+    { resource: 'auditLogs', action: 'resourceTypes' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -268,14 +305,13 @@ export const getResourceTypes = async () => {
  * @throws {Error} If search fails
  */
 export const searchAuditLogs = async (query, params = {}) => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/search/', {
-      params: { q: query, ...params },
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/search/', { params: { q: query, ...params } }),
+    'auditLogs.search',
+    { resource: 'auditLogs', action: 'search' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -287,14 +323,66 @@ export const searchAuditLogs = async (query, params = {}) => {
  * @throws {Error} If request fails
  */
 export const getRecentActivity = async (limit = 10) => {
-  try {
-    const response = await apiClient.get('/v1/audit-logs/recent/', {
-      params: { limit },
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/audit-logs/recent/', { params: { limit } }),
+    'auditLogs.recent',
+    { resource: 'auditLogs', action: 'recent', limit }
+  );
+
+  return response.data;
+};
+
+// ---------------------------------------------------------------------------
+// Security keys (optional backend support)
+// ---------------------------------------------------------------------------
+
+/**
+ * Get security keys (placeholder implementation until backend is available).
+ * Returns empty results to keep UI stable when no endpoint exists.
+ */
+export const getKeys = async (params = {}) => {
+  const { page, page_size: pageSizeLegacy, pageSize, ordering, search, ...filters } = params;
+  const pageSizeValue = pageSize || pageSizeLegacy;
+
+  const queryParams = mergeQueryParams({
+    pagination: { page, pageSize: pageSizeValue, ordering },
+    filters,
+    search,
+  });
+
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/security-keys/', { params: queryParams }),
+    'securityKeys.list',
+    { resource: 'securityKeys', action: 'list' }
+  );
+
+  return response.data;
+};
+
+/**
+ * Create security key (placeholder).
+ */
+export const createKey = async (keyData) => {
+  const response = await withErrorContext(
+    () => apiClient.post('/v1/security-keys/', keyData),
+    'securityKeys.create',
+    { resource: 'securityKey', action: 'create' }
+  );
+
+  return response.data;
+};
+
+/**
+ * Delete security key (placeholder).
+ */
+export const deleteKey = async (keyId) => {
+  const response = await withErrorContext(
+    () => apiClient.delete(`/v1/security-keys/${keyId}/`),
+    'securityKeys.delete',
+    { resource: 'securityKey', action: 'delete', resourceId: keyId }
+  );
+
+  return response.data;
 };
 
 // Export all audit log functions as a grouped object for convenience
@@ -313,4 +401,7 @@ export default {
   getResourceTypes,
   searchAuditLogs,
   getRecentActivity,
+  getKeys,
+  createKey,
+  deleteKey,
 };

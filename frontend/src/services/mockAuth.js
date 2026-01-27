@@ -87,7 +87,9 @@ export const getCurrentSession = () => {
 // Check if authenticated
 export const isAuthenticated = () => {
   const session = getCurrentSession();
-  return session !== null && session.verified === true;
+  if (!session) return false;
+  const REQUIRE_2FA = import.meta.env.VITE_ENABLE_2FA === 'true';
+  return REQUIRE_2FA ? session.verified === true : true;
 };
 
 // Check role

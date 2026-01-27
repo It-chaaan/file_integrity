@@ -1,7 +1,21 @@
 import React, { useState, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import StatusBadge from './StatusBadge';
 import Pagination from './Pagination';
 
+/**
+ * Responsive data table with search, filter, sort, pagination, and optional actions column.
+ * @param {Object[]} columns - Column configs ({ key, label, sortable?, render? }).
+ * @param {Object[]} [data=[]] - Row data; keys should match column keys.
+ * @param {(row: Object) => React.ReactNode} [actions] - Renderer for actions cell per row.
+ * @param {boolean} [searchable=true] - Enable text search across columns.
+ * @param {boolean} [filterable=false] - Enable dropdown filters.
+ * @param {Array<{key: string, label: string, options: Array<{label: string, value: string}>}>} [filters=[]] - Filter configs.
+ * @param {number} [pageSize=10] - Initial page size.
+ * @param {boolean} [sortable=true] - Enable column sorting (can be disabled per column).
+ * @param {(row: Object) => void} [onRowClick] - Row click handler.
+ * @param {string} [emptyMessage='No data available'] - Message when no rows.
+ */
 const DataTable = ({ 
   columns, 
   data = [], 
@@ -16,7 +30,7 @@ const DataTable = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [pageSize] = useState(initialPageSize);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [activeFilters, setActiveFilters] = useState({});
 
@@ -105,12 +119,14 @@ const DataTable = ({
                 <input
                   type="text"
                   className="form-control border-start-0 ps-0"
+                  id="data-table-search"
                   placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
+                  aria-label="Search table"
                   style={{ fontSize: '0.95rem' }}
                 />
               </div>
@@ -126,6 +142,8 @@ const DataTable = ({
                     className="form-select form-select-sm flex-grow-1"
                     value={activeFilters[filter.key] || 'all'}
                     onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                    id={`filter-${filter.key}`}
+                    aria-label={`Filter by ${filter.label}`}
                     style={{ minWidth: '120px', fontSize: '0.9rem' }}
                   >
                     <option value="all">{filter.label}: All</option>
@@ -245,6 +263,31 @@ const DataTable = ({
       )}
     </div>
   );
+};
+
+DataTable.propTypes = {
+  columns: PropTypes.arrayOf(PropTypes.shape({
+    key: PropTypes.string.isRequired,
+    label: PropTypes.string.isRequired,
+    sortable: PropTypes.bool,
+    render: PropTypes.func,
+  })).isRequired,
+  data: PropTypes.arrayOf(PropTypes.object),
+  actions: PropTypes.func,
+  searchable: PropTypes.bool,
+  filterable: PropTypes.bool,
+  filters: PropTypes.arrayOf(PropTypes.shape({
+    key: PropTypes.string.isRequired,
+    label: PropTypes.string.isRequired,
+    options: PropTypes.arrayOf(PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    })).isRequired,
+  })),
+  pageSize: PropTypes.number,
+  sortable: PropTypes.bool,
+  onRowClick: PropTypes.func,
+  emptyMessage: PropTypes.string,
 };
 
 export default DataTable;

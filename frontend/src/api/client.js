@@ -58,7 +58,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('❌ Request Error:', error);
+    console.error('Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -74,7 +74,7 @@ apiClient.interceptors.response.use(
   (response) => {
     // Log response in development mode
     if (import.meta.env.DEV) {
-      console.log(`✅ API Response: ${response.config.method.toUpperCase()} ${response.config.url}`, {
+      console.log(`API Response: ${response.config.method.toUpperCase()} ${response.config.url}`, {
         status: response.status,
         data: response.data,
       });
@@ -226,7 +226,7 @@ export const withRetry = async (requestFn, maxRetries = 2) => {
       await new Promise(resolve => setTimeout(resolve, delay));
       
       if (import.meta.env.DEV) {
-        console.log(`🔄 Retrying request (attempt ${attempt + 2}/${maxRetries + 1})...`);
+        console.log(`Retrying request (attempt ${attempt + 2}/${maxRetries + 1})...`);
       }
     }
   }

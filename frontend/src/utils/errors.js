@@ -215,7 +215,7 @@ export const logError = (error, context = {}) => {
 
   // Always log to console in development
   if (import.meta.env.DEV) {
-    console.error('🔴 Error:', errorLog);
+    console.error('Error:', errorLog);
   }
 
   // In production, send to error logging service (e.g., Sentry, LogRocket)

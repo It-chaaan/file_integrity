@@ -43,7 +43,7 @@ import Topbar from '../components/Topbar';
 // ============================================================================
 // AUTHENTICATION SERVICES
 // ============================================================================
-import { getCurrentUser, isAuthenticated } from '../services/auth';
+import { getCurrentUser, isAuthenticated, getCurrentSession, logout as performLogout } from '../services/auth';
 
 /**
  * Admin Layout Component
@@ -84,8 +84,7 @@ const AdminLayout = () => {
    */
   React.useEffect(() => {
     const checkAuth = () => {
-      const authenticated = isAuthenticated();
-      
+      const authenticated = isAuthenticated() || (!!getCurrentSession());
       if (!authenticated) {
         // User is not authenticated, redirect to login
         navigate('/login');
@@ -180,9 +179,12 @@ const AdminLayout = () => {
    * 
    * Note: Full page navigation clears all state and session data.
    */
-  const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      window.location.href = '/login';
+  const handleLogout = async () => {
+    if (!window.confirm('Are you sure you want to logout?')) return;
+    try {
+      await performLogout(); // clears mock session or real tokens
+    } finally {
+      navigate('/login');
     }
   };
 
@@ -218,6 +220,10 @@ const AdminLayout = () => {
 
   const sidebarWidth = getSidebarWidth();
 
+  if (!isReady) {
+    return null;
+  }
+
   // ============================================================================
   // RENDER
   // ============================================================================
@@ -230,6 +236,7 @@ const AdminLayout = () => {
       {/* Responsive: Overlay on mobile, fixed on tablet/desktop           */}
       {/* ================================================================ */}
       <Sidebar
+        user={user}
         role="admin"
         onLogout={handleLogout}
         isOpen={sidebarOpen}
@@ -261,9 +268,6 @@ const AdminLayout = () => {
           boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
         }}>
           <Topbar
-            user={user}
-            role={user.role}
-            onLogout={handleLogout}
             onMenuToggle={toggleSidebar}
           />
         </div>

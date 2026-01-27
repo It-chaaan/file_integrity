@@ -18,29 +18,48 @@
  */
 
 import apiClient from './client';
+import { createDownloadConfig, mergeQueryParams } from './utils/axiosConfig';
+import { withErrorContext } from './utils/errorContext';
+import {
+  createFormDataConfig,
+  createFormDataFromFile,
+  createFormDataFromFiles,
+  validateFile,
+  validateFiles,
+} from './utils/formData';
 
 /**
- * Get paginated list of documents with optional filters
- * 
- * @param {Object} params - Query parameters for filtering and pagination
- * @param {number} params.page - Page number (default: 1)
- * @param {number} params.page_size - Items per page (default: 10)
- * @param {string} params.search - Search query
- * @param {string} params.status - Filter by status (verified, pending, failed)
- * @param {string} params.document_type - Filter by document type
- * @param {string} params.date_from - Filter from date (YYYY-MM-DD)
- * @param {string} params.date_to - Filter to date (YYYY-MM-DD)
- * @param {string} params.ordering - Sort field (e.g., '-created_at' for descending)
- * @returns {Promise<Object>} Paginated documents list
- * @throws {Error} If request fails
+ * Get paginated list of documents with optional filters (supports page_size and pageSize).
+ *
+ * @param {Object} params
+ * @param {number} [params.page=1] - Page number.
+ * @param {number} [params.page_size] - Legacy page size key.
+ * @param {number} [params.pageSize] - Page size (preferred key).
+ * @param {string} [params.search] - Search query.
+ * @param {string} [params.status] - Status filter (verified|pending|failed).
+ * @param {string} [params.document_type] - Document type filter.
+ * @param {string} [params.date_from] - From date (YYYY-MM-DD).
+ * @param {string} [params.date_to] - To date (YYYY-MM-DD).
+ * @param {string} [params.ordering='-created_at'] - Sort field.
+ * @returns {Promise<Object>} Paginated documents list.
  */
 export const getDocuments = async (params = {}) => {
-  try {
-    const response = await apiClient.get('/v1/documents/', { params });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const { page, page_size: pageSizeLegacy, pageSize, ordering, search, ...filters } = params;
+  const pageSizeValue = pageSize || pageSizeLegacy;
+
+  const queryParams = mergeQueryParams({
+    pagination: { page, pageSize: pageSizeValue, ordering },
+    filters,
+    search,
+  });
+
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/documents/', { params: queryParams }),
+    'documents.list',
+    { resource: 'documents', action: 'list' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -51,12 +70,13 @@ export const getDocuments = async (params = {}) => {
  * @throws {Error} If document not found or request fails
  */
 export const getDocumentById = async (documentId) => {
-  try {
-    const response = await apiClient.get(`/v1/documents/${documentId}/`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get(`/v1/documents/${documentId}/`),
+    'documents.detail',
+    { resource: 'document', action: 'fetch', resourceId: documentId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -70,44 +90,35 @@ export const getDocumentById = async (documentId) => {
  * @param {string} uploadData.description - Document description (optional)
  * @param {Object} uploadData.metadata - Additional metadata (optional)
  * @param {Function} onUploadProgress - Progress callback (optional)
- * @returns {Promise<Object>} Created document with hash and ID
- * @throws {Error} If upload fails
+ * @param {Object} constraints - Optional validation constraints (maxSize, minSize, allowedTypes)
+ * @returns {Promise<Object>} Created document with hash and ID.
  */
-export const uploadDocument = async (uploadData, onUploadProgress = null) => {
-  try {
-    // Create FormData for file upload
-    const formData = new FormData();
-    formData.append('file', uploadData.file);
-    formData.append('title', uploadData.title);
-    formData.append('document_type', uploadData.document_type);
-    
-    if (uploadData.description) {
-      formData.append('description', uploadData.description);
-    }
-    
-    if (uploadData.metadata) {
-      formData.append('metadata', JSON.stringify(uploadData.metadata));
-    }
-
-    const config = {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    };
-
-    // Add progress callback if provided
-    if (onUploadProgress) {
-      config.onUploadProgress = (progressEvent) => {
-        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        onUploadProgress(percentCompleted);
-      };
-    }
-
-    const response = await apiClient.post('/v1/documents/', formData, config);
-    return response.data;
-  } catch (error) {
-    throw error;
+export const uploadDocument = async (uploadData, onUploadProgress = null, constraints = {}) => {
+  const validation = validateFile(uploadData?.file, constraints);
+  if (!validation.valid) {
+    throw new Error(validation.errors.join('; '));
   }
+
+  const formData = createFormDataFromFile(uploadData.file, {
+    title: uploadData.title,
+    document_type: uploadData.document_type,
+    description: uploadData.description,
+    metadata: uploadData.metadata,
+  });
+
+  const config = createFormDataConfig({ onUploadProgress });
+
+  const response = await withErrorContext(
+    () => apiClient.post('/v1/documents/', formData, config),
+    'documents.upload',
+    {
+      resource: 'document',
+      action: 'upload',
+      fileName: uploadData?.file?.name,
+    }
+  );
+
+  return response.data;
 };
 
 /**
@@ -115,24 +126,25 @@ export const uploadDocument = async (uploadData, onUploadProgress = null) => {
  * Uploads a file to check if it matches any existing document in the registry
  * 
  * @param {File} file - File object to verify
- * @returns {Promise<Object>} Verification result with match status, hash, and original document
- * @throws {Error} If verification fails
+ * @param {Object} constraints - Optional validation constraints (maxSize, minSize, allowedTypes)
+ * @returns {Promise<Object>} Verification result with match status, hash, and original document.
  */
-export const verifyDocument = async (file) => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await apiClient.post('/v1/documents/verify/', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return response.data;
-  } catch (error) {
-    throw error;
+export const verifyDocument = async (file, constraints = {}) => {
+  const validation = validateFile(file, constraints);
+  if (!validation.valid) {
+    throw new Error(validation.errors.join('; '));
   }
+
+  const formData = createFormDataFromFile(file);
+  const config = createFormDataConfig();
+
+  const response = await withErrorContext(
+    () => apiClient.post('/v1/documents/verify/', formData, config),
+    'documents.verify',
+    { resource: 'document', action: 'verify', fileName: file?.name }
+  );
+
+  return response.data;
 };
 
 /**
@@ -149,12 +161,13 @@ export const verifyDocument = async (file) => {
  * @throws {Error} If update fails
  */
 export const updateDocument = async (documentId, updateData) => {
-  try {
-    const response = await apiClient.patch(`/v1/documents/${documentId}/`, updateData);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.patch(`/v1/documents/${documentId}/`, updateData),
+    'documents.update',
+    { resource: 'document', action: 'update', resourceId: documentId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -166,12 +179,13 @@ export const updateDocument = async (documentId, updateData) => {
  * @throws {Error} If deletion fails
  */
 export const deleteDocument = async (documentId) => {
-  try {
-    const response = await apiClient.delete(`/v1/documents/${documentId}/`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.delete(`/v1/documents/${documentId}/`),
+    'documents.delete',
+    { resource: 'document', action: 'delete', resourceId: documentId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -183,14 +197,13 @@ export const deleteDocument = async (documentId) => {
  * @throws {Error} If download fails
  */
 export const downloadDocument = async (documentId) => {
-  try {
-    const response = await apiClient.get(`/v1/documents/${documentId}/download/`, {
-      responseType: 'blob', // Important for file downloads
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get(`/v1/documents/${documentId}/download/`, createDownloadConfig()),
+    'documents.download',
+    { resource: 'document', action: 'download', resourceId: documentId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -202,12 +215,13 @@ export const downloadDocument = async (documentId) => {
  * @throws {Error} If request fails
  */
 export const getDocumentVerifications = async (documentId) => {
-  try {
-    const response = await apiClient.get(`/v1/documents/${documentId}/verifications/`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get(`/v1/documents/${documentId}/verifications/`),
+    'documents.verifications',
+    { resource: 'document', action: 'verifications', resourceId: documentId }
+  );
+
+  return response.data;
 };
 
 /**
@@ -219,14 +233,13 @@ export const getDocumentVerifications = async (documentId) => {
  * @throws {Error} If not found or request fails
  */
 export const searchDocumentByHash = async (hash) => {
-  try {
-    const response = await apiClient.get('/v1/documents/search-by-hash/', {
-      params: { hash },
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/documents/search-by-hash/', { params: { hash } }),
+    'documents.searchByHash',
+    { resource: 'document', action: 'searchByHash' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -234,27 +247,29 @@ export const searchDocumentByHash = async (hash) => {
  * Upload multiple files to verify at once
  * 
  * @param {Array<File>} files - Array of file objects
- * @returns {Promise<Array>} Array of verification results
- * @throws {Error} If verification fails
+ * @param {Object} constraints - Optional validation constraints (maxSize, minSize, allowedTypes)
+ * @returns {Promise<Array>} Array of verification results.
  */
-export const batchVerifyDocuments = async (files) => {
-  try {
-    const formData = new FormData();
-    
-    files.forEach((file, index) => {
-      formData.append(`files`, file);
+export const batchVerifyDocuments = async (files, constraints = {}) => {
+  const validation = validateFiles(files, constraints);
+  if (!validation.valid) {
+    const errorMessages = [];
+    validation.errors.forEach((errs, fileName) => {
+      errorMessages.push(`${fileName}: ${errs.join('; ')}`);
     });
-
-    const response = await apiClient.post('/v1/documents/batch-verify/', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return response.data;
-  } catch (error) {
-    throw error;
+    throw new Error(errorMessages.join(' | '));
   }
+
+  const formData = createFormDataFromFiles(files);
+  const config = createFormDataConfig();
+
+  const response = await withErrorContext(
+    () => apiClient.post('/v1/documents/batch-verify/', formData, config),
+    'documents.batchVerify',
+    { resource: 'documents', action: 'batchVerify', fileCount: files?.length }
+  );
+
+  return response.data;
 };
 
 /**
@@ -265,12 +280,13 @@ export const batchVerifyDocuments = async (files) => {
  * @throws {Error} If request fails
  */
 export const getDocumentStats = async () => {
-  try {
-    const response = await apiClient.get('/v1/documents/stats/');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/documents/stats/'),
+    'documents.stats',
+    { resource: 'documents', action: 'stats' }
+  );
+
+  return response.data;
 };
 
 /**
@@ -281,12 +297,13 @@ export const getDocumentStats = async () => {
  * @throws {Error} If request fails
  */
 export const getDocumentTypes = async () => {
-  try {
-    const response = await apiClient.get('/v1/documents/types/');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await withErrorContext(
+    () => apiClient.get('/v1/documents/types/'),
+    'documents.types',
+    { resource: 'documents', action: 'types' }
+  );
+
+  return response.data;
 };
 
 // Export all document functions as a grouped object for convenience

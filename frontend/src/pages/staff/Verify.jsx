@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { validateFileType, validateFileSize } from '../../services/utils';
+import UploadArea from '../../components/UploadArea';
 
 function Verify() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -107,29 +108,13 @@ function Verify() {
         <div className="card border-0 shadow-sm">
           <div className="card-body p-5">
             <h5 className="mb-4">Upload Document to Verify</h5>
-            <div
-              className="border-2 border-dashed rounded p-5 text-center"
-              style={{ borderColor: '#dee2e6', borderStyle: 'dashed' }}
-            >
-              <i className="bi bi-cloud-upload fs-1 text-primary mb-3 d-block"></i>
-              <p className="mb-3">Drop your file here or click to browse</p>
-              <input
-                type="file"
-                id="fileUpload"
-                className="d-none"
-                accept=".pdf,.doc,.docx,.txt"
-                onChange={handleFileSelect}
-              />
-              <label htmlFor="fileUpload" className="btn btn-primary">
-                Select File
-              </label>
-              <p className="text-muted small mt-3 mb-0">
-                Supported formats: PDF, DOC, DOCX, TXT • Max size: 5MB
-              </p>
-              {error && (
-                <p className="text-danger small mt-2 mb-0">{error}</p>
-              )}
-            </div>
+            <UploadArea
+              file={selectedFile}
+              onFileChange={handleFileSelect}
+              acceptedTypes={allowedTypes}
+              maxSizeMB={maxSizeMB}
+              error={error}
+            />
           </div>
         </div>
       )}

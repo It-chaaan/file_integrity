@@ -1,4 +1,8 @@
-/* Global Styles - Parity Design System */
+
+/* ================================================
+   DESIGN TOKENS & COLOR PALETTE
+   ================================================ */
+
 :root {
   /* Navy Blue & Black Primary Palette */
   --primary-color: #0D1526;
@@ -507,7 +511,6 @@ body {
 /* Form Controls */
 .form-control, .form-select {
   border-radius: 10px;
-  border: 1.5px solid var(--border-color);
   padding: 0.75rem 1rem;
   font-size: 15px;
   transition: all 0.2s;
@@ -555,37 +558,98 @@ body {
   border-style: solid;
 }
 
-/* Modal */
+/* Modal - Standardized Popup Form Design */
 .modal-content {
   border-radius: 16px;
   border: none;
   box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  overflow: hidden;
 }
 
 .modal-header {
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: none;
   padding: 1.5rem 1.75rem;
-  background-color: #FAFAFA;
+  background-color: var(--navy-blue);
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
 }
 
 .modal-title {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-title i {
+  font-size: 1rem;
+}
+
+.modal-header .btn-close {
+  filter: brightness(0) invert(1);
+  opacity: 0.8;
+}
+
+.modal-header .btn-close:hover {
+  opacity: 1;
 }
 
 .modal-body {
-  padding: 1.75rem;
+  padding: 2rem 1.75rem;
+  background-color: var(--white);
+}
+
+/* Modal Form Layout */
+.modal-body .row {
+  margin-bottom: 1rem;
+}
+
+.modal-body .form-label {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-bottom: 0.5rem;
+}
+
+.modal-body .form-label .text-danger {
+  margin-left: 2px;
+}
+
+.modal-body .form-control,
+.modal-body .form-select {
+  border: 1.5px solid var(--grey-300);
+  border-radius: 8px;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9375rem;
+  transition: all 0.2s;
+}
+
+.modal-body .form-control:focus,
+.modal-body .form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(13, 21, 38, 0.1);
 }
 
 .modal-footer {
-  border-top: 1px solid var(--border-color);
-  padding: 1.25rem 1.75rem;
-  background-color: #FAFAFA;
+  border-top: none;
+  padding: 1rem 1.75rem 1.75rem;
+  background-color: var(--white);
   border-bottom-left-radius: 16px;
   border-bottom-right-radius: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.modal-footer .btn {
+  min-width: 120px;
+  padding: 0.625rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
 }
 
 /* Activity List */
@@ -993,7 +1057,7 @@ p {
 
 /* Input Group */
 .input-group {
-  border-radius: 10px;
+  border-radius: 5px;
   overflow: hidden;
 }
 
@@ -1346,5 +1410,264 @@ a:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
+
+/* ==================== STANDARDIZED UPLOAD AREA ==================== */
+/* Consistent upload component used across public, admin, and staff pages */
+
+.upload-area-wrapper {
+  width: 100%;
+}
+
+.upload-area {
+  position: relative;
+  min-height: 280px;
+  border: 2px dashed var(--grey-300);
+  border-radius: 12px;
+  background-color: var(--grey-50);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.upload-area:hover:not(.disabled) {
+  border-color: var(--primary-color);
+  background-color: var(--white);
+  box-shadow: 0 4px 12px rgba(13, 21, 38, 0.08);
+  transform: translateY(-2px);
+}
+
+.upload-area.dragging {
+  border-color: var(--primary-color);
+  background-color: #EEF2FF;
+  border-width: 3px;
+  box-shadow: 0 8px 20px rgba(13, 21, 38, 0.12);
+}
+
+.upload-area.has-file {
+  border-color: var(--success-color);
+  background-color: var(--success-light);
+  border-style: solid;
+}
+
+.upload-area.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-color: var(--grey-100);
+}
+
+.upload-area-content {
+  text-align: center;
+  width: 100%;
+}
+
+.upload-icon {
+  font-size: 4rem;
+  display: block;
+  margin: 0 auto 1.5rem;
+  opacity: 0.85;
+}
+
+.upload-area.has-file .upload-icon {
+  color: var(--success-color) !important;
+}
+
+.upload-text {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.upload-filename {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.upload-filesize {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.upload-button {
+  padding: 0.625rem 1.75rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.upload-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.upload-area-info-inline {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .upload-area {
+    min-height: 240px;
+    padding: 1.5rem;
+  }
+
+  .upload-icon {
+    font-size: 3rem;
+  }
+
+  .upload-text {
+    font-size: 0.95rem;
+  }
+
+  .upload-filename {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .upload-area {
+    min-height: 200px;
+    padding: 1rem;
+  }
+
+  .upload-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .upload-text {
+    font-size: 0.9rem;
+  }
+
+  .upload-button {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* ==================== END UPLOAD AREA ==================== */
+
+/* ==================== UPLOAD PAGE LAYOUT ==================== */
+
+.upload-page .card {
+  border-radius: 14px;
+}
+
+.upload-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  position: relative;
+}
+
+.upload-step {
+  position: relative;
+  text-align: center;
+  padding: 0.75rem 0.25rem 0.5rem;
+}
+
+.upload-step .step-dot {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  margin: 0 auto 0.5rem;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--grey-200);
+  background: var(--white);
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.upload-step .step-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.upload-step .step-connector {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  right: -50%;
+  height: 2px;
+  background: var(--grey-200);
+  z-index: 0;
+}
+
+.upload-step:last-child .step-connector {
+  display: none;
+}
+
+.upload-step.done .step-dot {
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  box-shadow: 0 6px 16px rgba(0, 112, 243, 0.2);
+}
+
+.upload-step.current .step-dot {
+  background: var(--white);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  box-shadow: 0 8px 18px rgba(0, 112, 243, 0.25);
+}
+
+.upload-step.done .step-label,
+.upload-step.current .step-label {
+  color: var(--text-primary);
+}
+
+.upload-status-card {
+  background: linear-gradient(135deg, #0f172a, #111827);
+  color: var(--white);
+  padding: 1.5rem;
+  border-radius: 14px;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.status-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  background: var(--grey-100);
+  color: var(--success-color);
+}
+
+.status-icon.success {
+  background: var(--success-light);
+}
+
+@media (max-width: 768px) {
+  .upload-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .upload-step .step-connector {
+    display: none;
+  }
+}
+
+/* ==================== END UPLOAD PAGE LAYOUT ==================== */
 
 /* ==================== END RESPONSIVE UTILITIES ==================== */

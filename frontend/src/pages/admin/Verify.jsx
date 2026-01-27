@@ -126,6 +126,11 @@ function Verify() {
               <p className="text-muted small mt-3 mb-0">
                 Supported formats: PDF, DOC, DOCX, TXT • Max size: 5MB
               </p>
+              {selectedFile && (
+                <p className="text-muted small mt-2 mb-0">
+                  Selected file: {selectedFile.name}
+                </p>
+              )}
               {error && (
                 <p className="text-danger small mt-2 mb-0">{error}</p>
               )}

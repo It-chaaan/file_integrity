@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
-import { getCurrentUser, isAuthenticated } from '../services/auth';
+import { getCurrentUser, isAuthenticated, getCurrentSession, logout as performLogout } from '../services/auth';
 
 const StaffLayout = () => {
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ const StaffLayout = () => {
   React.useEffect(() => {
     // Check authentication status
     const checkAuth = () => {
-      const authenticated = isAuthenticated();
+      const authenticated = isAuthenticated() || (!!getCurrentSession());
       if (!authenticated) {
         navigate('/login');
       } else {
@@ -60,9 +60,12 @@ const StaffLayout = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      window.location.href = '/login';
+  const handleLogout = async () => {
+    if (!window.confirm('Are you sure you want to logout?')) return;
+    try {
+      await performLogout();
+    } finally {
+      navigate('/login');
     }
   };
 
@@ -80,10 +83,15 @@ const StaffLayout = () => {
 
   const sidebarWidth = getSidebarWidth();
 
+  if (!isReady) {
+    return null;
+  }
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
       {/* Sidebar - Responsive */}
       <Sidebar
+        user={user}
         role="staff"
         onLogout={handleLogout}
         isOpen={sidebarOpen}
@@ -110,9 +118,6 @@ const StaffLayout = () => {
           boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
         }}>
           <Topbar
-            user={user}
-            role={user.role}
-            onLogout={handleLogout}
             onMenuToggle={toggleSidebar}
           />
         </div>

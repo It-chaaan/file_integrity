@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const Stepper = ({ steps, currentStep }) => {
   return (
@@ -35,3 +36,8 @@ const Stepper = ({ steps, currentStep }) => {
 };
 
 export default Stepper;
+
+Stepper.propTypes = {
+  steps: PropTypes.arrayOf(PropTypes.string).isRequired,
+  currentStep: PropTypes.number.isRequired,
+};

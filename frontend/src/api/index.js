@@ -29,6 +29,7 @@ import documentsAPI from './documents.api';
 import ticketsAPI from './tickets.api';
 import usersAPI from './users.api';
 import logsAPI from './logs.api';
+import profileAPI from './profile.api';
 
 // Export API client and utilities
 export {
@@ -46,6 +47,7 @@ export {
   ticketsAPI,
   usersAPI,
   logsAPI,
+  profileAPI,
 };
 
 // Export individual authentication functions
@@ -63,6 +65,13 @@ export {
   requestPasswordReset,
   confirmPasswordReset,
 } from './auth.api';
+
+// Export individual profile functions
+export {
+  uploadProfilePhoto,
+  removeProfilePhoto,
+  PROFILE_PHOTO_ENABLED,
+} from './profile.api';
 
 // Export individual document functions
 export {
@@ -146,6 +155,7 @@ export default {
   tickets: ticketsAPI,
   users: usersAPI,
   logs: logsAPI,
+  profile: profileAPI,
   utils: {
     setAuthTokens,
     clearAuthTokens,

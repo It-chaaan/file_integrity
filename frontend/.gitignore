@@ -18,6 +18,11 @@ design figma/*.pdf
 /dist
 /out
 
+# --- Environment Variables ---
+.env
+.env.local
+.env.*.local
+
 # --- Project Specific ---
 # Since you have a requirements.txt in the wrong spot, let's ignore 
 # any local python env files if they exist in the frontend

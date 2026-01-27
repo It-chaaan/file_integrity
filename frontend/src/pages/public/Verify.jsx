@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { validateFileType, validateFileSize } from '../../services/utils';
+import UploadArea from '../../components/UploadArea';
 
 function Verify() {
   const [file, setFile] = useState(null);
@@ -160,34 +161,14 @@ function Verify() {
               <form onSubmit={handleVerify}>
                 {/* File Upload */}
                 <div className="mb-4">
-                  <label className="form-label fw-semibold">Document Upload</label>
-                  <div 
-                    className="border-2 border-dashed rounded p-5 text-center"
-                    style={{ borderColor: '#dee2e6', borderStyle: 'dashed' }}
-                  >
-                    <i className="bi bi-cloud-upload text-primary mb-3" style={{ fontSize: '3rem' }}></i>
-                    <p className="mb-3">
-                      {file ? (
-                        <><i className="bi bi-file-earmark-text me-2"></i>{file.name}</>
-                      ) : (
-                        <>Drop your document here<br />or click to browse from your computer</>
-                      )}
-                    </p>
-                    <input
-                      type="file"
-                      id="fileInput"
-                      className="d-none"
-                      accept=".pdf,.doc,.docx,.txt"
-                      onChange={handleFileChange}
-                    />
-                    <label htmlFor="fileInput" className="btn btn-primary">
-                      {file ? 'Change File' : 'Select File'}
-                    </label>
-                    <p className="text-muted small mt-3 mb-0">Supports PDF, DOC, DOCX, TXT (max 5MB)</p>
-                    {error && (
-                      <p className="text-danger small mt-2 mb-0">{error}</p>
-                    )}
-                  </div>
+                  <label className="form-label fw-semibold mb-3">Document Upload</label>
+                  <UploadArea
+                    file={file}
+                    onFileChange={handleFileChange}
+                    acceptedTypes={allowedTypes}
+                    maxSizeMB={maxSizeMB}
+                    error={error}
+                  />
                 </div>
 
                 <button 

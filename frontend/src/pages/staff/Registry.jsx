@@ -4,7 +4,7 @@ import { useDocuments } from '../../hooks/useData';
 import { formatFileSize } from '../../services/utils';
 
 function Registry() {
-  const { documents = [], loading = false } = useDocuments?.() || {};
+  const { documents = [], loading = false } = useDocuments();
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -187,13 +187,27 @@ function Registry() {
       {/* DataTable with search, filter, sort, pagination */}
       <div className="card border-0 shadow-sm">
         <div className="card-body">
-          <DataTable
-            columns={columns}
-            data={filteredDocuments}
-            actions={actions}
-            loading={loading}
-            searchable={false}
-          />
+          {loading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p className="text-muted mt-2">Loading documents...</p>
+            </div>
+          ) : filteredDocuments && filteredDocuments.length > 0 ? (
+            <DataTable
+              columns={columns}
+              data={filteredDocuments}
+              actions={actions}
+              loading={loading}
+              searchable={false}
+            />
+          ) : (
+            <div className="text-center py-5">
+              <i className="bi bi-inbox text-muted" style={{ fontSize: '3rem' }}></i>
+              <p className="text-muted mt-2">No documents found</p>
+            </div>
+          )}
         </div>
       </div>
 

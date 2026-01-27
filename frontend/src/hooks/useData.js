@@ -53,21 +53,17 @@ import * as adapter from '../api/adapter';
 // =============================================================================
 
 /**
- * Generic Data Fetching Hook
- * 
- * Provides reusable data fetching logic with loading and error states.
- * 
- * @param {Function} fetchFn - Async function that fetches data
- * @param {Array} dependencies - Dependencies that trigger refetch
- * @returns {Object} { data, loading, error, refetch }
- * 
+ * General-purpose data fetching hook with loading/error state.
+ * @param {Function} fetchFn - Async function that returns data (can return Promise or value).
+ * @param {Array} dependencies - Dependency array for useCallback/useEffect refetch.
+ * @returns {{data: *, loading: boolean, error: Error|null, refetch: Function}}
  * @example
  * const { data, loading } = useData(
  *   () => adapter.getDocuments({ status: 'active' }),
  *   [status]
  * );
  */
-export const useData = (fetchFn, dependencies = []) => {
+export const useData = (fetchFn) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -78,12 +74,12 @@ export const useData = (fetchFn, dependencies = []) => {
       setError(null);
       const result = await fetchFn();
       setData(result);
-    } catch (err) {
-      setError(err);
+    } catch (error) {
+      setError(error);
     } finally {
       setLoading(false);
     }
-  }, dependencies);
+  }, [fetchFn]);
 
   useEffect(() => {
     fetchData();
@@ -142,8 +138,8 @@ export const useDocuments = () => {
       // Backend may return: { results: [...], count: n } or just [...]
       const docs = result?.results || result || [];
       setDocuments(Array.isArray(docs) ? docs : []);
-    } catch (err) {
-      setError(err);
+    } catch (error) {
+      setError(error);
       setDocuments([]);
     } finally {
       setLoading(false);
@@ -157,14 +153,15 @@ export const useDocuments = () => {
    * @returns {Promise<Object>} Created document object
    * @throws {Error} If creation fails
    */
-  const createDocument = useCallback(async (documentData) => {
+  const createDocument = useCallback(async (documentData, options = {}) => {
+    const { onProgress } = options;
     try {
-      const result = await adapter.createDocument(documentData);
+      const result = await adapter.uploadDocument(documentData, onProgress);
       await fetchDocuments(); // Refresh list after creation
       return result;
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchDocuments]);
 
@@ -181,9 +178,9 @@ export const useDocuments = () => {
       const result = await adapter.updateDocument(id, documentData);
       await fetchDocuments(); // Refresh list after update
       return result;
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchDocuments]);
 
@@ -198,9 +195,9 @@ export const useDocuments = () => {
     try {
       await adapter.deleteDocument(id);
       await fetchDocuments(); // Refresh list after deletion
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchDocuments]);
 
@@ -236,8 +233,8 @@ export const useUsers = () => {
       // Handle both paginated and non-paginated responses
       const userData = result?.results || result || [];
       setUsers(Array.isArray(userData) ? userData : []);
-    } catch (err) {
-      setError(err);
+    } catch (error) {
+      setError(error);
       setUsers([]);
     } finally {
       setLoading(false);
@@ -249,9 +246,9 @@ export const useUsers = () => {
       const result = await adapter.createUser(userData);
       await fetchUsers(); // Refresh list
       return result;
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchUsers]);
 
@@ -260,9 +257,9 @@ export const useUsers = () => {
       const result = await adapter.updateUser(id, userData);
       await fetchUsers(); // Refresh list
       return result;
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchUsers]);
 
@@ -270,9 +267,9 @@ export const useUsers = () => {
     try {
       await adapter.deleteUser(id);
       await fetchUsers(); // Refresh list
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchUsers]);
 
@@ -307,8 +304,8 @@ export const useTickets = () => {
       // Handle both paginated and non-paginated responses
       const ticketData = result?.results || result || [];
       setTickets(Array.isArray(ticketData) ? ticketData : []);
-    } catch (err) {
-      setError(err);
+    } catch (error) {
+      setError(error);
       setTickets([]);
     } finally {
       setLoading(false);
@@ -320,9 +317,9 @@ export const useTickets = () => {
       const result = await adapter.createTicket(ticketData);
       await fetchTickets(); // Refresh list
       return result;
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchTickets]);
 
@@ -331,9 +328,9 @@ export const useTickets = () => {
       const result = await adapter.updateTicket(id, ticketData);
       await fetchTickets(); // Refresh list
       return result;
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchTickets]);
 
@@ -341,9 +338,9 @@ export const useTickets = () => {
     try {
       await adapter.deleteTicket(id);
       await fetchTickets(); // Refresh list
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchTickets]);
 
@@ -378,8 +375,8 @@ export const useKeys = () => {
       // Handle both paginated and non-paginated responses
       const keyData = result?.results || result || [];
       setKeys(Array.isArray(keyData) ? keyData : []);
-    } catch (err) {
-      setError(err);
+    } catch (error) {
+      setError(error);
       setKeys([]);
     } finally {
       setLoading(false);
@@ -391,9 +388,9 @@ export const useKeys = () => {
       const result = await adapter.createKey(keyData);
       await fetchKeys(); // Refresh list
       return result;
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchKeys]);
 
@@ -401,9 +398,9 @@ export const useKeys = () => {
     try {
       await adapter.deleteKey(id);
       await fetchKeys(); // Refresh list
-    } catch (err) {
-      setError(err);
-      throw err;
+    } catch (error) {
+      setError(error);
+      throw error;
     }
   }, [fetchKeys]);
 
@@ -437,8 +434,8 @@ export const useLogs = () => {
       // Handle both paginated and non-paginated responses
       const logData = result?.results || result || [];
       setLogs(Array.isArray(logData) ? logData : []);
-    } catch (err) {
-      setError(err);
+    } catch (error) {
+      setError(error);
       setLogs([]);
     } finally {
       setLoading(false);

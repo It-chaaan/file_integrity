@@ -1,5 +1,12 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
+/**
+ * Displays a contextual badge for status/priority values.
+ * @param {Object} props
+ * @param {string} [props.status] - Status label (e.g., 'Success', 'Failed').
+ * @param {string} [props.priority] - Priority label (overrides status coloring when present).
+ */
 const StatusBadge = ({ status, priority }) => {
   const getColor = () => {
     if (priority) {
@@ -22,6 +29,11 @@ const StatusBadge = ({ status, priority }) => {
       {status || priority}
     </span>
   );
+};
+
+StatusBadge.propTypes = {
+  status: PropTypes.string,
+  priority: PropTypes.string,
 };
 
 export default StatusBadge;

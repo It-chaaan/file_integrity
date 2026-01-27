@@ -7,6 +7,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { Toast, ToastContainer } from 'react-bootstrap';
 import { 
   CheckCircle, 
@@ -65,10 +66,21 @@ const toastConfig = {
 
 /**
  * Toast Provider Component
- * Wraps the application to provide toast functionality
+ * Wraps the app to expose toast helpers via context.
+ * @param {Object} props
+ * @param {React.ReactNode} props.children - App subtree to wrap.
  */
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+
+  /**
+   * Remove a toast by ID
+   * 
+   * @param {number} id - Toast ID
+   */
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  }, []);
 
   /**
    * Add a new toast notification
@@ -102,16 +114,7 @@ export const ToastProvider = ({ children }) => {
     }
 
     return id;
-  }, []);
-
-  /**
-   * Remove a toast by ID
-   * 
-   * @param {number} id - Toast ID
-   */
-  const removeToast = useCallback((id) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
+  }, [removeToast]);
 
   /**
    * Clear all toasts
@@ -175,8 +178,13 @@ export const ToastProvider = ({ children }) => {
   );
 };
 
+ToastProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
 /**
  * Individual Toast Notification Component
+ * @param {{toast: Object, onClose: () => void}} props
  */
 const ToastNotification = ({ toast, onClose }) => {
   const Icon = toast.icon;
@@ -199,6 +207,20 @@ const ToastNotification = ({ toast, onClose }) => {
       </Toast.Body>
     </Toast>
   );
+};
+
+ToastNotification.propTypes = {
+  toast: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    message: PropTypes.oneOfType([PropTypes.string, PropTypes.node]).isRequired,
+    type: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    duration: PropTypes.number.isRequired,
+    icon: PropTypes.elementType.isRequired,
+    bg: PropTypes.string.isRequired,
+    autohide: PropTypes.bool,
+  }).isRequired,
+  onClose: PropTypes.func.isRequired,
 };
 
 /**
@@ -224,16 +246,18 @@ export const useToast = () => {
 
 /**
  * withToast HOC
- * Inject toast functionality into class components
- * 
- * @param {React.Component} Component - Component to wrap
- * @returns {React.Component} Wrapped component with toast prop
+ * Inject toast functionality into class components.
+ * @param {React.ComponentType<any>} Component - Component to wrap.
+ * @returns {React.ComponentType<any>} Wrapped component with toast prop.
  */
-export const withToast = (Component) => {
-  return (props) => {
+export const withToast = (WrappedComponent) => {
+  function WithToast(props) {
     const toast = useToast();
-    return <Component {...props} toast={toast} />;
-  };
+    return <WrappedComponent {...props} toast={toast} />;
+  }
+
+  WithToast.displayName = `withToast(${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`;
+  return WithToast;
 };
 
 export default ToastProvider;

@@ -46,8 +46,8 @@ const DocumentUploadExample = () => {
       try {
         const types = await getDocumentTypes();
         setDocumentTypes(types);
-      } catch (err) {
-        console.error('Failed to fetch document types:', err);
+      } catch (error) {
+        console.error('Failed to fetch document types:', error);
       }
     };
 
@@ -70,9 +70,9 @@ const DocumentUploadExample = () => {
       });
 
       setDocuments(response.results);
-    } catch (err) {
-      setError(err.message || 'Failed to fetch documents');
-      console.error('Error fetching documents:', err);
+    } catch (error) {
+      setError(error.message || 'Failed to fetch documents');
+      console.error('Error fetching documents:', error);
     } finally {
       setLoading(false);
     }
@@ -140,9 +140,9 @@ const DocumentUploadExample = () => {
       
       // Refresh documents list
       fetchDocuments();
-    } catch (err) {
-      setError(err.message || 'Failed to upload document');
-      console.error('Upload error:', err);
+    } catch (error) {
+      setError(error.message || 'Failed to upload document');
+      console.error('Upload error:', error);
     } finally {
       setLoading(false);
       setUploadProgress(0);
@@ -174,9 +174,9 @@ const DocumentUploadExample = () => {
       } else {
         alert('✗ Document not found in registry.');
       }
-    } catch (err) {
-      setError(err.message || 'Verification failed');
-      console.error('Verification error:', err);
+    } catch (error) {
+      setError(error.message || 'Verification failed');
+      console.error('Verification error:', error);
     } finally {
       setLoading(false);
     }
@@ -442,8 +442,8 @@ export default DocumentUploadExample;
  *       try {
  *         const data = await getDocuments(filters);
  *         setDocuments(data.results);
- *       } catch (err) {
- *         setError(err.message);
+ *       } catch (error) {
+ *         setError(error.message);
  *       } finally {
  *         setLoading(false);
  *       }
