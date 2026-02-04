@@ -188,10 +188,6 @@ function Upload() {
           <h2 className="mb-1">Upload Document</h2>
           <p className="text-muted mb-0">Select a file, add details, then upload.</p>
         </div>
-        <div className="badge text-bg-light border px-3 py-2">
-          <i className="bi bi-shield-check text-success me-2"></i>
-          Integrity safeguarded with hashing and signatures
-        </div>
       </div>
 
       <div className="card border-0 shadow-sm mb-4">
@@ -365,8 +361,8 @@ function Upload() {
       <div className="card border-0 shadow-sm">
         <div className="card-body">
           <h6 className="card-title text-primary d-flex align-items-center gap-2 mb-3">
-            <i className="bi bi-lightning-charge"></i>
-            Quick Tips
+            <i className="bi bi-exclamation-triangle-fill"></i>
+            Reminder
           </h6>
           <ul className="list-unstyled mb-0 small">
             <li className="d-flex align-items-start gap-2 mb-2">
