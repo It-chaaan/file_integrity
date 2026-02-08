@@ -28,7 +28,6 @@ const About = () => {
   const privacyPrinciples = [
     'Only cryptographic hashes are stored in the system — never the actual document content',
     'No personal information is required to verify a document',
-    'All data is encrypted both at rest and in transit using AES-256 and TLS 1.3',
     'Access to verification records is strictly restricted to authorized personnel only',
     'Citizens have the right to request and audit logs of all access to their document records'
   ];
@@ -39,10 +38,11 @@ const About = () => {
       <div className="text-center mb-5">
         <h1 className="display-5 fw-bold mb-3">About Parity</h1>
         <p className="lead text-muted col-lg-10 mx-auto">
-          Parity is a government-backed document verification platform that leverages cutting-edge 
-          cryptographic technology to ensure the authenticity and integrity of legal documents. Our mission is 
-          to eliminate document fraud, provide instant verification capabilities, and establish a trusted digital 
-          infrastructure for official records.
+          The Automated Cryptographic Hashing System for Legal Document Integrity 
+          Verification is a secure digital solution designed to protect, verify, and preserve 
+          the authenticity of legal documents used within a Local Government Unit (LGU). 
+          The system leverages modern cryptographic hashing techniques to ensure that official 
+          documents remain tamper-proof, traceable, and verifiable throughout their lifecycle.
         </p>
         <p className="text-muted">
           Built with military-grade security and designed for ease of use, Parity serves citizens, 
@@ -100,11 +100,6 @@ const About = () => {
                     </li>
                   ))}
                 </ul>
-              </div>
-              <div className="card-footer bg-white border-top">
-                <small className="text-muted">
-                  <strong>Certified by the National Privacy Commission (NPC)</strong>
-                </small>
               </div>
             </div>
           </div>
