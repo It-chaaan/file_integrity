@@ -6,7 +6,6 @@ import { verify2FA, getCurrentSession } from '../../services/auth';
 function TwoFactor() {
   const navigate = useNavigate();
   const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [showSession, setShowSession] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [session, setSession] = useState(null);
@@ -47,8 +46,6 @@ function TwoFactor() {
     
     try {
       await verify2FA(codeString);
-      setShowSession(true);
-      
       // Short delay to ensure UI shows success, then navigate to user agreement
       setTimeout(() => {
         navigate('/user-agreement', { replace: true });
@@ -64,123 +61,6 @@ function TwoFactor() {
     setError('');
     alert('Verification code resent to your email');
   };
-
-  if (showSession) {
-    return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#F3F4F6', padding: '20px' }}>
-        <div className="container">
-          <div className="row justify-content-center">
-            <div className="col-xl-10 col-lg-11 col-12">
-              <div className="card shadow-lg border-0" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-                <div className="row g-0">
-                  {/* Left side - Session Overview */}
-                  <div className="col-lg-6 col-12 p-4 p-md-5">
-                    {/* Shield Icon */}
-                    <div className="mb-4">
-                      <div className="d-inline-flex align-items-center justify-content-center" style={{
-                        width: '64px',
-                        height: '64px',
-                        backgroundColor: '#0D1526',
-                        borderRadius: '50%'
-                      }}>
-                        <i className="bi bi-shield-check" style={{ fontSize: '28px', color: '#FFFFFF' }}></i>
-                      </div>
-                    </div>
-
-                    <h2 className="fw-bold mb-4" style={{ color: '#0D1526', fontSize: 'clamp(24px, 5vw, 32px)' }}>Session Overview</h2>
-
-                    {/* Access Level */}
-                    <div className="mb-4">
-                      <div className="d-flex align-items-center gap-2 mb-2">
-                        <i className="bi bi-shield-lock" style={{ color: '#6B7280', fontSize: '16px' }}></i>
-                        <label className="text-muted mb-0" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Access Level</label>
-                      </div>
-                      <span className="badge fw-bold" style={{ 
-                        backgroundColor: '#0D1526', 
-                        color: '#FFFFFF',
-                        fontSize: '12px',
-                        padding: '8px 16px',
-                        letterSpacing: '0.5px'
-                      }}>{session?.user?.role?.toUpperCase() || 'ADMIN'}</span>
-                    </div>
-
-                    {/* Login Time */}
-                    <div className="mb-4">
-                      <div className="d-flex align-items-center gap-2 mb-2">
-                        <i className="bi bi-clock" style={{ color: '#6B7280', fontSize: '16px' }}></i>
-                        <label className="text-muted mb-0" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Login Time</label>
-                      </div>
-                      <p className="mb-0 fw-semibold" style={{ fontSize: '15px', color: '#0D1526' }}>
-                        {new Date(session?.loginTime || Date.now()).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-
-                    {/* IP Address */}
-                    <div className="mb-4">
-                      <div className="d-flex align-items-center gap-2 mb-2">
-                        <i className="bi bi-geo-alt" style={{ color: '#6B7280', fontSize: '16px' }}></i>
-                        <label className="text-muted mb-0" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>IP Address</label>
-                      </div>
-                      <p className="mb-0 fw-semibold font-monospace" style={{ fontSize: '15px', color: '#0D1526' }}>192.168.1.100</p>
-                    </div>
-
-                    {/* Device ID */}
-                    <div className="mb-5">
-                      <div className="d-flex align-items-center gap-2 mb-2">
-                        <i className="bi bi-laptop" style={{ color: '#6B7280', fontSize: '16px' }}></i>
-                        <label className="text-muted mb-0" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Device ID</label>
-                      </div>
-                      <p className="mb-0 fw-semibold font-monospace" style={{ fontSize: '15px', color: '#0D1526' }}>XX2-9845-1104</p>
-                    </div>
-
-                    {/* Security Notice */}
-                    <div className="alert mb-4" style={{ backgroundColor: '#0D1526', border: 'none', borderRadius: '12px', padding: '20px' }}>
-                      <div className="d-flex gap-3">
-                        <i className="bi bi-shield-check flex-shrink-0" style={{ color: '#FFFFFF', fontSize: '20px' }}></i>
-                        <div>
-                          <p className="mb-1 fw-semibold" style={{ fontSize: '14px', color: '#FFFFFF' }}>Security Notice</p>
-                          <p className="mb-0" style={{ fontSize: '13px', color: '#D1D5DB', lineHeight: '1.6' }}>
-                            This session is encrypted and monitored. All activities are logged for security and compliance. By clicking "Continue to Workspace", you agree to these monitoring guidelines.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Continue Button */}
-                    <button 
-                      className="btn w-100 text-white fw-semibold" 
-                      onClick={() => navigate('/user-agreement', { replace: true })}
-                      style={{ 
-                        backgroundColor: '#0D1526', 
-                        padding: '16px', 
-                        borderRadius: '8px',
-                        border: 'none',
-                        fontSize: '15px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Continue to Workspace
-                    </button>
-                  </div>
-
-                  {/* Right side - Navy Background with Logo */}
-                  <div className="col-lg-6 col-12 d-flex align-items-center justify-content-center p-4 p-md-5" style={{ backgroundColor: '#0D1526' }}>
-                    <div className="text-center text-white">
-                    <h1 className="fw-bold mb-3" style={{ fontSize: 'clamp(36px, 8vw, 48px)', letterSpacing: '2px', color: '#FFFFFF' }}>PARITY</h1>
-                    <div style={{ width: '60px', height: '2px', backgroundColor: '#FFFFFF', margin: '0 auto 20px' }}></div>
-                    <p className="mb-0" style={{ fontSize: '14px', lineHeight: '1.6', color: '#FFFFFF', opacity: '0.9' }}>
-                      LGU Legal Documents<br/>Verification System
-                    </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#F3F4F6', padding: '20px' }}>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { validateFileType, validateFileSize } from '../../services/utils';
+import SimpleStepper from '../../components/SimpleStepper';
 
 function Verify() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -12,7 +13,6 @@ function Verify() {
   const maxSizeMB = 5;
 
   const steps = ['Select File', 'Hash', 'Complete'];
-  const brandColor = '#0D1526';
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -69,55 +69,8 @@ function Verify() {
       {/* Stepper + Main Content in one container */}
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-body p-5">
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '2rem', gap: '0' }}>
-            {/* Connecting lines - absolute positioned */}
-            {steps.map((_, idx) => {
-              if (idx === steps.length - 1) return null;
-              const isCompleted = currentStep - 1 > idx;
-              return (
-                <div
-                  key={`line-${idx}`}
-                  style={{
-                    position: 'absolute',
-                    top: '19px',
-                    left: `calc(${(idx + 0.5) * (100 / steps.length)}% + 19px)`,
-                    right: `calc(${(steps.length - idx - 1.5) * (100 / steps.length)}% + 19px)`,
-                    height: '2px',
-                    backgroundColor: isCompleted ? brandColor : '#dde1e5',
-                    zIndex: 5
-                  }}
-                />
-              );
-            })}
-
-            {/* Step circles and labels */}
-            {steps.map((label, idx) => {
-              const isCompleted = currentStep - 1 > idx;
-              const isActive = currentStep - 1 === idx;
-
-              const circleStyle = {
-                width: '38px',
-                height: '38px',
-                fontSize: '15px',
-                borderWidth: '2px',
-                borderStyle: 'solid',
-                borderColor: isCompleted || isActive ? brandColor : '#dde1e5',
-                backgroundColor: isCompleted || isActive ? brandColor : '#ffffff',
-                color: isCompleted || isActive ? '#ffffff' : '#6c757d',
-                flexShrink: 0,
-                zIndex: 10,
-                position: 'relative'
-              };
-
-              return (
-                <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-                  <div className="rounded-circle d-flex align-items-center justify-content-center fw-semibold" style={circleStyle}>
-                    {idx + 1}
-                  </div>
-                  <div className="small mt-2 text-center">{label}</div>
-                </div>
-              );
-            })}
+          <div className="mb-4">
+            <SimpleStepper labels={steps} currentStep={currentStep} />
           </div>
 
           {/* Step 1: Upload */}
