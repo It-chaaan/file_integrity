@@ -5,13 +5,16 @@ import PropTypes from 'prop-types';
 // Props:
 // - status: one of 'idle' | 'ready' | 'uploading' | 'verifying' | 'complete' | 'error'
 // - labels: optional array of 4 labels; defaults provided
-export default function SimpleStepper({ status, labels }) {
-  const steps = labels && labels.length === 4
+export default function SimpleStepper({ status, labels, currentStep }) {
+  const steps = labels && labels.length
     ? labels
     : ['Select File', 'Enter Metadata', 'Hash & Sign', 'Complete'];
 
   const rankMap = { idle: 0, ready: 1, uploading: 2, verifying: 3, complete: 4, error: 2 };
-  const currentRank = rankMap[status] ?? 0; // 0-based stage index; 4 means all completed
+  const normalizedStep = Number.isFinite(currentStep)
+    ? Math.max(0, Math.min(steps.length, currentStep - 1))
+    : null;
+  const currentRank = normalizedStep !== null ? normalizedStep : (rankMap[status] ?? 0);
 
   return (
     <div className="stepper">
@@ -38,4 +41,5 @@ export default function SimpleStepper({ status, labels }) {
 SimpleStepper.propTypes = {
   status: PropTypes.oneOf(['idle', 'ready', 'uploading', 'verifying', 'complete', 'error']),
   labels: PropTypes.arrayOf(PropTypes.string),
+  currentStep: PropTypes.number,
 };
