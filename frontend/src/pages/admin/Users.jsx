@@ -3,7 +3,7 @@ import DataTable from '../../components/DataTable';
 import { useUsers } from '../../hooks/useData';
 
 function Users() {
-  const { users, loading, updateUser } = useUsers();
+  const { users, loading, updateUser, createUser } = useUsers();
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -135,6 +135,8 @@ function Users() {
     e.preventDefault();
     if (selectedUser) {
       await updateUser(selectedUser.id, formData);
+    } else {
+      await createUser(formData);
     }
     setShowEditModal(false);
     setSelectedUser(null);
@@ -174,7 +176,7 @@ function Users() {
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-body">
           <div className="row g-3 align-items-end">
-            <div className="col-md-8">
+            <div className="col-md-6">
               <div className="input-group">
                 <span className="input-group-text bg-white border-end-0">
                   <i className="bi bi-search" style={{ color: '#6B7280' }}></i>
@@ -189,7 +191,7 @@ function Users() {
                 />
               </div>
             </div>
-            <div className="col-md-4">
+            <div className="col-md-3">
               <select 
                 className="form-select"
                 value={roleFilter}
@@ -199,6 +201,25 @@ function Users() {
                 <option value="Admin">Admin</option>
                 <option value="Staff">Staff</option>
               </select>
+            </div>
+            <div className="col-md-3 d-flex justify-content-end">
+              <button
+                className="btn btn-primary btn-sm px-3"
+                onClick={() => {
+                  setSelectedUser(null);
+                  setFormData({
+                    name: '',
+                    email: '',
+                    role: 'Staff',
+                    department: '',
+                    status: 'Active'
+                  });
+                  setShowEditModal(true);
+                }}
+              >
+                <i className="bi bi-person-plus me-2"></i>
+                Add User
+              </button>
             </div>
           </div>
         </div>
@@ -218,27 +239,29 @@ function Users() {
       </div>
 
       {/* Edit Modal */}
-      {showEditModal && selectedUser && (
+      {showEditModal && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
           <div className="modal-dialog modal-lg modal-dialog-centered" style={{ position: 'relative', zIndex: 1051 }}>
             <div className="modal-content border-0 shadow" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
               <div className="modal-header" style={{ backgroundColor: '#0D1526', borderBottom: 'none', position: 'sticky', top: 0, zIndex: 1052 }}>
                 <h5 className="modal-title text-white">
-                  <i className="bi bi-pencil me-2"></i>
-                  Edit User
+                  <i className={`bi ${selectedUser ? 'bi-pencil' : 'bi-person-plus'} me-2`}></i>
+                  {selectedUser ? 'Edit User' : 'Add User'}
                 </h5>
                 <button type="button" className="btn-close btn-close-white" onClick={handleCloseModal}></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body p-4">
-                  <div className="mb-3">
-                    <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
-                      User ID
-                    </label>
-                    <p className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
-                      {selectedUser.id}
-                    </p>
-                  </div>
+                  {selectedUser && (
+                    <div className="mb-3">
+                      <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
+                        User ID
+                      </label>
+                      <p className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
+                        {selectedUser.id}
+                      </p>
+                    </div>
+                  )}
                   <div className="mb-3">
                     <label className="form-label">Name *</label>
                     <input

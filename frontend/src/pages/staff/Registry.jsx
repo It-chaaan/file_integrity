@@ -21,6 +21,7 @@ function Registry() {
       result = result.filter(doc =>
         doc.documentId.toLowerCase().includes(term) ||
         doc.fileName.toLowerCase().includes(term) ||
+        (doc.documentType || doc.type || '').toLowerCase().includes(term) ||
         doc.department.toLowerCase().includes(term)
       );
     }
@@ -54,17 +55,17 @@ function Registry() {
       )
     },
     {
-      key: 'fileType',
-      label: 'Type',
+      key: 'documentType',
+      label: 'Document Type',
       sortable: true,
       filterable: true,
       render: (value) => (
-        <span style={{ fontSize: '14px', color: '#1F2937' }}>{value}</span>
+        <span style={{ fontSize: '14px', color: '#1F2937' }}>{value || '—'}</span>
       )
     },
     {
       key: 'department',
-      label: 'Department',
+      label: 'Office',
       sortable: true,
       filterable: true,
       render: (value) => (
@@ -140,12 +141,12 @@ function Registry() {
     <div>
       {/* Header */}
       <div className="mb-4">
-        <h2 className="mb-2" style={{ fontSize: '28px', fontWeight: '700', color: '#0D1526' }}>
-          Document Registry
-        </h2>
-        <p className="text-muted" style={{ fontSize: '14px' }}>
-          Browse and manage all verified documents in the system
-        </p>
+          <h2 className="mb-2" style={{ fontSize: '28px', fontWeight: '700', color: '#0D1526' }}>
+            Legal Document Registry
+          </h2>
+          <p className="text-muted" style={{ fontSize: '14px' }}>
+            Browse and manage City Legal Office documents in the registry
+          </p>
       </div>
 
       {/* Filter Bar */}
@@ -160,7 +161,7 @@ function Registry() {
                 <input
                   type="text"
                   className="form-control border-start-0"
-                  placeholder="Search by document ID, name, or department..."
+                    placeholder="Search by document ID, name, type, or office..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{ borderRadius: '0 6px 6px 0' }}
@@ -252,10 +253,10 @@ function Registry() {
                     </p>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
-                      File Type
-                    </label>
-                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.fileType}</p>
+                      <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
+                        Document Type
+                      </label>
+                      <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.documentType || selectedDoc.type || '—'}</p>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
@@ -264,10 +265,10 @@ function Registry() {
                     <p style={{ fontSize: '14px', color: '#1F2937' }}>{formatFileSize(selectedDoc.fileSize)}</p>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
-                      Department
-                    </label>
-                    <p style={{ fontSize: '14px', color: '#8B4513' }}>{selectedDoc.department}</p>
+                      <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
+                        Office
+                      </label>
+                      <p style={{ fontSize: '14px', color: '#8B4513' }}>{selectedDoc.department}</p>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>

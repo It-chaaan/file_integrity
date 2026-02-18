@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDocuments, useUsers, useTickets, useLogs, useKeys } from '../../hooks/useData';
 import { calculateStats } from '../../services/utils';
@@ -56,38 +56,82 @@ function Dashboard() {
     ? keys.filter(k => (k.status || '').toLowerCase() === 'active').length
     : 0;
 
+  const recentActivity = useMemo(() => {
+    const list = Array.isArray(stats.recentLogs) ? stats.recentLogs : [];
+    return list.slice(0, 4);
+  }, [stats.recentLogs]);
+
+  const recentTickets = useMemo(() => {
+    const list = Array.isArray(tickets) ? tickets : [];
+    return [...list]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5);
+  }, [tickets]);
+
+  const getTimeAgo = (dateString) => {
+    const diffMs = Date.now() - new Date(dateString).getTime();
+    if (!Number.isFinite(diffMs) || diffMs < 0) return 'Just now';
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} mins ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hours ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} days ago`;
+  };
+
+  const getTicketPriority = (priority) => {
+    const map = {
+      critical: { label: 'HIGH', className: 'bg-danger-subtle text-danger' },
+      high: { label: 'HIGH', className: 'bg-danger-subtle text-danger' },
+      medium: { label: 'MEDIUM', className: 'bg-warning-subtle text-warning' },
+      low: { label: 'LOW', className: 'bg-info-subtle text-info' }
+    };
+    return map[(priority || '').toLowerCase()] || map.medium;
+  };
+
+  const getTicketStatus = (status) => {
+    const map = {
+      open: { label: 'OPEN', className: 'bg-primary-subtle text-primary' },
+      'in-progress': { label: 'IN-PROGRESS', className: 'bg-warning-subtle text-warning' },
+      resolved: { label: 'RESOLVED', className: 'bg-success-subtle text-success' },
+      closed: { label: 'RESOLVED', className: 'bg-success-subtle text-success' }
+    };
+    return map[(status || '').toLowerCase()] || map.open;
+  };
+
   const statCards = [
     {
       title: 'Total Documents',
       value: stats.totalDocuments,
-      subtitle: `${stats.todayUploads} uploaded today`,
+      trend: '+12%',
       icon: 'bi-file-earmark-text',
-      color: 'primary',
+      color: '#111827',
       onClick: () => handleCardClick('documents')
     },
     {
-      title: 'Active ECDSA Keys',
-      value: activeKeys,
-      subtitle: 'Keys ready for signing',
-      icon: 'bi-key',
-      color: 'success',
-      onClick: () => navigate('/admin/security')
-    },
-    {
-      title: 'Open Tickets',
+      title: 'New Tickets',
       value: stats.openTickets,
-      subtitle: `${stats.criticalTickets} critical priority`,
+      trend: '+5%',
       icon: 'bi-ticket-perforated',
-      color: 'warning',
+      color: '#F59E0B',
       onClick: () => handleCardClick('tickets')
     },
     {
       title: 'Active Users',
       value: stats.activeUsers,
-      subtitle: `${stats.totalUsers} total users`,
+      trend: '+3%',
       icon: 'bi-people',
-      color: 'info',
+      color: '#3B82F6',
       onClick: () => handleCardClick('users')
+    },
+    {
+      title: 'Active Keys',
+      value: activeKeys,
+      trend: '0%',
+      icon: 'bi-key',
+      color: '#8B5CF6',
+      onClick: () => navigate('/admin/security')
     }
   ];
 
@@ -96,7 +140,7 @@ function Dashboard() {
       {/* Page Header - Responsive */}
       <div className="mb-3 mb-md-4">
         <h2 className="mb-1">Dashboard</h2>
-        <p className="text-muted mb-0">Overview of document integrity system</p>
+        <p className="text-muted mb-0">Administrator Portal</p>
       </div>
 
       {loading ? (
@@ -108,106 +152,118 @@ function Dashboard() {
         </div>
       ) : (
         <>
-          {/* Stats Cards - Responsive Grid using Bootstrap */}
+          {/* Stats Cards */}
           <div className="row g-3 g-md-4 mb-4">
-            {statCards.map((stat, index) => (
-              <div key={index} className="col-12 col-sm-6 col-lg-3">
-                <div 
-                  className="card border-0 shadow-sm h-100" 
+            {statCards.map((stat) => (
+              <div key={stat.title} className="col-12 col-sm-6 col-lg-3">
+                <div
+                  className="card border-0 shadow-sm h-100"
                   style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
                   onClick={stat.onClick}
                   onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
                   <div className="card-body p-3 p-md-4">
-                    <div className="d-flex align-items-center mb-3">
-                      <div className={`bg-${stat.color} bg-opacity-10 p-2 p-md-3 rounded me-3`}>
-                        <i className={`bi ${stat.icon} text-${stat.color}`} style={{ fontSize: '1.5rem' }}></i>
+                    <div className="d-flex justify-content-between align-items-start">
+                      <div>
+                        <div
+                          className="rounded p-2"
+                          style={{ backgroundColor: stat.color, width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <i className={`bi ${stat.icon}`} style={{ color: '#FFFFFF', fontSize: '18px' }}></i>
+                        </div>
+                        <div className="mt-3">
+                          <div className="text-muted small">{stat.title}</div>
+                          <div className="h4 fw-bold mb-0">{stat.value}</div>
+                        </div>
                       </div>
-                      <div className="flex-grow-1">
-                        <h6 className="text-muted mb-1 fw-normal small">{stat.title}</h6>
-                        <h2 className="mb-0 fw-bold">{stat.value}</h2>
-                      </div>
+                      <div className="text-success small">{stat.trend}</div>
                     </div>
-                    <p className="text-muted small mb-0">
-                      <i className="bi bi-arrow-up-right me-1"></i>
-                      {stat.subtitle}
-                    </p>
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Recent Activity - Responsive Card */}
-          <div className="card border-0 shadow-sm">
-            <div className="card-body p-3 p-md-4">
-              <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 mb-md-4 gap-2">
-                <h5 className="card-title mb-0">Recent Activity</h5>
-                <button 
-                  className="btn btn-sm btn-outline-secondary w-100 w-sm-auto"
-                  onClick={() => navigate('/admin/audit-logs')}
-                >
-                  View All Logs
-                </button>
-              </div>
-              
-              {stats.recentLogs.length === 0 ? (
-                <div className="text-center py-5">
-                  <i className="bi bi-inbox text-muted" style={{ fontSize: '3rem' }}></i>
-                  <p className="text-muted mt-3">No recent activity</p>
-                </div>
-              ) : (
-                <div className="list-group list-group-flush">
-                  {stats.recentLogs.map((activity, index) => {
-                    const iconMap = {
-                      'DOCUMENT_UPLOAD': { icon: 'bi-cloud-upload-fill', color: 'info' },
-                      'DOCUMENT_VERIFY': { icon: 'bi-check-circle-fill', color: 'success' },
-                      'KEY_ROTATION': { icon: 'bi-key-fill', color: 'primary' },
-                      'USER_CREATE': { icon: 'bi-person-plus-fill', color: 'secondary' },
-                      'SETTINGS_UPDATE': { icon: 'bi-gear-fill', color: 'warning' },
-                      'LOGIN_ATTEMPT': { icon: 'bi-box-arrow-in-right', color: 'dark' },
-                      'AUTO_BACKUP': { icon: 'bi-database-fill-up', color: 'success' }
-                    };
-                    
-                    const activityIcon = iconMap[activity.action] || { icon: 'bi-circle-fill', color: 'secondary' };
-                    const isError = activity.status === 'Failed';
-                    
-                    return (
-                      <div key={index} className="list-group-item border-0 px-0 py-3">
-                        <div className="d-flex align-items-start">
-                          <div className={`bg-${isError ? 'danger' : activityIcon.color} bg-opacity-10 p-2 rounded me-3`}>
-                            <i className={`bi ${isError ? 'bi-x-circle-fill' : activityIcon.icon} text-${isError ? 'danger' : activityIcon.color}`}></i>
-                          </div>
-                          <div className="flex-grow-1">
-                            <div className="d-flex justify-content-between align-items-start">
-                              <div>
-                                <h6 className="mb-1">{activity.action.replace(/_/g, ' ')}</h6>
-                                <p className="text-muted small mb-0">{activity.details}</p>
-                                <small className="text-muted">
-                                  <i className="bi bi-person me-1"></i>{activity.userName} 
-                                  <span className="mx-2">•</span>
-                                  <i className="bi bi-pc-display me-1"></i>{activity.ip}
-                                </small>
+          <div className="row g-4">
+            {/* Recent Activity */}
+            <div className="col-12 col-lg-8">
+              <div className="card border-0 shadow-sm h-100">
+                <div className="card-body p-3 p-md-4">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="card-title mb-0">Recent Activity</h5>
+                    <i className="bi bi-activity text-muted"></i>
+                  </div>
+
+                  {recentActivity.length === 0 ? (
+                    <div className="text-center py-4 text-muted">No recent activity</div>
+                  ) : (
+                    <div className="list-group list-group-flush">
+                      {recentActivity.map((activity, index) => {
+                        const isFailed = (activity.status || '').toLowerCase() === 'failed';
+                        const actionLabel = (activity.action || '').replace(/_/g, ' ');
+                        const statusLabel = isFailed
+                          ? 'failed'
+                          : (activity.action === 'DOCUMENT_VERIFY' ? 'verified' : 'uploaded');
+                        const statusClass = isFailed ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success';
+                        return (
+                          <div key={`${activity.timestamp}-${index}`} className="list-group-item border-0 px-0 py-3">
+                            <div className="d-flex align-items-start gap-3">
+                              <div className={`rounded-circle d-flex align-items-center justify-content-center ${isFailed ? 'bg-danger-subtle' : 'bg-success-subtle'}`} style={{ width: '36px', height: '36px' }}>
+                                <i className={`bi ${isFailed ? 'bi-x-lg' : 'bi-check-lg'} ${isFailed ? 'text-danger' : 'text-success'}`}></i>
                               </div>
-                              <div className="text-end">
-                                <span className="text-muted small">{new Date(activity.timestamp).toLocaleTimeString()}</span>
-                                {activity.status && (
+                              <div className="flex-grow-1">
+                                <div className="d-flex justify-content-between">
                                   <div>
-                                    <span className={`badge badge-sm bg-${isError ? 'danger' : 'success'} mt-1`}>
-                                      {activity.status}
-                                    </span>
+                                    <div className="fw-semibold">{activity.details || actionLabel}</div>
+                                    <div className="text-muted small">{activity.userName} • {getTimeAgo(activity.timestamp)}</div>
                                   </div>
-                                )}
+                                  <span className={`badge ${statusClass}`}>{statusLabel}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            </div>
+
+            {/* Recent Tickets */}
+            <div className="col-12 col-lg-4">
+              <div className="card border-0 shadow-sm h-100">
+                <div className="card-body p-3 p-md-4">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="card-title mb-0">Recent Tickets</h5>
+                    <i className="bi bi-ticket-perforated text-warning"></i>
+                  </div>
+
+                  {recentTickets.length === 0 ? (
+                    <div className="text-center py-4 text-muted">No recent tickets</div>
+                  ) : (
+                    <div className="list-group list-group-flush">
+                      {recentTickets.map((ticket) => {
+                        const priority = getTicketPriority(ticket.priority);
+                        const status = getTicketStatus(ticket.status);
+                        return (
+                          <div key={ticket.id} className="list-group-item border-0 px-0 py-3">
+                            <div className="fw-semibold mb-1">{ticket.title}</div>
+                            <div className="text-muted small mb-2">
+                              {ticket.ticketId} • {getTimeAgo(ticket.createdAt)}
+                            </div>
+                            <div className="d-flex gap-2">
+                              <span className={`badge ${priority.className}`}>{priority.label}</span>
+                              <span className={`badge ${status.className}`}>{status.label}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </>

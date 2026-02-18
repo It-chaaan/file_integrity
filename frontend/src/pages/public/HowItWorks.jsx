@@ -1,67 +1,45 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
 const HowItWorks = () => {
   return (
     <div className="container py-5">
-      {/* Header */}
       <div className="text-center mb-5">
-        <h1 className="display-5 fw-bold mb-3">How It Works</h1>
+        <h1 className="display-5 fw-bold mb-3">How PARITY Works</h1>
         <p className="lead text-muted">
-          Our verification process uses industry-standard cryptographic techniques to ensure<br />
-          your documents remain authentic and tamper-proof.
+          A secure cryptographic process managed by authorized LGU personnel to protect the integrity of
+          government documents.
         </p>
       </div>
 
-      {/* Steps */}
       <div className="row justify-content-center">
         <div className="col-lg-10">
-          
-          {/* Step 1: Upload Your Document */}
           <div className="mb-4">
-            <div className="row">
-              <div className="col-md-12">
-                <div className="d-flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div 
-                      className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                      style={{ 
-                        width: '64px', 
-                        height: '64px', 
-                        backgroundColor: '#0D1526',
-                        fontSize: '28px'
-                      }}
-                    >
-                      1
+            <div className="d-flex gap-4">
+              <div className="flex-shrink-0">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
+                  style={{ width: '64px', height: '64px', backgroundColor: '#0D1526', fontSize: '28px' }}
+                >
+                  1
+                </div>
+              </div>
+              <div className="flex-grow-1">
+                <div className="card shadow-sm">
+                  <div className="card-body p-4">
+                    <h4 className="mb-3 fw-bold">LGU Staff Upload Document</h4>
+                    <p className="text-muted mb-3">
+                      Authorized LGU personnel securely upload official documents to the PARITY system. Access is
+                      restricted to verified government employees with proper credentials.
+                    </p>
+                    <div className="d-flex align-items-start text-muted small">
+                      <i className="bi bi-shield-lock me-2 mt-1"></i>
+                      <span>All uploads are authenticated using multi-factor authentication (2FA) and logged for audit purposes.</span>
                     </div>
-                  </div>
-                  <div className="flex-grow-1">
-                    <div className="card shadow-sm" style={{ border: '1px solid #000000' }}>
-                      <div className="card-body p-4">
-                        <h4 className="mb-3 fw-bold">Upload Your Document</h4>
-                        <p className="text-muted mb-2">
-                          Select and upload the legal document you want to verify.
-                        </p>
-                        <p className="mb-3" style={{ color: '#0D1526' }}>
-                          We support <strong>PDF, DOC, DOCX</strong> formats for maximum compatibility.
-                        </p>
-                        <p className="text-muted small mb-3">
-                          Your document is processed securely and is never stored on our servers.
-                        </p>
-                        
-                        {/* Upload Icon */}
-                        <div className="text-center mt-3">
-                          <div 
-                            className="d-inline-flex align-items-center justify-content-center rounded"
-                            style={{ 
-                              width: '80px', 
-                              height: '80px', 
-                              backgroundColor: '#F3F4F6'
-                            }}
-                          >
-                            <i className="bi bi-cloud-upload" style={{ fontSize: '2.5rem', color: '#0D1526' }}></i>
-                          </div>
-                        </div>
+                    <div className="text-center mt-4">
+                      <div className="d-inline-flex align-items-center justify-content-center rounded"
+                        style={{ width: '72px', height: '72px', backgroundColor: '#F3F4F6' }}
+                      >
+                        <i className="bi bi-cloud-arrow-up" style={{ fontSize: '2.25rem', color: '#0D1526' }}></i>
                       </div>
                     </div>
                   </div>
@@ -70,40 +48,89 @@ const HowItWorks = () => {
             </div>
           </div>
 
-          {/* Step 2: Generate Cryptographic Hash */}
           <div className="mb-4">
-            <div className="row">
-              <div className="col-md-12">
-                <div className="d-flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div 
-                      className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                      style={{ 
-                        width: '64px', 
-                        height: '64px', 
-                        backgroundColor: '#0D1526',
-                        fontSize: '28px'
-                      }}
-                    >
-                      2
+            <div className="d-flex gap-4">
+              <div className="flex-shrink-0">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
+                  style={{ width: '64px', height: '64px', backgroundColor: '#0D1526', fontSize: '28px' }}
+                >
+                  2
+                </div>
+              </div>
+              <div className="flex-grow-1">
+                <div className="card shadow-sm">
+                  <div className="card-body p-4">
+                    <h4 className="mb-3 fw-bold">Generate Cryptographic Hash (SHA-256)</h4>
+                    <p className="text-muted mb-3">
+                      The system generates a SHA-256 cryptographic hash — a unique 256-bit digital fingerprint of
+                      the document.
+                    </p>
+                    <p className="text-muted small mb-3">
+                      Even a single character change in the document will make the hash completely different, ensuring
+                      absolute integrity detection.
+                    </p>
+                    <div className="p-3 rounded font-monospace small" style={{ backgroundColor: '#F3F4F6', color: '#0D1526' }}>
+                      <strong>Example:</strong> a9f3c4b1f8...9f2d7c4e0a
                     </div>
                   </div>
-                  <div className="flex-grow-1">
-                    <div className="card shadow-sm" style={{ border: '1px solid #000000' }}>
-                      <div className="card-body p-4">
-                        <h4 className="mb-3 fw-bold">Generate Cryptographic Hash (SHA-256)</h4>
-                        <p className="text-muted mb-3">
-                          The system generates a SHA-256 cryptographic hash — a unique digital fingerprint of your document.
-                        </p>
-                        <p className="text-muted small mb-3">
-                          Why it matters: Even if a single character changes, the hash will be completely different, ensuring absolute hash integrity.
-                        </p>
-                        <div 
-                          className="p-3 rounded font-monospace small"
-                          style={{ backgroundColor: '#F3F4F6', color: '#0D1526' }}
-                        >
-                          <strong>Example:</strong> a3f5e2c…5c4d8f9f
-                        </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <div className="d-flex gap-4">
+              <div className="flex-shrink-0">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
+                  style={{ width: '64px', height: '64px', backgroundColor: '#0D1526', fontSize: '28px' }}
+                >
+                  3
+                </div>
+              </div>
+              <div className="flex-grow-1">
+                <div className="card shadow-sm">
+                  <div className="card-body p-4">
+                    <h4 className="mb-3 fw-bold">Apply Digital Signature (ECDSA)</h4>
+                    <p className="text-muted mb-3">
+                      The chosen hash is digitally signed using ECDSA by authorized cryptographic keys managed by the LGU.
+                    </p>
+                    <div className="d-flex align-items-start mb-2">
+                      <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                      <div>
+                        <strong className="text-muted">Document Authenticity</strong>
+                        <span className="text-muted"> — Cryptographically proves the document is genuine</span>
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-start mb-2">
+                      <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                      <div>
+                        <strong className="text-muted">Authorized Signer</strong>
+                        <span className="text-muted"> — Verifies the LGU official who signed</span>
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-start mb-2">
+                      <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                      <div>
+                        <strong className="text-muted">Signing Timestamp</strong>
+                        <span className="text-muted"> — Records the exact time of signing</span>
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-start mb-3">
+                      <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
+                      <div>
+                        <strong className="text-muted">Non-Repudiation</strong>
+                        <span className="text-muted"> — Signer cannot deny having signed the document</span>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded" style={{ backgroundColor: '#D1FAE5' }}>
+                      <div className="d-flex align-items-start">
+                        <i className="bi bi-key text-success me-2 mt-1"></i>
+                        <span className="text-muted">
+                          Key Management: Cryptographic keys are securely stored in hardware security modules (HSM)
+                          and rotated according to government security standards.
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -112,77 +139,55 @@ const HowItWorks = () => {
             </div>
           </div>
 
-          {/* Step 3: Verify Digital Signature */}
           <div className="mb-4">
-            <div className="row">
-              <div className="col-md-12">
-                <div className="d-flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div 
-                      className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                      style={{ 
-                        width: '64px', 
-                        height: '64px', 
-                        backgroundColor: '#0D1526',
-                        fontSize: '28px'
-                      }}
-                    >
-                      3
+            <div className="d-flex gap-4">
+              <div className="flex-shrink-0">
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
+                  style={{ width: '64px', height: '64px', backgroundColor: '#0D1526', fontSize: '28px' }}
+                >
+                  4
+                </div>
+              </div>
+              <div className="flex-grow-1">
+                <div className="card shadow-sm">
+                  <div className="card-body p-4">
+                    <h4 className="mb-3 fw-bold">Store in Secure Registry</h4>
+                    <p className="text-muted mb-3">
+                      The signed document hash is stored in a tamper-proof registry with complete audit trails. The
+                      actual document content is never stored — only the cryptographic hash and signature metadata.
+                    </p>
+                    <div className="row g-3 mb-3">
+                      <div className="col-md-6">
+                        <div className="p-3 rounded" style={{ backgroundColor: '#F9FAFB' }}>
+                          <h6 className="fw-bold mb-2">Stored Information</h6>
+                          <ul className="mb-0 small text-muted">
+                            <li>Document hash (SHA-256)</li>
+                            <li>Digital signature (ECDSA)</li>
+                            <li>Signing timestamp</li>
+                            <li>Document reference ID</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="col-md-6">
+                        <div className="p-3 rounded" style={{ backgroundColor: '#F9FAFB' }}>
+                          <h6 className="fw-bold mb-2">Not Stored</h6>
+                          <ul className="mb-0 small text-muted">
+                            <li>Actual document content</li>
+                            <li>Personal information</li>
+                            <li>Private keys</li>
+                            <li>Physical signatures</li>
+                          </ul>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex-grow-1">
-                    <div className="card shadow-sm" style={{ border: '1px solid #000000' }}>
-                      <div className="card-body p-4">
-                        <h4 className="mb-3 fw-bold">Verify Digital Signature (ECDSA)</h4>
-                        <p className="text-muted mb-3">
-                          The generated hash is verified using ECDSA digital signatures issued by authorized LGU personnel.
-                        </p>
-                        
-                        <div className="d-flex align-items-start mb-2">
-                          <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                          <div>
-                            <strong className="text-muted">Document Authenticity</strong>
-                            <span className="text-muted"> — Confirms the document is genuine</span>
-                          </div>
-                        </div>
-                        
-                        <div className="d-flex align-items-start mb-2">
-                          <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                          <div>
-                            <strong className="text-muted">Authorized Signer</strong>
-                            <span className="text-muted"> — Verifies the LGU official who signed</span>
-                          </div>
-                        </div>
-                        
-                        <div className="d-flex align-items-start mb-2">
-                          <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                          <div>
-                            <strong className="text-muted">Signing Timestamp</strong>
-                            <span className="text-muted"> — Records when the signature was created</span>
-                          </div>
-                        </div>
-                        
-                        <div className="d-flex align-items-start">
-                          <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
-                          <div>
-                            <strong className="text-muted">Key Validity Status</strong>
-                            <span className="text-muted"> — Ensures the signing key is active</span>
-                          </div>
-                        </div>
-                        
-                        {/* Shield Icon */}
-                        <div className="text-center mt-4">
-                          <div 
-                            className="d-inline-flex align-items-center justify-content-center rounded"
-                            style={{ 
-                              width: '80px', 
-                              height: '80px', 
-                              backgroundColor: '#F3F4F6'
-                            }}
-                          >
-                            <i className="bi bi-shield-check" style={{ fontSize: '2.5rem', color: '#0D1526' }}></i>
-                          </div>
-                        </div>
+                    <div className="p-3 rounded" style={{ backgroundColor: '#FEF3C7' }}>
+                      <div className="d-flex align-items-start">
+                        <i className="bi bi-exclamation-circle text-warning me-2 mt-1"></i>
+                        <span className="text-muted">
+                          Privacy by Design: PARITY complies with the Data Privacy Act of 2012 (R.A. 10173) by storing
+                          only cryptographic hashes, not personal data.
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -190,94 +195,7 @@ const HowItWorks = () => {
               </div>
             </div>
           </div>
-
-          {/* Step 4: Display Verification Result */}
-          <div className="mb-4">
-            <div className="row">
-              <div className="col-md-12">
-                <div className="d-flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div 
-                      className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                      style={{ 
-                        width: '64px', 
-                        height: '64px', 
-                        backgroundColor: '#0D1526',
-                        fontSize: '28px'
-                      }}
-                    >
-                      4
-                    </div>
-                  </div>
-                  <div className="flex-grow-1">
-                    <div className="card shadow-sm" style={{ border: '1px solid #000000' }}>
-                      <div className="card-body p-4">
-                        <h4 className="mb-3 fw-bold">Display Verification Result</h4>
-                        <p className="text-muted mb-4">
-                          The system instantly displays the verification result, indicating whether your document is authentic and unaltered, or if issues were detected.
-                        </p>
-                        
-                        {/* Verified State */}
-                        <div 
-                          className="d-flex align-items-center p-3 rounded mb-3"
-                          style={{ backgroundColor: '#D1FAE5' }}
-                        >
-                          <i className="bi bi-check-circle-fill text-success me-2" style={{ fontSize: '1.2rem' }}></i>
-                          <div>
-                            <strong style={{ color: '#065F46' }}>Verified</strong>
-                            <span className="text-muted"> — Document is authentic</span>
-                          </div>
-                        </div>
-                        
-                        {/* Invalid State */}
-                        <div 
-                          className="d-flex align-items-center p-3 rounded mb-3"
-                          style={{ backgroundColor: '#FEE2E2' }}
-                        >
-                          <i className="bi bi-x-circle-fill text-danger me-2" style={{ fontSize: '1.2rem' }}></i>
-                          <div>
-                            <strong style={{ color: '#991B1B' }}>Invalid</strong>
-                            <span className="text-muted"> — Signature was rejected</span>
-                          </div>
-                        </div>
-                        
-                        {/* Expired Key State */}
-                        <div 
-                          className="d-flex align-items-center p-3 rounded"
-                          style={{ backgroundColor: '#FEF3C7' }}
-                        >
-                          <i className="bi bi-exclamation-circle-fill text-warning me-2" style={{ fontSize: '1.2rem' }}></i>
-                          <div>
-                            <strong style={{ color: '#92400E' }}>Expired Key</strong>
-                            <span className="text-muted"> — Signing key expired</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
         </div>
-      </div>
-
-      {/* CTA */}
-      <div className="text-center mt-5 pt-4">
-        <h3 className="mb-4">Ready to Verify Your Document?</h3>
-        <p className="text-muted mb-4">
-          Start protecting your legal documents with secure cryptographic verification today.
-        </p>
-        <Link 
-          to="/verify"
-          className="btn btn-primary btn-lg px-5 py-3 fw-semibold"
-        >
-          Verify Document
-        </Link>
-        <p className="text-muted small mt-3">
-          No registration required • Instant results • Free for all citizens
-        </p>
       </div>
     </div>
   );

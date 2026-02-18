@@ -5,7 +5,7 @@ export const mockLogs = [
     userName: 'Christian',
     ip: '192.168.1.100',
     action: 'DOCUMENT_UPLOAD',
-    details: 'Uploaded Business_Permit_2026.pdf',
+    details: 'Uploaded Legal_Opinion_2026.pdf',
     status: 'Success'
   },
   {
@@ -14,7 +14,7 @@ export const mockLogs = [
     userName: 'James',
     ip: '192.168.1.145',
     action: 'DOCUMENT_VERIFY',
-    details: 'Verified BIR_Certificate_2026.pdf',
+    details: 'Verified Memorandum_2026.pdf',
     status: 'Success'
   },
   {
@@ -41,7 +41,7 @@ export const mockLogs = [
     userName: 'Dominic',
     ip: '192.168.1.145',
     action: 'DOCUMENT_VERIFY',
-    details: 'Verification failed hash mismatch',
+    details: 'Verification failed hash mismatch for Affidavit_2026.pdf',
     status: 'Failed'
   },
   {
@@ -59,7 +59,7 @@ export const mockLogs = [
     userName: 'Nelson',
     ip: '192.168.1.100',
     action: 'SETTINGS_UPDATE',
-    details: 'Changed verification timeout to 30s',
+    details: 'Updated legal office verification timeout to 30s',
     status: 'Success'
   },
   {
@@ -77,7 +77,7 @@ export const mockLogs = [
     userName: 'Rebecca',
     ip: '192.168.1.105',
     action: 'DOCUMENT_UPLOAD',
-    details: 'Uploaded Mayor_Certification_2026.pdf',
+    details: 'Uploaded Contract_Amendment_2026.pdf',
     status: 'Success'
   },
   {
@@ -86,7 +86,7 @@ export const mockLogs = [
     userName: 'Maria',
     ip: '192.168.1.110',
     action: 'DOCUMENT_VERIFY',
-    details: 'Verified Provincial_Permit.pdf',
+    details: 'Verified Demand_Letter_2026.pdf',
     status: 'Success'
   },
   {

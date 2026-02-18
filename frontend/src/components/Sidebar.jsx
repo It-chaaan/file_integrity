@@ -59,14 +59,10 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
 
   const adminMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'bi-grid-fill', section: 'GENERAL', path: '/admin/dashboard' },
-    { id: 'upload', label: 'Upload', icon: 'bi-cloud-upload', section: 'GENERAL', path: '/admin/upload' },
-    { id: 'verify', label: 'Verify', icon: 'bi-shield-check', section: 'GENERAL', path: '/admin/verify' },
-    { id: 'registry', label: 'Registry', icon: 'bi-file-text', section: 'GENERAL', path: '/admin/registry' },
     { id: 'users', label: 'Users', icon: 'bi-people', section: 'ADMINISTRATION', path: '/admin/users' },
-    { id: 'tickets', label: 'Tickets', icon: 'bi-exclamation-circle', section: 'ADMINISTRATION', path: '/admin/tickets' },
     { id: 'security', label: 'Security', icon: 'bi-lock', section: 'ADMINISTRATION', path: '/admin/security' },
     { id: 'audit-logs', label: 'Audit Logs', icon: 'bi-clipboard-check', section: 'ADMINISTRATION', path: '/admin/audit-logs' },
-    { id: 'settings', label: 'Settings', icon: 'bi-gear', section: 'ADMINISTRATION', path: '/admin/settings' }
+    { id: 'tickets', label: 'Tickets', icon: 'bi-exclamation-circle', section: 'ADMINISTRATION', path: '/admin/tickets' }
   ];
 
   const staffMenuItems = [
@@ -74,8 +70,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
     { id: 'upload', label: 'Upload', icon: 'bi-cloud-upload', section: 'GENERAL', path: '/staff/upload' },
     { id: 'verify', label: 'Verify', icon: 'bi-shield-check', section: 'GENERAL', path: '/staff/verify' },
     { id: 'registry', label: 'Registry', icon: 'bi-file-text', section: 'GENERAL', path: '/staff/registry' },
-    { id: 'report', label: 'Report', icon: 'bi-exclamation-triangle', section: 'ADMINISTRATION', path: '/staff/report' },
-    { id: 'tickets', label: 'Tickets', icon: 'bi-ticket-detailed', section: 'ADMINISTRATION', path: '/staff/tickets' }
+    { id: 'report', label: 'Report', icon: 'bi-exclamation-triangle', section: 'GENERAL', path: '/staff/report' }
   ];
 
   const menuItems = role === 'admin' ? adminMenuItems : staffMenuItems;
