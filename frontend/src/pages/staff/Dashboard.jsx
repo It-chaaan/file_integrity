@@ -1,103 +1,88 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDocuments, useTickets } from '../../hooks/useData';
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { documents = [], loading = false } = useDocuments();
+  const { tickets = [] } = useTickets();
+
+  const { totalDocs, verifiedDocs, pendingDocs } = useMemo(() => {
+    const total = documents.length;
+    const verified = documents.filter(doc => doc.status === 'verified').length;
+    const pending = documents.filter(doc => doc.status === 'pending').length;
+    return { totalDocs: total, verifiedDocs: verified, pendingDocs: pending };
+  }, [documents]);
+
+  const recentVerifications = useMemo(() => {
+    return documents
+      .filter(doc => doc.status === 'verified')
+      .sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate))
+      .slice(0, 4);
+  }, [documents]);
+
+  const reportsSubmitted = useMemo(() => {
+    return tickets.filter(ticket => (ticket.ticketId || ticket.id || '').startsWith('TKT-DOC')).length;
+  }, [tickets]);
 
   const stats = [
     {
       title: 'Documents Verified',
-      value: '47',
+      value: verifiedDocs,
       icon: 'bi-shield-check',
       bgColor: '#10B981',
       iconColor: '#FFFFFF',
-      onClick: () => navigate('/staff/verify')
+      onClick: () => navigate('/staff/registry')
     },
     {
       title: 'Documents Uploaded',
-      value: '23',
+      value: totalDocs,
       icon: 'bi-cloud-upload',
       bgColor: '#3B82F6',
       iconColor: '#FFFFFF',
       onClick: () => navigate('/staff/upload')
     },
     {
-      title: 'Tickets',
-      value: '5',
-      icon: 'bi-ticket-detailed',
+      title: 'Reports Submitted',
+      value: reportsSubmitted,
+      icon: 'bi-exclamation-triangle',
       bgColor: '#F59E0B',
       iconColor: '#FFFFFF',
-      onClick: () => navigate('/staff/tickets')
-    },
-  ];
-
-  const assignedTickets = [
-    {
-      id: 'TKT-2847',
-      title: 'Verification Issue - Business Permit',
-      priority: 'High',
-      status: 'In Progress',
-      date: 'Jan 15, 2025'
+      onClick: () => navigate('/staff/report')
     },
     {
-      id: 'TKT-2845',
-      title: 'Document Upload Error',
-      priority: 'Medium',
-      status: 'Open',
-      date: 'Jan 14, 2025'
-    },
-    {
-      id: 'TKT-2842',
-      title: 'Hash Mismatch Investigation',
-      priority: 'High',
-      status: 'Pending',
-      date: 'Jan 13, 2025'
+      title: 'Pending Actions',
+      value: pendingDocs,
+      icon: 'bi-clock-history',
+      bgColor: '#6B7280',
+      iconColor: '#FFFFFF',
+      onClick: () => navigate('/staff/registry')
     }
   ];
 
-  const recentVerifications = [
-    {
-      document: 'BIR_Certificate_2026.pdf',
-      status: 'Verified',
-      time: '2 minutes ago'
-    },
-    {
-      document: 'Business_Permit_QC.pdf',
-      status: 'Verified',
-      time: '15 minutes ago'
-    },
-    {
-      document: 'DTI_Registration.pdf',
-      status: 'Verified',
-      time: '1 hour ago'
-    },
-    {
-      document: 'Mayor_Permit_2026.pdf',
-      status: 'Verified',
-      time: '3 hours ago'
-    }
-  ];
-
-  const getPriorityBadge = (priority) => {
-    const badges = {
-      'High': 'bg-danger',
-      'Medium': 'bg-warning',
-      'Low': 'bg-info'
-    };
-    return badges[priority] || 'bg-secondary';
+  const getTimeAgo = (dateString) => {
+    const diffMs = Date.now() - new Date(dateString).getTime();
+    if (!Number.isFinite(diffMs) || diffMs < 0) return 'Just now';
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
   };
 
   return (
     <div>
       <div className="mb-4">
-        <h2 className="mb-1">Staff Dashboard</h2>
-        <p className="text-muted">Welcome back! Here's your overview</p>
+        <h2 className="mb-1">Dashboard</h2>
+        <p className="text-muted">Staff Portal</p>
       </div>
 
       {/* Stats Cards */}
       <div className="row g-3 mb-4">
         {stats.map((stat, index) => (
-          <div key={index} className="col-md-3">
+          <div key={index} className="col-12 col-md-6 col-xl-3">
             <div 
               className="card border-0 shadow-sm h-100"
               style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
@@ -122,55 +107,85 @@ function Dashboard() {
       </div>
 
       <div className="row g-4">
-        {/* My Assigned Tickets */}
-        <div className="col-lg-8">
+        <div className="col-12">
           <div className="card border-0 shadow-sm">
             <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h5 className="card-title mb-0">My Assigned Tickets</h5>
-                <a href="/staff/tickets" className="text-decoration-none small">View All →</a>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="card-title mb-0">Recent Verifications</h5>
               </div>
-              <div className="list-group list-group-flush">
-                {assignedTickets.map((ticket, index) => (
-                  <div key={index} className="list-group-item border-0 px-0 py-3 border-bottom">
-                    <div className="d-flex justify-content-between align-items-start">
-                      <div>
-                        <div className="d-flex align-items-center mb-2">
-                          <span className="badge bg-secondary me-2">{ticket.id}</span>
-                          <span className={`badge ${getPriorityBadge(ticket.priority)}`}>{ticket.priority}</span>
-                        </div>
-                        <h6 className="mb-1">{ticket.title}</h6>
-                        <p className="text-muted small mb-0">Status: {ticket.status} • {ticket.date}</p>
-                      </div>
-                      <button className="btn btn-sm btn-outline-primary">View</button>
-                    </div>
+
+              {loading ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : recentVerifications.length === 0 ? (
+                <div className="text-center py-4 text-muted">No recent verifications</div>
+              ) : (
+                <div className="list-group list-group-flush">
+                  {recentVerifications.slice(0, 3).map((doc) => (
+                    <div key={doc.id} className="list-group-item border-0 px-0 py-3">
+                      <div className="d-flex align-items-start">
+                        <div className="bg-success bg-opacity-10 p-2 rounded me-3">
+                          <i className="bi bi-check-circle-fill text-success"></i>
+                        </div>
+                        <div className="flex-grow-1">
+                          <h6 className="mb-1 small">
+                            {doc.documentType || doc.type || 'Document'} #{doc.documentId}
+                          </h6>
+                          <p className="text-muted small mb-0">{getTimeAgo(doc.uploadDate)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Recent Verifications */}
-        <div className="col-lg-4">
-          <div className="card border-0 shadow-sm">
+      <div className="row g-4 mt-1">
+        <div className="col-12 col-lg-6">
+          <div className="card border-0 shadow-sm h-100">
             <div className="card-body">
-              <h5 className="card-title mb-4">Recent Verifications</h5>
-              <div className="list-group list-group-flush">
-                {recentVerifications.map((verification, index) => (
-                  <div key={index} className="list-group-item border-0 px-0 py-3">
-                    <div className="d-flex align-items-start">
-                      <div className="bg-success bg-opacity-10 p-2 rounded me-3">
-                        <i className="bi bi-check-circle-fill text-success"></i>
-                      </div>
-                      <div className="flex-grow-1">
-                        <h6 className="mb-1 small">{verification.document}</h6>
-                        <p className="text-muted small mb-0">{verification.time}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="d-flex align-items-center gap-3">
+                <div className="bg-primary bg-opacity-10 p-3 rounded">
+                  <i className="bi bi-file-earmark-check text-primary fs-4"></i>
+                </div>
+                <div>
+                  <h6 className="mb-1">Verify Document</h6>
+                  <p className="text-muted small mb-0">Check the authenticity of a legal document</p>
+                </div>
               </div>
+              <button
+                className="btn btn-outline-primary btn-sm mt-3"
+                onClick={() => navigate('/staff/verify')}
+              >
+                Start Verification
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="col-12 col-lg-6">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="d-flex align-items-center gap-3">
+                <div className="bg-warning bg-opacity-10 p-3 rounded">
+                  <i className="bi bi-exclamation-triangle text-warning fs-4"></i>
+                </div>
+                <div>
+                  <h6 className="mb-1">Submit Report</h6>
+                  <p className="text-muted small mb-0">Report a document issue or system problem</p>
+                </div>
+              </div>
+              <button
+                className="btn btn-outline-warning btn-sm mt-3"
+                onClick={() => navigate('/staff/report')}
+              >
+                Create Report
+              </button>
             </div>
           </div>
         </div>

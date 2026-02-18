@@ -32,7 +32,7 @@ function AuditLogs() {
     
     // Apply status filter
     if (statusFilter !== 'all') {
-      result = result.filter(log => log.status === statusFilter);
+      result = result.filter(log => (log.status || '').toLowerCase() === statusFilter.toLowerCase());
     }
     
     return result;
@@ -125,13 +125,13 @@ function AuditLogs() {
                     <td className="font-monospace small">{log.timestamp}</td>
                     <td className="font-monospace small">{log.userId}</td>
                     <td>{log.userName}</td>
-                    <td className="font-monospace small">{log.ipAddress || log.ip}</td>
+                    <td className="font-monospace small">{log.ipAddress || log.ip || '—'}</td>
                     <td>
                       <span className="badge bg-secondary">{log.action}</span>
                     </td>
                     <td>{log.details}</td>
                     <td>
-                      <span className={`badge ${log.status === 'Success' ? 'bg-success' : 'bg-danger'}`}>
+                      <span className={`badge ${(log.status || '').toLowerCase() === 'success' ? 'bg-success' : 'bg-danger'}`}>
                         {log.status}
                       </span>
                     </td>

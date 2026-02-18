@@ -84,18 +84,6 @@ const PublicLayout = () => {
                   </li>
                   <li className="nav-item">
                     <Link 
-                      to="/verify" 
-                      className="nav-link px-3"
-                      style={{ 
-                        fontSize: '0.95rem',
-                        padding: '0.5rem 0.75rem'
-                      }}
-                    >
-                      Verify
-                    </Link>
-                  </li>
-                  <li className="nav-item">
-                    <Link 
                       to="/how-it-works" 
                       className="nav-link px-3"
                       style={{ 
@@ -188,18 +176,6 @@ const PublicLayout = () => {
               </li>
               <li className="nav-item">
                 <Link 
-                  to="/verify" 
-                  className="nav-link px-3 py-2"
-                  style={{ 
-                    fontSize: '1rem',
-                    minHeight: '44px'
-                  }}
-                >
-                  Verify
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link 
                   to="/how-it-works" 
                   className="nav-link px-3 py-2"
                   style={{ 
@@ -257,6 +233,47 @@ const PublicLayout = () => {
       <main className="flex-grow-1" style={{ overflowX: 'hidden' }}>
         <Outlet />
       </main>
+
+      <footer className="public-footer">
+        <div className="container">
+          <div className="row gy-4">
+            <div className="col-lg-4">
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <img
+                  src={Logo}
+                  alt="Parity Logo"
+                  style={{ width: '28px', height: '28px' }}
+                />
+                <span className="footer-brand">PARITY</span>
+              </div>
+              <div className="small mb-0">
+                LGU Document Integrity & Verification System. Securing government documents with cryptographic
+                technology.
+              </div>
+            </div>
+            <div className="col-md-4 col-lg-3">
+              <h6>Quick Links</h6>
+              <div className="d-flex flex-column gap-2 small">
+                <Link to="/how-it-works">How It Works</Link>
+                <Link to="/about">About</Link>
+                <Link to="/report">Report Security Concern</Link>
+                <Link to="/login">Admin Login</Link>
+              </div>
+            </div>
+            <div className="col-md-4 col-lg-3">
+              <h6>Security Contact</h6>
+              <div className="small d-flex flex-column gap-2">
+                <span>Report urgent security issues:</span>
+                <a href="mailto:security@parity.gov.ph">security@parity.gov.ph</a>
+                <span>(02) 1234-5678</span>
+              </div>
+            </div>
+          </div>
+          <div className="footer-bottom text-center">
+            © 2026 PARITY · LGU Document Verification System. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

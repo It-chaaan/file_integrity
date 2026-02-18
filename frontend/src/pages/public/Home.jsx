@@ -10,24 +10,32 @@ function Home() {
           <div className="row align-items-center" style={{ minHeight: '700px' }}>
             <div className="col-lg-6 text-start">
               <h1 className="display-3 fw-bold mb-4">
-                Verify Legal Documents with Cryptographic Integrity
+                Verify Legal Documents with Integrity
               </h1>
               <p className="lead mb-4 fs-5">
-                Ensure authenticity using SHA-256 hashing and digital signatures.<br />
-                Protect yourself from document fraud and tampering.
+                PARITY ensures the authenticity and integrity of LGU-issued documents through
+                cryptographic verification using SHA-256 and ECDSA digital signatures.
               </p>
-              <Link 
-                to="/verify" 
-                className="btn btn-primary btn-lg px-5 py-3" 
-                style={{ fontSize: '1.05rem' }}
-              >
-                <i className="bi bi-shield-check me-2"></i>
-                Verify Document
-              </Link>
+              <div className="d-flex flex-wrap gap-3">
+                <Link
+                  to="/how-it-works"
+                  className="btn btn-primary btn-lg px-5 py-3"
+                  style={{ fontSize: '1.05rem' }}
+                >
+                  Learn More
+                </Link>
+                <Link
+                  to="/report"
+                  className="btn btn-outline-primary btn-lg px-5 py-3"
+                  style={{ fontSize: '1.05rem' }}
+                >
+                  Contact LGU
+                </Link>
+              </div>
             </div>
             <div className="col-lg-6 text-center">
-              <img 
-                src={HeroImage} 
+              <img
+                src={HeroImage}
                 alt="Document Verification"
                 className="img-fluid"
                 style={{ maxWidth: '500px', width: '100%' }}
@@ -36,6 +44,7 @@ function Home() {
           </div>
         </div>
       </section>
+
     </div>
   );
 }

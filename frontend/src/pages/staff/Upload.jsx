@@ -14,9 +14,8 @@ function Upload() {
   const [formData, setFormData] = useState({
     title: '',
     type: '',
-    department: ''
+    department: 'City Legal Office'
   });
-  const [otherType, setOtherType] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedDoc, setUploadedDoc] = useState(null);
@@ -27,27 +26,20 @@ function Upload() {
   const stepLabels = ['Select File', 'Enter Metadata', 'Hash & Sign', 'Complete'];
 
   const documentTypes = [
-    'Barangay Clearance',
-    'Certificate of Residency',
-    'Certificate of Indigency',
-    'Business Permit (Barangay)',
-    'Barangay ID',
-    'Solo Parent Certification',
-    'Barangay Blotter Report',
-    'Barangay Certification',
-    'Other'
+    'Legal Opinions',
+    'Memoranda',
+    'Contracts (e.g., MOA, Service Contracts)',
+    'Contract Amendments',
+    'Complaints',
+    'Answers',
+    'Motions',
+    'Affidavits',
+    'Demand Letters',
+    'Legal Clearance Certificates'
   ];
 
   const departments = [
-    'Barangay Captain Office',
-    'Barangay Council',
-    'Barangay Treasurer',
-    'Barangay Secretary',
-    'Barangay Health Station',
-    'Barangay Peace and Order',
-    'Barangay DRRM',
-    'Barangay Nutrition',
-    'Barangay Operations Center'
+    'City Legal Office'
   ];
 
   const handleFileChange = (e) => {
@@ -97,7 +89,7 @@ function Upload() {
       return;
     }
 
-    const docType = formData.type === 'Other' ? otherType.trim() : formData.type;
+    const docType = formData.type;
 
     if (!docType) {
       setError('Please specify a document type.');
@@ -157,7 +149,7 @@ function Upload() {
 
       setTimeout(() => {
         setFile(null);
-        setFormData({ title: '', type: '', department: '' });
+        setFormData({ title: '', type: '', department: 'City Legal Office' });
         setUploadProgress(0);
         setStatus('idle');
       }, 10000);
@@ -173,7 +165,7 @@ function Upload() {
 
   const handleReset = () => {
     setFile(null);
-    setFormData({ title: '', type: '', department: '' });
+    setFormData({ title: '', type: '', department: 'City Legal Office' });
     setUploadProgress(0);
     setUploadedDoc(null);
     setVerificationResult(null);
@@ -227,11 +219,7 @@ function Upload() {
                 <select
                   className="form-select"
                   value={formData.type}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFormData({ ...formData, type: value });
-                    if (value !== 'Other') setOtherType('');
-                  }}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   required
                   disabled={uploading}
                 >
@@ -240,21 +228,10 @@ function Upload() {
                     <option key={idx} value={type}>{type}</option>
                   ))}
                 </select>
-                {formData.type === 'Other' && (
-                  <input
-                    type="text"
-                    className="form-control mt-2"
-                    placeholder="Specify document type"
-                    value={otherType}
-                    onChange={(e) => setOtherType(e.target.value)}
-                    required
-                    disabled={uploading}
-                  />
-                )}
               </div>
 
               <div className="col-md-6">
-                <label className="form-label fw-semibold">Department *</label>
+                <label className="form-label fw-semibold">Office *</label>
                 <select
                   className="form-select"
                   value={formData.department}
@@ -262,7 +239,7 @@ function Upload() {
                   required
                   disabled={uploading}
                 >
-                  <option value="">Select department</option>
+                  <option value="">Select office</option>
                   {departments.map((dept, idx) => (
                     <option key={idx} value={dept}>{dept}</option>
                   ))}
@@ -371,7 +348,7 @@ function Upload() {
             </li>
             <li className="d-flex align-items-start gap-2 mb-2">
               <i className="bi bi-check-circle text-success mt-1"></i>
-              Use accurate titles and departments for faster search.
+              Use accurate titles and offices for faster search.
             </li>
             <li className="d-flex align-items-start gap-2 mb-2">
               <i className="bi bi-check-circle text-success mt-1"></i>

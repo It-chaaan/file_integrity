@@ -1,4 +1,6 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
 /* ================================================
    DESIGN TOKENS & COLOR PALETTE
    ================================================ */
@@ -68,6 +70,469 @@ body {
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ================================================
+   PUBLIC LANDING PAGES
+   ================================================ */
+
+.public-page {
+  font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text-primary);
+}
+
+.section-title {
+  font-size: clamp(2rem, 3vw, 2.5rem);
+  font-weight: 800;
+  color: var(--navy-blue);
+  margin-bottom: 0.75rem;
+}
+
+.section-subtitle {
+  color: var(--text-secondary);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.landing-hero {
+  position: relative;
+  padding: 4.5rem 0 4rem;
+  background: radial-gradient(circle at 10% 10%, rgba(13, 21, 38, 0.08), transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(15, 23, 42, 0.08), transparent 60%),
+    #ffffff;
+  border-bottom: 1px solid var(--grey-200);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-kicker {
+  letter-spacing: 0.3em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--grey-500);
+}
+
+.hero-title {
+  font-size: clamp(2.5rem, 4.5vw, 3.5rem);
+  font-weight: 800;
+  color: var(--navy-blue);
+  margin-top: 1rem;
+  margin-bottom: 1.25rem;
+  animation: fade-up 0.6s ease both;
+}
+
+.hero-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  max-width: 520px;
+  animation: fade-up 0.7s ease both;
+}
+
+.hero-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  animation: fade-up 0.8s ease both;
+}
+
+.hero-shield {
+  width: 220px;
+  height: 220px;
+  color: var(--navy-blue);
+}
+
+.hero-badge {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy-blue);
+  font-size: 1.25rem;
+}
+
+.hero-badge-left {
+  left: 18%;
+  bottom: 28%;
+}
+
+.hero-badge-right {
+  right: 18%;
+  top: 18%;
+}
+
+.verification-section {
+  padding: 4rem 0 4.5rem;
+  background: #f8fafc;
+}
+
+.verification-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid var(--grey-200);
+  padding: 1.75rem;
+  min-height: 220px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.verification-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.verification-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(13, 21, 38, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  color: var(--navy-blue);
+  font-size: 1.25rem;
+}
+
+.how-works .how-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.how-step {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: start;
+  gap: 1.5rem;
+}
+
+.step-index {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--navy-blue);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.step-card {
+  border: 1px solid var(--grey-200);
+  border-radius: 16px;
+  padding: 1.75rem;
+  background: #ffffff;
+  box-shadow: var(--card-shadow);
+}
+
+.step-card h4 {
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.step-badge {
+  background: rgba(13, 21, 38, 0.08);
+  color: var(--navy-blue);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.step-note {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #f1f5f9;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.step-small {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.hash-sample {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--navy-blue);
+}
+
+.step-list {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.step-list li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  color: var(--text-secondary);
+}
+
+.step-list i {
+  color: #16a34a;
+  margin-top: 0.2rem;
+}
+
+.step-highlight {
+  margin-top: 1.25rem;
+  padding: 0.9rem 1rem;
+  background: #dcfce7;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  display: flex;
+  gap: 0.5rem;
+  color: #166534;
+}
+
+.registry-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 12px;
+}
+
+.registry-grid h6 {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.registry-grid ul {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--text-secondary);
+}
+
+.step-warning {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  background: #fef3c7;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  color: #92400e;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.step-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy-blue);
+  font-size: 1.4rem;
+}
+
+.report-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid var(--grey-200);
+  box-shadow: var(--card-shadow);
+}
+
+.report-card .form-label {
+  font-weight: 600;
+  color: var(--navy-blue);
+  display: block;
+}
+
+.report-options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.report-option {
+  border: 1px solid var(--grey-200);
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  color: var(--navy-blue);
+  transition: border-color 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+}
+
+.report-option:hover {
+  border-color: var(--navy-blue);
+}
+
+.report-option.active {
+  border-color: var(--navy-blue);
+  background: rgba(13, 21, 38, 0.06);
+}
+
+.report-option input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--navy-blue);
+}
+
+.report-upload {
+  border: 1px dashed var(--grey-300);
+  border-radius: 14px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: #f9fafb;
+  width: 100%;
+  display: block;
+}
+
+.report-upload i {
+  font-size: 1.5rem;
+  color: var(--navy-blue);
+}
+
+.report-upload span {
+  font-size: 0.8rem;
+  color: var(--grey-500);
+}
+
+.report-followup {
+  margin-top: 1.5rem;
+  border: 1px solid var(--grey-200);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  background: #f8fafc;
+}
+
+.report-followup h6 {
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.report-followup ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.report-followup i {
+  color: #16a34a;
+  margin-right: 0.5rem;
+}
+
+.public-footer {
+  margin-top: 3rem;
+  padding: 2.5rem 0 1.5rem;
+  background: #0b1323;
+  color: #ffffff;
+}
+
+.public-footer h6 {
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.public-footer a {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.public-footer a:hover {
+  color: #ffffff;
+}
+
+.public-footer .footer-brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #ffffff;
+}
+
+.public-footer .footer-bottom {
+  margin-top: 2rem;
+  border-top: 1px solid rgba(203, 213, 245, 0.2);
+  padding-top: 1rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+@media (max-width: 991.98px) {
+  .how-step {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .step-icon {
+    display: none;
+  }
+
+  .hero-visual {
+    min-height: 240px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .landing-hero {
+    padding: 3.5rem 0 3rem;
+    text-align: center;
+  }
+
+  .hero-subtitle {
+    margin: 0 auto;
+  }
+
+  .hero-visual {
+    margin-top: 1rem;
+  }
 }
 
 /* Navbar Styling */
