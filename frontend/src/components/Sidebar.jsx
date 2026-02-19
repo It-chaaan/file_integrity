@@ -111,10 +111,10 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
 
       {/* Sidebar Container */}
       <div 
-        className="text-white vh-100 d-flex flex-column" 
+        className="text-dark vh-100 d-flex flex-column" 
         style={{ 
           width: (shouldShow || isMobile) ? getSidebarWidth() : '0',
-          backgroundColor: '#0D1526',
+          backgroundColor: '#FAFAFA',
           position: 'fixed', 
           left: 0, 
           top: 0, 
@@ -133,17 +133,17 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
           className="d-flex justify-content-between align-items-center"
           style={{ 
             padding: isMobile ? '1rem' : (isTablet ? '1rem' : '1.25rem 1.5rem'),
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            borderBottom: '1px solid rgba(0,0,0,0.1)',
           }}
         >
           <div>
             <h5 className="mb-1 fw-bold" style={{ 
-              color: '#FFFFFF', 
+              color: '#000000', 
               fontSize: isMobile ? '1.2rem' : (isTablet ? '1.15rem' : '1.3rem'),
             }}>Parity</h5>
             {!isMobile && (
               <small style={{ 
-                color: 'rgba(255,255,255,0.7)', 
+                color: 'rgba(0,0,0,0.7)', 
                 fontSize: isTablet ? '0.65rem' : '0.7rem', 
                 display: 'block',
               }}>Legal Document Verification</small>
@@ -154,7 +154,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
           {isMobile && (
             <button
               onClick={onToggle}
-              className="btn btn-link text-white p-0"
+              className="btn btn-link text-dark p-0"
               style={{ fontSize: '1.5rem', lineHeight: 1 }}
               aria-label="Close sidebar"
             >
@@ -176,7 +176,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                 className="text-uppercase fw-bold d-block mb-3" 
                 style={{ 
                   fontSize: isMobile ? '0.7rem' : '0.65rem',
-                  color: 'rgba(255,255,255,0.6)',
+                  color: 'rgba(0,0,0,0.6)',
                   letterSpacing: '0.5px',
                   paddingLeft: '0.5rem'
                 }}
@@ -195,8 +195,8 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                         onClick={() => handleNavigation(item.path)}
                         style={{ 
                           padding: isMobile ? '0.75rem 1rem' : (isTablet ? '0.65rem 0.85rem' : '0.75rem 1rem'),
-                          backgroundColor: active ? '#000000' : 'transparent',
-                          color: '#FFFFFF',
+                          backgroundColor: active ? '#D1D5DB' : 'transparent',
+                          color: '#000000',
                           border: active ? '2px solid #0D1526' : '2px solid transparent',
                           borderRadius: '8px',
                           transition: 'all 0.2s',
@@ -207,7 +207,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                         }}
                         onMouseEnter={(e) => {
                           if (!active) {
-                            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+                            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -223,11 +223,11 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#FFFFFF'
+                          color: '#000000'
                         }}></i>
                         <span style={{ 
                           fontSize: isMobile ? '0.95rem' : (isTablet ? '0.85rem' : '0.95rem'),
-                          color: '#FFFFFF',
+                          color: '#000000',
                         }}>{item.label}</span>
                       </button>
                     );
@@ -240,7 +240,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
         {/* Footer - Profile Card with Logout Icon */}
         <div 
           style={{ 
-            borderTop: '1px solid rgba(255,255,255,0.08)',
+            borderTop: '1px solid rgba(0,0,0,0.1)',
             marginTop: 'auto',
             padding: isMobile 
               ? '1rem 0.75rem 1rem 0.25rem' 
@@ -251,7 +251,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
           <div
             style={{
               backgroundColor: 'transparent',
-              color: '#FFFFFF',
+              color: '#000000',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -261,7 +261,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
             {/* Profile Info - Clickable */}
             <button
               onClick={goToProfile}
-              className="btn btn-link text-white p-0 d-flex align-items-center"
+              className="btn btn-link text-dark p-0 d-flex align-items-center"
               style={{
                 flex: 1,
                 textDecoration: 'none',
@@ -292,7 +292,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                     fontSize: isMobile ? '0.9rem' : (isTablet ? '0.8rem' : '0.85rem'),
                     lineHeight: 1,
                     fontWeight: '500',
-                    color: '#FFFFFF',
+                    color: '#000000',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis'
@@ -303,7 +303,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                 <small 
                   style={{ 
                     fontSize: isMobile ? '0.75rem' : (isTablet ? '0.7rem' : '0.75rem'),
-                    color: 'rgba(255,255,255,0.6)',
+                    color: 'rgba(0,0,0,0.6)',
                     display: 'block',
                     lineHeight: 1,
                     whiteSpace: 'nowrap',
@@ -319,7 +319,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
             {/* Logout Icon Button */}
             <button
               onClick={handleLogout}
-              className="btn btn-link text-white p-0 d-flex align-items-center justify-content-center"
+              className="btn btn-link text-dark p-0 d-flex align-items-center justify-content-center"
               style={{ 
                 fontSize: isMobile ? '1.1rem' : '1rem',
                 lineHeight: 1,
