@@ -2,31 +2,31 @@ export const mockTicketsAdmin = [
   {
     id: 'TKT-SYS-001',
     ticketId: 'TKT-SYS-001',
-    title: 'ECDSA key rotation failed for admin user',
+    title: 'Key rotation compliance overdue for executive signing key',
     priority: 'critical',
     category: 'key',
     status: 'open',
     createdBy: 'System',
     createdAt: '2026-01-08T12:00:00Z',
-    description: 'Automated key rotation process failed during scheduled maintenance.',
+    description: 'Scheduled enterprise key rotation was not completed before policy deadline.',
     errorCode: 'ERR_KEY_001'
   },
   {
     id: 'TKT-SYS-002',
     ticketId: 'TKT-SYS-002',
-    title: 'Unable to verify a file',
+    title: 'Contract signature verification failed',
     priority: 'critical',
     category: 'hash',
     status: 'in-progress',
     createdBy: 'Multiple Users',
     createdAt: '2026-01-08T08:15:00Z',
-    description: "Hash verification module returning errors for all PDF documents uploaded after 2026-01-07 18:15. Error: 'ERR_NET_002'",
+    description: "Signature verification module is failing on newly submitted contract files. Error: 'ERR_NET_002'",
     errorCode: 'ERR_NET_002'
   },
   {
     id: 'TKT-SYS-003',
     ticketId: 'TKT-SYS-003',
-    title: 'Database replication lag detected on secondary server',
+    title: 'Audit log discrepancy detected in replication cluster',
     priority: 'medium',
     category: 'database',
     status: 'open',
@@ -37,18 +37,18 @@ export const mockTicketsAdmin = [
   {
     id: 'TKT-SYS-004',
     ticketId: 'TKT-SYS-004',
-    title: 'SHA-256 hash computation timing out for large files',
+    title: 'Large contract upload timeout during SHA-256 hash generation',
     priority: 'high',
     category: 'hash',
     status: 'open',
-    createdBy: 'Staff User',
+    createdBy: 'Enterprise User',
     createdAt: '2026-01-08T11:45:00Z',
     description: 'Files larger than 10MB are experiencing timeout errors during hash computation.'
   },
   {
     id: 'TKT-SYS-005',
     ticketId: 'TKT-SYS-005',
-    title: 'ECDSA key audit trail missing recent entries',
+    title: 'Audit trail missing recent key usage events',
     priority: 'medium',
     category: 'key',
     status: 'resolved',
@@ -70,7 +70,7 @@ export const mockTicketsAdmin = [
   {
     id: 'TKT-SYS-007',
     ticketId: 'TKT-SYS-007',
-    title: 'SSL certificate expiring in 30 days',
+    title: 'Expiring agreement and certificate alert requires review',
     priority: 'medium',
     category: 'security',
     status: 'open',
@@ -81,7 +81,7 @@ export const mockTicketsAdmin = [
   {
     id: 'TKT-SYS-008',
     ticketId: 'TKT-SYS-008',
-    title: 'Backup storage running low on space',
+    title: 'Security event archive storage nearing threshold',
     priority: 'low',
     category: 'database',
     status: 'closed',
@@ -95,40 +95,40 @@ export const mockTicketsStaff = [
   {
     id: 'TKT-DOC-001',
     ticketId: 'TKT-DOC-001',
-    title: 'Business permit metadata shows incorrect expiry date',
+    title: 'Expired vendor agreement detected during verification',
     priority: 'high',
     category: 'general',
     status: 'in-progress',
     createdBy: 'User',
     createdAt: '2026-01-08T10:30:00Z',
-    description: 'The business permit document DOC-2026-001847 displays an expiry date of 2025-12-31 in the data information, but the actual permit visible content shows 2026-12-31. This discrepancy needs investigation.'
+    description: 'Vendor contract DOC-2026-001847 is marked active in metadata but appears expired in the signed record.'
   },
   {
     id: 'TKT-DOC-002',
     ticketId: 'TKT-DOC-002',
-    title: 'Digital signature does not match stored certificate',
+    title: 'DPA agreement signature invalid',
     priority: 'high',
     category: 'authentication',
     status: 'open',
     createdBy: 'User',
     createdAt: '2026-01-07T18:25:00Z',
-    description: 'Signature verification failed for uploaded certificate.'
+    description: 'Digital signature validation failed for submitted Data Processing Agreement.'
   },
   {
     id: 'TKT-DOC-003',
     ticketId: 'TKT-DOC-003',
-    title: 'Certificate uploaded without required ECDSA signature',
+    title: 'Financial document hash mismatch detected',
     priority: 'medium',
     category: 'upload',
     status: 'open',
     createdBy: 'User',
     createdAt: '2026-01-07T16:20:00Z',
-    description: 'Document was uploaded but missing digital signature.'
+    description: 'Uploaded financial statement hash does not match stored enterprise registry value.'
   },
   {
     id: 'TKT-DOC-004',
     ticketId: 'TKT-DOC-004',
-    title: 'Same document hash exists with different document ID',
+    title: 'Duplicate contract hash registered under multiple records',
     priority: 'low',
     category: 'hash',
     status: 'closed',
@@ -139,40 +139,40 @@ export const mockTicketsStaff = [
   {
     id: 'TKT-DOC-005',
     ticketId: 'TKT-DOC-005',
-    title: 'Staff cannot download verified copy',
+    title: 'Unauthorized access attempt blocked by role policy',
     priority: 'medium',
     category: 'general',
     status: 'open',
     createdBy: 'User',
     createdAt: '2026-01-08T12:10:00Z',
-    description: 'Download link for verified document returns 403 for staff role.'
+    description: 'Access to board resolution file was blocked by role policy; review event for potential misuse.'
   },
   {
     id: 'TKT-DOC-006',
     ticketId: 'TKT-DOC-006',
-    title: 'Barangay clearance hash verification failed',
+    title: 'Contract integrity verification failed',
     priority: 'high',
     category: 'verification',
     status: 'in-progress',
     createdBy: 'User',
     createdAt: '2026-01-08T13:40:00Z',
-    description: 'Document DOC-2026-001820 fails hash verification. Possible file corruption or tampering detected.'
+    description: 'Document DOC-2026-001820 failed hash verification. Potential tampering or corrupted transfer detected.'
   },
   {
     id: 'TKT-DOC-007',
     ticketId: 'TKT-DOC-007',
-    title: 'Unable to upload document - file type error',
+    title: 'Loan agreement upload rejected by validation policy',
     priority: 'medium',
     category: 'upload',
     status: 'resolved',
     createdBy: 'User',
     createdAt: '2026-01-08T11:15:00Z',
-    description: 'System incorrectly rejected DOCX file as unsupported format.'
+    description: 'System rejected a compliant DOCX loan agreement due to strict MIME validation.'
   },
   {
     id: 'TKT-DOC-008',
     ticketId: 'TKT-DOC-008',
-    title: 'Slow verification processing time',
+    title: 'Slow verification for multi-party shareholder agreements',
     priority: 'low',
     category: 'performance',
     status: 'open',

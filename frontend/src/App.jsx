@@ -113,7 +113,7 @@ function App() {
       {/* ================================================================== */}
       {/* /login           → Username/password authentication                */}
       {/* /two-factor      → 2FA code verification                           */}
-      {/* /user-agreement  → User Responsibility Agreement                   */}
+      {/* /user-agreement  → Enterprise System Usage Agreement               */}
       {/* ================================================================== */}
       <Route path="/login" element={<Login />} />
       <Route path="/two-factor" element={<TwoFactor />} />

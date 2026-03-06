@@ -39,7 +39,7 @@ function UserAgreement() {
         userId: currentUser?.id,
         userName: currentUser?.name,
         action: 'AGREEMENT_ACCEPTED',
-        details: 'User accepted User Responsibility Agreement',
+        details: 'User accepted Enterprise System Usage Agreement',
         status: 'Success'
       });
 
@@ -107,7 +107,7 @@ function UserAgreement() {
               }}>
                 <i className="bi bi-shield-check" style={{ fontSize: '40px', color: '#FFFFFF' }}></i>
               </div>
-              <h1 className="fw-bold text-white mb-2" style={{ fontSize: 'clamp(28px, 6vw, 36px)' }}>User Responsibility Agreement</h1>
+              <h1 className="fw-bold text-white mb-2" style={{ fontSize: 'clamp(28px, 6vw, 36px)' }}>Enterprise System Usage Agreement</h1>
               <p className="text-white-50" style={{ fontSize: '15px' }}>Please review and accept to continue</p>
             </div>
 
@@ -127,7 +127,7 @@ function UserAgreement() {
                     <div>
                       <h6 className="mb-1 fw-semibold" style={{ color: '#1E40AF' }}>Welcome, {currentUser?.name || 'User'}!</h6>
                       <p className="mb-0" style={{ fontSize: '14px', color: '#1E40AF' }}>
-                        Please read and accept the User Responsibility Agreement to continue using PARITY.
+                        Please read and accept the Enterprise System Usage Agreement to continue using PARITY.
                       </p>
                     </div>
                   </div>
@@ -136,8 +136,8 @@ function UserAgreement() {
                 {/* Agreement Content */}
                 <div className="mb-4">
                   <h3 className="fw-bold mb-3" style={{ color: '#0D1526', fontSize: 'clamp(20px, 4vw, 24px)' }}>
-                    PARITY Legal Documents Verification System<br/>
-                    <span style={{ fontSize: '14px', color: '#6B7280', fontWeight: 'normal' }}>User Responsibility and System Usage Agreement</span>
+                    PARITY Enterprise Document Integrity Platform<br/>
+                    <span style={{ fontSize: '14px', color: '#6B7280', fontWeight: 'normal' }}>Enterprise System Usage Agreement</span>
                   </h3>
 
                   <div style={{ 
@@ -147,10 +147,9 @@ function UserAgreement() {
                   }}>
                     <div className="mb-4">
                       <p style={{ fontSize: '15px', lineHeight: '1.8', color: '#1F2937' }}>
-                        I acknowledge that I am about to access the <strong>PARITY Legal Documents Verification System</strong>, 
-                        a secure platform designed to facilitate the verification, validation, and management of legal documents 
-                        within the Local Government Unit (LGU). This system is intended for authorized users only to ensure the 
-                        integrity and authenticity of official documents.
+                        I acknowledge that I am about to access the <strong>PARITY Enterprise Document Integrity Platform</strong>, 
+                        a security-critical corporate system designed to protect, verify, and audit enterprise documents including 
+                        contracts, financial records, compliance files, and HR agreements. This platform is for authorized corporate use only.
                       </p>
                     </div>
 
@@ -177,8 +176,7 @@ function UserAgreement() {
                           <div>
                             <strong style={{ color: '#0D1526', fontSize: '15px' }}>Authorized Access Only:</strong>
                             <p style={{ fontSize: '14px', color: '#6B7280', margin: '5px 0 0 0' }}>
-                              I will use PARITY solely for authorized legal document verification and management purposes as defined by the LGU. 
-                              I will not share my login credentials or grant access to unauthorized personnel.
+                              I will use PARITY only for approved corporate activities and will not share credentials, sessions, or system access with unauthorized parties.
                             </p>
                           </div>
                         </div>
@@ -200,10 +198,9 @@ function UserAgreement() {
                             fontWeight: 'bold'
                           }}>2</div>
                           <div>
-                            <strong style={{ color: '#0D1526', fontSize: '15px' }}>Document Integrity:</strong>
+                            <strong style={{ color: '#0D1526', fontSize: '15px' }}>Confidential Business Data Handling:</strong>
                             <p style={{ fontSize: '14px', color: '#6B7280', margin: '5px 0 0 0' }}>
-                              I will ensure that all documents uploaded to PARITY are authentic, properly authorized, 
-                              and compliant with LGU regulations. I will not upload falsified, tampered, or unauthorized documents.
+                              I will handle business and regulated data in accordance with company policy, confidentiality controls, and data minimization requirements.
                             </p>
                           </div>
                         </div>
@@ -225,10 +222,9 @@ function UserAgreement() {
                             fontWeight: 'bold'
                           }}>3</div>
                           <div>
-                            <strong style={{ color: '#0D1526', fontSize: '15px' }}>Data Confidentiality:</strong>
+                            <strong style={{ color: '#0D1526', fontSize: '15px' }}>Corporate Compliance Obligations:</strong>
                             <p style={{ fontSize: '14px', color: '#6B7280', margin: '5px 0 0 0' }}>
-                              I understand that sensitive information accessed through PARITY is confidential. 
-                              I will not disclose, distribute, or share document information with unauthorized parties.
+                              I will comply with internal control frameworks and external requirements (e.g., ISO 27001, SOC 2, GDPR-aligned controls) when using this system.
                             </p>
                           </div>
                         </div>
@@ -250,10 +246,9 @@ function UserAgreement() {
                             fontWeight: 'bold'
                           }}>4</div>
                           <div>
-                            <strong style={{ color: '#0D1526', fontSize: '15px' }}>Compliance and Audit:</strong>
+                            <strong style={{ color: '#0D1526', fontSize: '15px' }}>Intellectual Property and Non-Disclosure:</strong>
                             <p style={{ fontSize: '14px', color: '#6B7280', margin: '5px 0 0 0' }}>
-                              I acknowledge that all my activities within PARITY are monitored and logged for security, 
-                              compliance, and audit purposes. These logs may be reviewed by authorized personnel.
+                              I acknowledge that enterprise documents and related materials are protected assets. I will follow non-disclosure obligations and IP protection requirements.
                             </p>
                           </div>
                         </div>
@@ -275,10 +270,9 @@ function UserAgreement() {
                             fontWeight: 'bold'
                           }}>5</div>
                           <div>
-                            <strong style={{ color: '#0D1526', fontSize: '15px' }}>Liability and Accountability:</strong>
+                            <strong style={{ color: '#0D1526', fontSize: '15px' }}>Audit Traceability and Legal Accountability:</strong>
                             <p style={{ fontSize: '14px', color: '#6B7280', margin: '5px 0 0 0' }}>
-                              I accept full responsibility for any actions taken under my account. 
-                              Any violations of this agreement may result in suspension of access and potential disciplinary actions.
+                              I understand that all activities are logged for internal audit and forensics. Misuse may result in revoked access, disciplinary action, contractual penalties, and legal consequences.
                             </p>
                           </div>
                         </div>
@@ -303,7 +297,7 @@ function UserAgreement() {
                     }}
                   />
                   <label className="form-check-label ms-2" htmlFor="agreeCheckbox" style={{ cursor: 'pointer', fontSize: '14px' }}>
-                    I have read and understand the User Responsibility Agreement and agree to comply with all terms and conditions
+                    I have read and understand the Enterprise System Usage Agreement and agree to comply with all terms and conditions
                   </label>
                 </div>
 

@@ -102,7 +102,7 @@ function Dashboard() {
 
   const statCards = [
     {
-      title: 'Total Documents',
+      title: 'Total Enterprise Documents',
       value: stats.totalDocuments,
       trend: '+12%',
       icon: 'bi-file-earmark-text',
@@ -110,23 +110,23 @@ function Dashboard() {
       onClick: () => handleCardClick('documents')
     },
     {
-      title: 'New Tickets',
-      value: stats.openTickets,
+      title: 'Security Alerts',
+      value: stats.criticalTickets,
       trend: '+5%',
       icon: 'bi-ticket-perforated',
       color: '#F59E0B',
       onClick: () => handleCardClick('tickets')
     },
     {
-      title: 'Active Users',
-      value: stats.activeUsers,
+      title: 'Pending Approvals',
+      value: stats.openTickets,
       trend: '+3%',
-      icon: 'bi-people',
+      icon: 'bi-hourglass-split',
       color: '#3B82F6',
       onClick: () => handleCardClick('users')
     },
     {
-      title: 'Active Keys',
+      title: 'Active Signing Keys',
       value: activeKeys,
       trend: '0%',
       icon: 'bi-key',
@@ -140,7 +140,7 @@ function Dashboard() {
       {/* Page Header - Responsive */}
       <div className="mb-3 mb-md-4">
         <h2 className="mb-1">Dashboard</h2>
-        <p className="text-muted mb-0">Administrator Portal</p>
+        <p className="text-muted mb-0">Enterprise Operations Portal</p>
       </div>
 
       {loading ? (

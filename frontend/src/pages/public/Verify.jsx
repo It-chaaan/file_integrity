@@ -71,7 +71,7 @@ function Verify() {
                   <span className="visually-hidden">Loading...</span>
                 </div>
                 <h4 className="mb-3">Verifying Document...</h4>
-                <p className="text-muted mb-4">Computing cryptographic hash and validating signature</p>
+                <p className="text-muted mb-4">Computing SHA-256 hash and validating ECDSA signature</p>
                 <div className="progress" style={{ height: '8px' }}>
                   <div className="progress-bar progress-bar-striped progress-bar-animated" style={{ width: '75%' }}></div>
                 </div>
@@ -94,12 +94,12 @@ function Verify() {
                   <i className={`bi ${result.isValid ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} fs-1 me-3`}></i>
                   <div>
                     <h4 className="mb-1">
-                      {result.isValid ? 'Document Verified' : 'Verification Failed'}
+                      {result.isValid ? 'Enterprise Document Verified' : 'Verification Failed'}
                     </h4>
                     <p className="mb-0">
                       {result.isValid 
-                        ? 'Document is authentic and has not been tampered with' 
-                        : 'Document appears to be modified or invalid'}
+                        ? 'Document integrity is valid and cryptographic signature checks passed' 
+                        : 'Document integrity or signature validation failed'}
                     </p>
                   </div>
                 </div>
@@ -152,8 +152,8 @@ function Verify() {
       <div className="row justify-content-center">
         <div className="col-lg-9">
           <div className="text-center mb-5">
-            <h1 className="fw-bold mb-3">Verify Your Document</h1>
-            <p className="text-muted lead">Upload your document and verify its authenticity using cryptographic validation</p>
+            <h1 className="fw-bold mb-3">Verify Enterprise Document Integrity</h1>
+            <p className="text-muted lead">Upload a business document and validate authenticity with cryptographic proof</p>
           </div>
 
           <div className="card border-0 shadow-sm">
@@ -186,7 +186,7 @@ function Verify() {
           <div className="mt-4 text-center">
             <p className="text-muted small">
               <i className="bi bi-shield-check me-2"></i>
-              Your document is processed securely and is never stored on our servers
+              Your document is processed securely and is never persisted as content in the verification service
             </p>
           </div>
 
@@ -200,8 +200,8 @@ function Verify() {
               <div>
                 <h5 className="mb-2">How Verification Works</h5>
                 <p className="mb-0 text-muted">
-                  The system computes a SHA-256 cryptographic hash of your uploaded document and compares it with the hash stored in our registry.
-                  If the hashes match, the document is authentic. Any modification to the document, even a single character, will result in a completely different hash.
+                  PARITY computes a SHA-256 cryptographic hash of your uploaded file and compares it with the value stored in the enterprise registry.
+                  Matching hashes and valid ECDSA signatures confirm integrity, authenticity, and tamper detection.
                 </p>
               </div>
             </div>

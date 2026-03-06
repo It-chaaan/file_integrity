@@ -108,14 +108,14 @@ const PublicLayout = () => {
                   </li>
                   <li className="nav-item">
                     <Link 
-                      to="/report" 
+                      to="/contact-sales" 
                       className="nav-link px-3"
                       style={{ 
                         fontSize: '0.95rem',
                         padding: '0.5rem 0.75rem'
                       }}
                     >
-                      Report
+                      Contact
                     </Link>
                   </li>
                 </ul>
@@ -133,7 +133,7 @@ const PublicLayout = () => {
                     flexShrink: 0
                   }}
                 >
-                  Admin Login
+                  Enterprise Login
                 </Link>
               </>
             )}
@@ -200,14 +200,14 @@ const PublicLayout = () => {
               </li>
               <li className="nav-item">
                 <Link 
-                  to="/report" 
+                  to="/contact-sales" 
                   className="nav-link px-3 py-2"
                   style={{ 
                     fontSize: '1rem',
                     minHeight: '44px'
                   }}
                 >
-                  Report
+                  Contact Sales
                 </Link>
               </li>
             </ul>
@@ -222,7 +222,7 @@ const PublicLayout = () => {
                   fontSize: '1rem'
                 }}
               >
-                Admin Login
+                Enterprise Login
               </Link>
             </div>
           </div>
@@ -247,30 +247,31 @@ const PublicLayout = () => {
                 <span className="footer-brand">PARITY</span>
               </div>
               <div className="small mb-0">
-                LGU Document Integrity & Verification System. Securing government documents with cryptographic
-                technology.
+                PARITY Enterprise Document Integrity Platform. Securing business-critical records with cryptographic trust and compliance-ready governance.
               </div>
             </div>
             <div className="col-md-4 col-lg-3">
               <h6>Quick Links</h6>
               <div className="d-flex flex-column gap-2 small">
-                <Link to="/how-it-works">How It Works</Link>
-                <Link to="/about">About</Link>
-                <Link to="/report">Report Security Concern</Link>
-                <Link to="/login">Admin Login</Link>
+                <Link to="/about">Terms of Service</Link>
+                <Link to="/about">Privacy Policy</Link>
+                <Link to="/about">Enterprise Compliance</Link>
+                <Link to="/about">Security Disclosure</Link>
+                <Link to="/about">Support Center</Link>
               </div>
             </div>
             <div className="col-md-4 col-lg-3">
-              <h6>Security Contact</h6>
+              <h6>Enterprise Contact</h6>
               <div className="small d-flex flex-column gap-2">
-                <span>Report urgent security issues:</span>
-                <a href="mailto:security@parity.gov.ph">security@parity.gov.ph</a>
-                <span>(02) 1234-5678</span>
+                <span>Sales and security coordination:</span>
+                <a href="mailto:sales@parityenterprise.com">sales@parityenterprise.com</a>
+                <a href="mailto:security@parityenterprise.com">security@parityenterprise.com</a>
+                <span>+1 (800) 555-2748</span>
               </div>
             </div>
           </div>
           <div className="footer-bottom text-center">
-            © 2026 PARITY · LGU Document Verification System. All rights reserved.
+            © 2026 PARITY · Enterprise Document Integrity Platform. All rights reserved.
           </div>
         </div>
       </footer>

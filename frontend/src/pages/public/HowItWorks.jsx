@@ -6,8 +6,7 @@ const HowItWorks = () => {
       <div className="text-center mb-5">
         <h1 className="display-5 fw-bold mb-3">How PARITY Works</h1>
         <p className="lead text-muted">
-          A secure cryptographic process managed by authorized LGU personnel to protect the integrity of
-          government documents.
+          A secure cryptographic workflow designed for enterprise document integrity, compliance, and trusted verification.
         </p>
       </div>
 
@@ -26,14 +25,14 @@ const HowItWorks = () => {
               <div className="flex-grow-1">
                 <div className="card shadow-sm">
                   <div className="card-body p-4">
-                    <h4 className="mb-3 fw-bold">LGU Staff Upload Document</h4>
+                    <h4 className="mb-3 fw-bold">Enterprise User Uploads Document</h4>
                     <p className="text-muted mb-3">
-                      Authorized LGU personnel securely upload official documents to the PARITY system. Access is
-                      restricted to verified government employees with proper credentials.
+                      Authorized employees upload corporate records such as contracts, NDAs, purchase orders,
+                      financial statements, compliance certificates, and HR agreements.
                     </p>
                     <div className="d-flex align-items-start text-muted small">
                       <i className="bi bi-shield-lock me-2 mt-1"></i>
-                      <span>All uploads are authenticated using multi-factor authentication (2FA) and logged for audit purposes.</span>
+                      <span>All uploads are protected by multi-factor authentication (2FA), role-based access, and enterprise audit logging.</span>
                     </div>
                     <div className="text-center mt-4">
                       <div className="d-inline-flex align-items-center justify-content-center rounded"
@@ -92,9 +91,10 @@ const HowItWorks = () => {
               <div className="flex-grow-1">
                 <div className="card shadow-sm">
                   <div className="card-body p-4">
-                    <h4 className="mb-3 fw-bold">Apply Digital Signature (ECDSA)</h4>
+                    <h4 className="mb-3 fw-bold">Apply ECDSA Digital Signature</h4>
                     <p className="text-muted mb-3">
-                      The chosen hash is digitally signed using ECDSA by authorized cryptographic keys managed by the LGU.
+                      The hash is signed using enterprise-managed ECDSA P-256 keys by approved signers such as
+                      Compliance Officers, CFOs, Legal Counsel, Department Heads, or corporate signing services.
                     </p>
                     <div className="d-flex align-items-start mb-2">
                       <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
@@ -107,7 +107,7 @@ const HowItWorks = () => {
                       <i className="bi bi-check-circle-fill text-success me-2 mt-1"></i>
                       <div>
                         <strong className="text-muted">Authorized Signer</strong>
-                        <span className="text-muted"> — Verifies the LGU official who signed</span>
+                        <span className="text-muted"> — Verifies the corporate role and signing authority</span>
                       </div>
                     </div>
                     <div className="d-flex align-items-start mb-2">
@@ -128,8 +128,8 @@ const HowItWorks = () => {
                       <div className="d-flex align-items-start">
                         <i className="bi bi-key text-success me-2 mt-1"></i>
                         <span className="text-muted">
-                          Key Management: Cryptographic keys are securely stored in hardware security modules (HSM)
-                          and rotated according to government security standards.
+                          Key Lifecycle Management: Signing keys are protected in enterprise-grade key stores or HSMs,
+                          with scheduled rotation, revocation, and policy-driven access.
                         </span>
                       </div>
                     </div>
@@ -152,10 +152,10 @@ const HowItWorks = () => {
               <div className="flex-grow-1">
                 <div className="card shadow-sm">
                   <div className="card-body p-4">
-                    <h4 className="mb-3 fw-bold">Store in Secure Registry</h4>
+                    <h4 className="mb-3 fw-bold">Store in Secure Enterprise Registry</h4>
                     <p className="text-muted mb-3">
-                      The signed document hash is stored in a tamper-proof registry with complete audit trails. The
-                      actual document content is never stored — only the cryptographic hash and signature metadata.
+                      The signed hash is stored in a tamper-evident registry with complete audit trails. The
+                      actual document content is never stored — only integrity and compliance metadata.
                     </p>
                     <div className="row g-3 mb-3">
                       <div className="col-md-6">
@@ -164,8 +164,9 @@ const HowItWorks = () => {
                           <ul className="mb-0 small text-muted">
                             <li>Document hash (SHA-256)</li>
                             <li>Digital signature (ECDSA)</li>
+                            <li>Signer role</li>
                             <li>Signing timestamp</li>
-                            <li>Document reference ID</li>
+                            <li>Department metadata</li>
                           </ul>
                         </div>
                       </div>
@@ -174,9 +175,9 @@ const HowItWorks = () => {
                           <h6 className="fw-bold mb-2">Not Stored</h6>
                           <ul className="mb-0 small text-muted">
                             <li>Actual document content</li>
-                            <li>Personal information</li>
+                            <li>Sensitive business payloads</li>
                             <li>Private keys</li>
-                            <li>Physical signatures</li>
+                            <li>Unencrypted signing secrets</li>
                           </ul>
                         </div>
                       </div>
@@ -185,8 +186,8 @@ const HowItWorks = () => {
                       <div className="d-flex align-items-start">
                         <i className="bi bi-exclamation-circle text-warning me-2 mt-1"></i>
                         <span className="text-muted">
-                          Privacy by Design: PARITY complies with the Data Privacy Act of 2012 (R.A. 10173) by storing
-                          only cryptographic hashes, not personal data.
+                          Compliance by Design: PARITY supports enterprise controls for ISO 27001, SOC 2, and GDPR-aligned
+                          governance by storing only cryptographic proof and auditable metadata.
                         </span>
                       </div>
                     </div>

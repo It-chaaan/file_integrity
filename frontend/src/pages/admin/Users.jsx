@@ -11,7 +11,7 @@ function Users() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'Staff',
+    role: 'Enterprise User',
     department: '',
     status: 'Active'
   });
@@ -73,7 +73,7 @@ function Users() {
       sortable: true,
       filterable: true,
       render: (value) => {
-        const bgColor = value === 'Admin' ? '#DC2626' : '#3B82F6';
+        const bgColor = value === 'System Administrator' ? '#DC2626' : '#3B82F6';
         return (
           <span 
             className="badge"
@@ -143,7 +143,7 @@ function Users() {
     setFormData({
       name: '',
       email: '',
-      role: 'Staff',
+      role: 'Enterprise User',
       department: '',
       status: 'Active'
     });
@@ -155,7 +155,7 @@ function Users() {
     setFormData({
       name: '',
       email: '',
-      role: 'Staff',
+      role: 'Enterprise User',
       department: '',
       status: 'Active'
     });
@@ -165,10 +165,10 @@ function Users() {
     <div>
       <div className="mb-4">
         <h2 className="mb-2" style={{ fontSize: '28px', fontWeight: '700', color: '#0D1526' }}>
-          User Management
+          Enterprise Access Management
         </h2>
         <p className="text-muted" style={{ fontSize: '14px' }}>
-          Manage system users and access permissions
+          Manage enterprise users, roles, and department access controls
         </p>
       </div>
 
@@ -198,8 +198,15 @@ function Users() {
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
                 <option value="all">All Roles</option>
-                <option value="Admin">Admin</option>
-                <option value="Staff">Staff</option>
+                <option value="System Administrator">System Administrator</option>
+                <option value="Compliance Officer">Compliance Officer</option>
+                <option value="Legal Officer">Legal Officer</option>
+                <option value="Finance Manager">Finance Manager</option>
+                <option value="HR Manager">HR Manager</option>
+                <option value="Department Head">Department Head</option>
+                <option value="Auditor">Auditor</option>
+                <option value="Enterprise User">Enterprise User</option>
+                <option value="External Verifier">External Verifier</option>
               </select>
             </div>
             <div className="col-md-3 d-flex justify-content-end">
@@ -210,7 +217,7 @@ function Users() {
                   setFormData({
                     name: '',
                     email: '',
-                    role: 'Staff',
+                    role: 'Enterprise User',
                     department: '',
                     status: 'Active'
                   });
@@ -290,8 +297,15 @@ function Users() {
                         value={formData.role}
                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       >
-                        <option value="Admin">Admin</option>
-                        <option value="Staff">Staff</option>
+                        <option value="System Administrator">System Administrator</option>
+                        <option value="Compliance Officer">Compliance Officer</option>
+                        <option value="Legal Officer">Legal Officer</option>
+                        <option value="Finance Manager">Finance Manager</option>
+                        <option value="HR Manager">HR Manager</option>
+                        <option value="Department Head">Department Head</option>
+                        <option value="Auditor">Auditor</option>
+                        <option value="Enterprise User">Enterprise User</option>
+                        <option value="External Verifier">External Verifier</option>
                       </select>
                     </div>
                     <div className="col-md-6">
