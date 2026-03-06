@@ -217,10 +217,10 @@ function Tickets() {
       {/* Header */}
       <div className="mb-4">
         <h2 className="mb-2" style={{ fontSize: '28px', fontWeight: '700', color: '#0D1526' }}>
-          System Issue Management
+          Enterprise Incident Management
         </h2>
         <p className="text-muted" style={{ fontSize: '14px' }}>
-          Resolve system-level issues and cryptographic problems
+          Resolve contract, compliance, access, and cryptographic integrity incidents
         </p>
       </div>
 
@@ -236,7 +236,7 @@ function Tickets() {
                 <input
                   type="text"
                   className="form-control border-start-0"
-                  placeholder="Search by ticket ID or title..."
+                  placeholder="Search by incident ID or title..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{ borderRadius: '0 6px 6px 0' }}
@@ -287,7 +287,7 @@ function Tickets() {
           ) : (
             <div className="text-center py-5">
               <i className="bi bi-inbox text-muted" style={{ fontSize: '3rem' }}></i>
-              <p className="text-muted mt-2">No tickets found</p>
+              <p className="text-muted mt-2">No incidents found</p>
             </div>
           )}
         </div>

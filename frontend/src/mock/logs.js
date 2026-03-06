@@ -2,25 +2,25 @@ export const mockLogs = [
   {
     timestamp: '2026-01-08 14:32:15',
     userId: 'USR-ADM-001',
-    userName: 'Christian',
+    userName: 'Christian Hale',
     ip: '192.168.1.100',
     action: 'DOCUMENT_UPLOAD',
-    details: 'Uploaded Legal_Opinion_2026.pdf',
+    details: 'Uploaded MSA_Northstar_Solutions_2026.pdf',
     status: 'Success'
   },
   {
     timestamp: '2026-01-08 14:28:43',
     userId: 'USR-STF-012',
-    userName: 'James',
+    userName: 'Daniel Reed',
     ip: '192.168.1.145',
     action: 'DOCUMENT_VERIFY',
-    details: 'Verified Memorandum_2026.pdf',
+    details: 'Verified NDA_AtlasCapital_Vendor_2026.pdf',
     status: 'Success'
   },
   {
     timestamp: '2026-01-08 14:15:22',
     userId: 'USR-STF-008',
-    userName: 'Shynalee',
+    userName: 'Shynalee Ross',
     ip: '192.168.1.132',
     action: 'KEY_ROTATION',
     details: 'Rotated ECDSA key pair',
@@ -29,25 +29,25 @@ export const mockLogs = [
   {
     timestamp: '2026-01-08 13:58:11',
     userId: 'USR-ADM-001',
-    userName: 'Martin',
+    userName: 'Martin Lowe',
     ip: '192.168.1.100',
     action: 'USER_CREATE',
-    details: 'Created new staff user: Anna Cruz',
+    details: 'Created enterprise user: Ava Chen (Procurement)',
     status: 'Success'
   },
   {
     timestamp: '2026-01-08 13:42:05',
     userId: 'USR-STF-012',
-    userName: 'Dominic',
+    userName: 'Ava Chen',
     ip: '192.168.1.145',
     action: 'DOCUMENT_VERIFY',
-    details: 'Verification failed hash mismatch for Affidavit_2026.pdf',
+    details: 'Verification failed hash mismatch for Financial_Audit_Report_Q4_2025.pdf',
     status: 'Failed'
   },
   {
     timestamp: '2026-01-08 13:20:33',
     userId: 'SYSTEM',
-    userName: 'Joshua',
+    userName: 'System Scheduler',
     ip: '127.0.0.1',
     action: 'AUTO_BACKUP',
     details: 'Automated database backup completed',
@@ -56,16 +56,16 @@ export const mockLogs = [
   {
     timestamp: '2026-01-08 12:55:47',
     userId: 'USR-ADM-001',
-    userName: 'Nelson',
+    userName: 'Nina Brooks',
     ip: '192.168.1.100',
     action: 'SETTINGS_UPDATE',
-    details: 'Updated legal office verification timeout to 30s',
+    details: 'Updated enterprise verification timeout policy to 30s',
     status: 'Success'
   },
   {
     timestamp: '2026-01-08 12:30:18',
     userId: 'USR-STF-008',
-    userName: 'Nathaniel',
+    userName: 'External Verifier',
     ip: '192.168.1.132',
     action: 'LOGIN_ATTEMPT',
     details: 'Failed login attempt invalid credentials',
@@ -74,34 +74,34 @@ export const mockLogs = [
   {
     timestamp: '2026-01-08 12:15:55',
     userId: 'USR-ADM-002',
-    userName: 'Rebecca',
+    userName: 'Sofia Martinez',
     ip: '192.168.1.105',
     action: 'DOCUMENT_UPLOAD',
-    details: 'Uploaded Contract_Amendment_2026.pdf',
+    details: 'Uploaded Vendor_Contract_ApexLogistics.pdf',
     status: 'Success'
   },
   {
     timestamp: '2026-01-08 12:00:22',
-    userId: 'USR-STF-003',
-    userName: 'Maria',
+    userId: 'USR-STF-016',
+    userName: 'Liam Turner',
     ip: '192.168.1.110',
     action: 'DOCUMENT_VERIFY',
-    details: 'Verified Demand_Letter_2026.pdf',
+    details: 'Verified Board_Resolution_March2026.pdf',
     status: 'Success'
   },
   {
     timestamp: '2026-01-08 11:45:33',
     userId: 'USR-ADM-001',
-    userName: 'Christian',
+    userName: 'Christian Hale',
     ip: '192.168.1.100',
     action: 'KEY_ROTATION',
-    details: 'Rotated backup ECDSA key',
+    details: 'Rotated backup enterprise ECDSA key',
     status: 'Success'
   },
   {
     timestamp: '2026-01-08 11:30:10',
     userId: 'USR-STF-012',
-    userName: 'James',
+    userName: 'Daniel Reed',
     ip: '192.168.1.145',
     action: 'LOGIN_ATTEMPT',
     details: 'Successful login',
@@ -152,16 +152,16 @@ export const mockActivity = [
   {
     id: 1,
     type: 'success',
-    title: 'Document verified successfully',
+    title: 'Contract verified successfully',
     time: '2 minutes ago',
-    description: 'BIR_Certificate_2026.pdf - Authentic'
+    description: 'MSA_Northstar_Solutions_2026.pdf - Authentic'
   },
   {
     id: 2,
     type: 'info',
-    title: 'New document uploaded',
+    title: 'New enterprise document uploaded',
     time: '15 minutes ago',
-    description: 'Business_Permit_QC_2026.pdf by Martin Luspo'
+    description: 'Vendor_Contract_ApexLogistics.pdf by Sofia Martinez'
   },
   {
     id: 3,
@@ -175,14 +175,14 @@ export const mockActivity = [
     type: 'warning',
     title: 'ECDSA key rotated',
     time: '3 hours ago',
-    description: 'New key pair generated for admin user'
+    description: 'New signing key pair generated for the compliance office'
   },
   {
     id: 5,
     type: 'info',
-    title: 'New User Registered',
+    title: 'New enterprise user onboarded',
     time: '3 hours ago',
-    description: 'New key pair generated for admin user'
+    description: 'Access granted to External Verifier role'
   }
 ];
 

@@ -225,7 +225,7 @@ function Login() {
                   {/* Warning Banner */}
                   <div className="alert mb-4" style={{ backgroundColor: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '8px' }}>
                     <i className="bi bi-exclamation-circle" style={{ color: '#D97706' }}></i>
-                    <span className="ms-2" style={{ color: '#92400E', fontSize: '14px' }}>For authorized staff only. Do not share credentials.</span>
+                    <span className="ms-2" style={{ color: '#92400E', fontSize: '14px' }}>Authorized enterprise users only. Credentials are monitored under corporate compliance controls.</span>
                   </div>
 
                   {error && (
@@ -459,7 +459,7 @@ function Login() {
                     <h1 className="fw-bold mb-3" style={{ fontSize: '48px', letterSpacing: '2px', color: '#FFFFFF' }}>PARITY</h1>
                     <div style={{ width: '60px', height: '2px', backgroundColor: '#FFFFFF', margin: '0 auto 20px' }}></div>
                     <p className="mb-0" style={{ fontSize: '14px', lineHeight: '1.6', color: '#FFFFFF', opacity: '0.9' }}>
-                      LGU Legal Documents<br/>Verification System
+                      Enterprise Document Integrity<br/>and Compliance Platform
                     </p>
                   </div>
                 </div>

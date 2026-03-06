@@ -28,7 +28,7 @@ const StaffLayout = () => {
   
   // Prepare user object with fallback
   const user = currentUser ? {
-    name: currentUser.name || 'Staff User',
+    name: currentUser.name || 'Enterprise User',
     initials: currentUser.name ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'ST',
     role: currentUser.role || 'staff'
   } : {

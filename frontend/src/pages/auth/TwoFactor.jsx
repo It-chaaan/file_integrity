@@ -167,7 +167,7 @@ function TwoFactor() {
                     <h1 className="fw-bold mb-3" style={{ fontSize: 'clamp(36px, 8vw, 48px)', letterSpacing: '2px', color: '#FFFFFF' }}>PARITY</h1>
                     <div style={{ width: '60px', height: '2px', backgroundColor: '#FFFFFF', margin: '0 auto 20px' }}></div>
                     <p className="mb-0" style={{ fontSize: '14px', lineHeight: '1.6', color: '#FFFFFF', opacity: '0.9' }}>
-                      LGU Legal Documents<br/>Verification System
+                      Enterprise Document Integrity<br/>and Compliance Platform
                     </p>
                   </div>
                 </div>

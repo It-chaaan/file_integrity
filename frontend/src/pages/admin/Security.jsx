@@ -35,8 +35,9 @@ function Security() {
 
   const stats = [
     { label: 'Active Keys', value: keys.filter(k => (k.status || '').toLowerCase() === 'active').length, color: 'success' },
+    { label: 'Rotated Keys', value: keys.filter(k => (k.status || '').toLowerCase() === 'rotated').length, color: 'info' },
     { label: 'Revoked Keys', value: keys.filter(k => (k.status || '').toLowerCase() === 'revoked').length, color: 'warning' },
-    { label: 'Expired Keys', value: keys.filter(k => (k.status || '').toLowerCase() === 'expired').length, color: 'danger' }
+    { label: 'Compliance Rotation Due', value: keys.filter(k => (k.status || '').toLowerCase() === 'expired').length, color: 'danger' }
   ];
 
   const columns = [
@@ -140,7 +141,7 @@ function Security() {
   return (
     <div className="container-fluid p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 mb-0">Security & Keys Management</h1>
+        <h1 className="h3 mb-0">Enterprise Key Lifecycle Management</h1>
         <button
           className="btn btn-primary"
           onClick={() => setShowGenerateModal(true)}
@@ -152,7 +153,7 @@ function Security() {
       {/* Stats Cards */}
       <div className="row mb-4">
         {stats.map((stat, index) => (
-          <div key={index} className="col-md-4">
+          <div key={index} className="col-md-3">
             <div className="card border-0 shadow-sm">
               <div className="card-body">
                 <h6 className="card-title text-muted">{stat.label}</h6>
@@ -236,13 +237,16 @@ function Security() {
                   <div className="mb-3">
                     <label className="form-label">Algorithm</label>
                     <select className="form-select">
+                      <option>ECDSA P-256 (secp256r1)</option>
                       <option>ECDSA secp256k1</option>
-                      <option>ECDSA secp256r1</option>
                     </select>
                   </div>
                   <div className="mb-3">
-                    <label className="form-label">Validity Period (days)</label>
+                    <label className="form-label">Key Expiration Policy (days)</label>
                     <input type="number" className="form-control" defaultValue="365" />
+                  </div>
+                  <div className="alert alert-info mb-0">
+                    Role-based key usage and enterprise HSM integration policies apply to all generated signing keys.
                   </div>
                 </form>
               </div>
@@ -316,11 +320,11 @@ function Security() {
                       rows="3"
                       value={rotationReason}
                       onChange={(e) => setRotationReason(e.target.value)}
-                      placeholder="Enter reason for key rotation"
+                      placeholder="Enter compliance, security, or lifecycle reason for rotation"
                     />
                   </div>
                   <div className="alert alert-info">
-                    <strong>New Key:</strong> A new key pair will be generated and the current key will be marked as inactive.
+                    <strong>Rotation Policy:</strong> A replacement key pair will be generated and the current key will be marked as rotated under enterprise lifecycle controls.
                   </div>
                 </form>
               </div>

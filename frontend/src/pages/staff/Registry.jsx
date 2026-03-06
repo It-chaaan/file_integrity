@@ -65,7 +65,7 @@ function Registry() {
     },
     {
       key: 'department',
-      label: 'Office',
+      label: 'Department',
       sortable: true,
       filterable: true,
       render: (value) => (
@@ -142,10 +142,10 @@ function Registry() {
       {/* Header */}
       <div className="mb-4">
           <h2 className="mb-2" style={{ fontSize: '28px', fontWeight: '700', color: '#0D1526' }}>
-            Legal Document Registry
+            Enterprise Document Registry
           </h2>
           <p className="text-muted" style={{ fontSize: '14px' }}>
-            Browse and manage City Legal Office documents in the registry
+            Browse and manage enterprise documents and cryptographic records
           </p>
       </div>
 
@@ -161,7 +161,7 @@ function Registry() {
                 <input
                   type="text"
                   className="form-control border-start-0"
-                    placeholder="Search by document ID, name, type, or office..."
+                    placeholder="Search by document ID, name, type, or department..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{ borderRadius: '0 6px 6px 0' }}
@@ -266,7 +266,7 @@ function Registry() {
                   </div>
                   <div className="col-md-6">
                       <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
-                        Office
+                        Department
                       </label>
                       <p style={{ fontSize: '14px', color: '#8B4513' }}>{selectedDoc.department}</p>
                   </div>

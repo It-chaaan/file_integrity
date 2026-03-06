@@ -37,14 +37,16 @@ const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
 const deriveTypeFromFileName = (fileName = '') => {
   const name = fileName.toLowerCase();
   const map = [
-    { match: ['clearance'], type: 'Barangay Clearance' },
-    { match: ['residency'], type: 'Certificate of Residency' },
-    { match: ['indigency'], type: 'Certificate of Indigency' },
-    { match: ['business', 'permit'], type: 'Business Permit (Barangay)' },
-    { match: ['blotter'], type: 'Barangay Blotter Report' },
-    { match: ['certification'], type: 'Barangay Certification' },
-    { match: ['solo parent'], type: 'Solo Parent Certification' },
-    { match: ['id'], type: 'Barangay ID' },
+    { match: ['msa'], type: 'Master Service Agreement (MSA)' },
+    { match: ['nda'], type: 'Non-Disclosure Agreement (NDA)' },
+    { match: ['purchase', 'order'], type: 'Purchase Order (PO)' },
+    { match: ['vendor', 'contract'], type: 'Vendor Contract' },
+    { match: ['employment', 'contract'], type: 'Employment Contract' },
+    { match: ['board', 'resolution'], type: 'Board Resolution' },
+    { match: ['audit', 'report'], type: 'Financial Audit Report' },
+    { match: ['compliance', 'certificate'], type: 'Compliance Certificate' },
+    { match: ['insurance', 'policy'], type: 'Insurance Policy' },
+    { match: ['data', 'processing'], type: 'Data Processing Agreement (DPA)' },
   ];
   for (const rule of map) {
     if (rule.match.every(token => name.includes(token))) return rule.type;

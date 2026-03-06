@@ -114,7 +114,7 @@ const AdminLayout = () => {
    * - role: User role (admin, staff)
    */
   const user = currentUser ? {
-    name: currentUser.name || 'Admin User',
+    name: currentUser.name || 'System Administrator',
     initials: currentUser.name 
       ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) 
       : 'AD',

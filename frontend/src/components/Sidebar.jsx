@@ -146,7 +146,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                 color: 'rgba(0,0,0,0.7)', 
                 fontSize: isTablet ? '0.65rem' : '0.7rem', 
                 display: 'block',
-              }}>Legal Document Verification</small>
+              }}>Enterprise Integrity Platform</small>
             )}
           </div>
 
@@ -298,7 +298,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                     textOverflow: 'ellipsis'
                   }}
                 >
-                  {role === 'admin' ? 'Admin User' : 'Staff User'}
+                  {role === 'admin' ? 'System Administrator' : 'Enterprise User'}
                 </div>
                 <small 
                   style={{ 
@@ -311,7 +311,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                     textOverflow: 'ellipsis'
                   }}
                 >
-                  {role === 'admin' ? 'Administrator' : 'Staff Member'}
+                  {role === 'admin' ? 'System Administrator' : 'Enterprise User'}
                 </small>
               </div>
             </button>

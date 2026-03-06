@@ -14,7 +14,7 @@ function Upload() {
   const [formData, setFormData] = useState({
     title: '',
     type: '',
-    department: 'City Legal Office'
+    department: 'Legal Department'
   });
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -26,20 +26,32 @@ function Upload() {
   const stepLabels = ['Select File', 'Enter Metadata', 'Hash & Sign', 'Complete'];
 
   const documentTypes = [
-    'Legal Opinions',
-    'Memoranda',
-    'Contracts (e.g., MOA, Service Contracts)',
-    'Contract Amendments',
-    'Complaints',
-    'Answers',
-    'Motions',
-    'Affidavits',
-    'Demand Letters',
-    'Legal Clearance Certificates'
+    'Master Service Agreement (MSA)',
+    'Non-Disclosure Agreement (NDA)',
+    'Purchase Order (PO)',
+    'Vendor Contract',
+    'Employment Contract',
+    'Board Resolution',
+    'Financial Audit Report',
+    'Compliance Certificate',
+    'Insurance Policy',
+    'Intellectual Property Agreement',
+    'Shareholder Agreement',
+    'Loan Agreement',
+    'Data Processing Agreement (DPA)'
   ];
 
   const departments = [
-    'City Legal Office'
+    'Legal Department',
+    'Finance Department',
+    'Human Resources',
+    'Compliance Office',
+    'Procurement',
+    'Risk Management',
+    'IT Security',
+    'Executive Office',
+    'Operations Division',
+    'Corporate Governance'
   ];
 
   const handleFileChange = (e) => {
@@ -149,7 +161,7 @@ function Upload() {
 
       setTimeout(() => {
         setFile(null);
-        setFormData({ title: '', type: '', department: 'City Legal Office' });
+        setFormData({ title: '', type: '', department: 'Legal Department' });
         setUploadProgress(0);
         setStatus('idle');
       }, 10000);
@@ -165,7 +177,7 @@ function Upload() {
 
   const handleReset = () => {
     setFile(null);
-    setFormData({ title: '', type: '', department: 'City Legal Office' });
+    setFormData({ title: '', type: '', department: 'Legal Department' });
     setUploadProgress(0);
     setUploadedDoc(null);
     setVerificationResult(null);
@@ -178,7 +190,7 @@ function Upload() {
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
         <div>
           <h2 className="mb-1">Upload Document</h2>
-          <p className="text-muted mb-0">Select a file, add details, then upload.</p>
+          <p className="text-muted mb-0">Upload enterprise documents with compliance-ready metadata.</p>
         </div>
       </div>
 
@@ -231,7 +243,7 @@ function Upload() {
               </div>
 
               <div className="col-md-6">
-                <label className="form-label fw-semibold">Office *</label>
+                <label className="form-label fw-semibold">Department *</label>
                 <select
                   className="form-select"
                   value={formData.department}
@@ -239,7 +251,7 @@ function Upload() {
                   required
                   disabled={uploading}
                 >
-                  <option value="">Select office</option>
+                  <option value="">Select department</option>
                   {departments.map((dept, idx) => (
                     <option key={idx} value={dept}>{dept}</option>
                   ))}
@@ -339,7 +351,7 @@ function Upload() {
         <div className="card-body">
           <h6 className="card-title text-primary d-flex align-items-center gap-2 mb-3">
             <i className="bi bi-exclamation-triangle-fill"></i>
-            Reminder
+            Enterprise Upload Guidance
           </h6>
           <ul className="list-unstyled mb-0 small">
             <li className="d-flex align-items-start gap-2 mb-2">
@@ -348,7 +360,7 @@ function Upload() {
             </li>
             <li className="d-flex align-items-start gap-2 mb-2">
               <i className="bi bi-check-circle text-success mt-1"></i>
-              Use accurate titles and offices for faster search.
+              Use accurate titles and department metadata for governance and retrieval.
             </li>
             <li className="d-flex align-items-start gap-2 mb-2">
               <i className="bi bi-check-circle text-success mt-1"></i>
@@ -356,7 +368,7 @@ function Upload() {
             </li>
             <li className="d-flex align-items-start gap-2">
               <i className="bi bi-check-circle text-success mt-1"></i>
-              Audit trails and approvals sit in the next steps.
+              Audit trails, signer roles, and approval traces are captured in downstream workflows.
             </li>
           </ul>
         </div>

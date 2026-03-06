@@ -11,12 +11,12 @@ const About = () => {
     {
       icon: Lock,
       title: 'Digital Signatures (ECDSA)',
-      description: 'Elliptic Curve Digital Signature Algorithm ensures that only authorized government offices can register documents in the system.'
+      description: 'Elliptic Curve Digital Signature Algorithm ensures only authorized enterprise signers can register and approve documents in the platform.'
     },
     {
       icon: Server,
-      title: 'Secure Infrastructure',
-      description: 'Government-managed servers with military-grade encryption and redundant backups ensure system availability and data integrity.'
+      title: 'Enterprise Security Infrastructure',
+      description: 'Enterprise-managed infrastructure with strong encryption, resilient architecture, and controlled access protects high-value business records.'
     },
     {
       icon: FileCheck,
@@ -27,9 +27,9 @@ const About = () => {
 
   const privacyPrinciples = [
     'Only cryptographic hashes are stored in the system — never the actual document content',
-    'No personal information is required to verify a document',
-    'Access to verification records is strictly restricted to authorized personnel only',
-    'Citizens have the right to request and audit logs of all access to their document records'
+    'Verification can be completed with minimal metadata exposure',
+    'Access to verification records is restricted by enterprise role-based access controls',
+    'All activities are traceable through immutable audit logs for internal and external review'
   ];
 
   return (
@@ -38,15 +38,14 @@ const About = () => {
       <div className="text-center mb-5">
         <h1 className="display-5 fw-bold mb-3">About Parity</h1>
         <p className="lead text-muted col-lg-10 mx-auto">
-          The Automated Cryptographic Hashing System for Legal Document Integrity 
-          Verification is a secure digital solution designed to protect, verify, and preserve 
-          the authenticity of legal documents used within a Local Government Unit (LGU). 
-          The system leverages modern cryptographic hashing techniques to ensure that official 
-          documents remain tamper-proof, traceable, and verifiable throughout their lifecycle.
+          PARITY is a commercial enterprise platform built to secure and verify business-critical 
+          documents across corporations, financial institutions, legal firms, and multinational organizations. 
+          It protects contracts, financial disclosures, compliance records, and HR agreements with cryptographic 
+          integrity controls designed for industry-regulated environments.
         </p>
         <p className="text-muted">
-          Built with military-grade security and designed for ease of use, Parity serves citizens, 
-          businesses, and government agencies in the fight against document tampering and forgery.
+          Our mission is to provide businesses with cryptographic-grade document integrity and 
+          compliance assurance, helping prevent contract fraud, financial manipulation, and internal tampering.
         </p>
       </div>
 
@@ -81,8 +80,8 @@ const About = () => {
       <div className="bg-light rounded p-5">
         <h2 className="text-center mb-4">Data Privacy and Compliance</h2>
         <p className="text-center text-muted mb-4">
-          Parity is fully compliant with the <strong>Data Privacy Act of 2012 (Republic Act No. 10173)</strong>.<br />
-          The system is designed with privacy-first principles:
+          PARITY aligns with modern enterprise compliance programs, including <strong>ISO 27001, SOC 2, and GDPR-aligned controls</strong>.<br />
+          The platform is designed with compliance-first principles for enterprise IT and risk teams:
         </p>
 
         <div className="row justify-content-center">

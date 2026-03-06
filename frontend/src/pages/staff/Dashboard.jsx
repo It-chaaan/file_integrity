@@ -7,12 +7,18 @@ function Dashboard() {
   const { documents = [], loading = false } = useDocuments();
   const { tickets = [] } = useTickets();
 
-  const { totalDocs, verifiedDocs, pendingDocs } = useMemo(() => {
-    const total = documents.length;
+  const { verifiedDocs } = useMemo(() => {
     const verified = documents.filter(doc => doc.status === 'verified').length;
-    const pending = documents.filter(doc => doc.status === 'pending').length;
-    return { totalDocs: total, verifiedDocs: verified, pendingDocs: pending };
+    return { verifiedDocs: verified };
   }, [documents]);
+
+  const expiringAgreements = useMemo(() => {
+    return documents.filter(doc => doc.status === 'expired').length;
+  }, [documents]);
+
+  const complianceFlags = useMemo(() => {
+    return tickets.filter(ticket => ticket.priority === 'critical' || ticket.status === 'open').length;
+  }, [tickets]);
 
   const recentVerifications = useMemo(() => {
     return documents
@@ -21,13 +27,13 @@ function Dashboard() {
       .slice(0, 4);
   }, [documents]);
 
-  const reportsSubmitted = useMemo(() => {
+  const auditEvents = useMemo(() => {
     return tickets.filter(ticket => (ticket.ticketId || ticket.id || '').startsWith('TKT-DOC')).length;
   }, [tickets]);
 
   const stats = [
     {
-      title: 'Documents Verified',
+      title: 'Signed Contracts',
       value: verifiedDocs,
       icon: 'bi-shield-check',
       bgColor: '#10B981',
@@ -35,24 +41,24 @@ function Dashboard() {
       onClick: () => navigate('/staff/registry')
     },
     {
-      title: 'Documents Uploaded',
-      value: totalDocs,
+      title: 'Compliance Flags',
+      value: complianceFlags,
       icon: 'bi-cloud-upload',
       bgColor: '#3B82F6',
       iconColor: '#FFFFFF',
-      onClick: () => navigate('/staff/upload')
+      onClick: () => navigate('/staff/report')
     },
     {
-      title: 'Reports Submitted',
-      value: reportsSubmitted,
+      title: 'Audit Events',
+      value: auditEvents,
       icon: 'bi-exclamation-triangle',
       bgColor: '#F59E0B',
       iconColor: '#FFFFFF',
       onClick: () => navigate('/staff/report')
     },
     {
-      title: 'Pending Actions',
-      value: pendingDocs,
+      title: 'Expiring Agreements',
+      value: expiringAgreements,
       icon: 'bi-clock-history',
       bgColor: '#6B7280',
       iconColor: '#FFFFFF',
@@ -76,7 +82,7 @@ function Dashboard() {
     <div>
       <div className="mb-4">
         <h2 className="mb-1">Dashboard</h2>
-        <p className="text-muted">Staff Portal</p>
+        <p className="text-muted">Enterprise User Portal</p>
       </div>
 
       {/* Stats Cards */}
@@ -156,7 +162,7 @@ function Dashboard() {
                 </div>
                 <div>
                   <h6 className="mb-1">Verify Document</h6>
-                  <p className="text-muted small mb-0">Check the authenticity of a legal document</p>
+                  <p className="text-muted small mb-0">Validate the integrity of enterprise agreements and records</p>
                 </div>
               </div>
               <button
@@ -176,15 +182,15 @@ function Dashboard() {
                   <i className="bi bi-exclamation-triangle text-warning fs-4"></i>
                 </div>
                 <div>
-                  <h6 className="mb-1">Submit Report</h6>
-                  <p className="text-muted small mb-0">Report a document issue or system problem</p>
+                  <h6 className="mb-1">Report Incident</h6>
+                  <p className="text-muted small mb-0">Escalate compliance or document integrity incidents</p>
                 </div>
               </div>
               <button
                 className="btn btn-outline-warning btn-sm mt-3"
                 onClick={() => navigate('/staff/report')}
               >
-                Create Report
+                Create Incident
               </button>
             </div>
           </div>

@@ -42,10 +42,10 @@ function Verify() {
       setVerificationResult({
         filename: file.name,
         documentId: 'DOC-2026-001847',
-        documentType: 'BIR Certificate',
+        documentType: 'Master Service Agreement (MSA)',
         fileSize: '2.4 MB',
         uploadDate: '2026-01-08 14:32:15',
-        uploadedBy: 'Martin Luspo',
+        uploadedBy: 'Sofia Martinez',
         hash: 'd4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35',
         signature: '3045022100f1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0',
         isAuthentic: true
@@ -63,7 +63,7 @@ function Verify() {
     <div>
       <div className="mb-4">
         <h2 className="mb-1">Verify Document</h2>
-        <p className="text-muted">Upload a document to verify its authenticity and integrity</p>
+        <p className="text-muted">Upload an enterprise document to verify integrity and signature authenticity</p>
       </div>
 
       {/* Stepper + Main Content in one container */}
@@ -114,7 +114,7 @@ function Verify() {
                 <span className="visually-hidden">Loading...</span>
               </div>
               <h5>Computing Hash...</h5>
-              <p className="text-muted">Please wait while we verify your document</p>
+              <p className="text-muted">Please wait while we validate enterprise cryptographic proof</p>
             </div>
           )}
 
@@ -159,8 +159,8 @@ function Verify() {
                     <div className={`alert ${verificationResult.isAuthentic ? 'alert-success' : 'alert-danger'} d-flex align-items-center mb-4`}>
                       <i className={`bi ${verificationResult.isAuthentic ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} fs-4 me-3`}></i>
                       <div>
-                        <h5 className="mb-1">{verificationResult.isAuthentic ? 'Document Authentic' : 'Verification Failed'}</h5>
-                        <p className="mb-0">{verificationResult.isAuthentic ? 'The document integrity has been verified.' : 'Document appears to be modified or invalid.'}</p>
+                        <h5 className="mb-1">{verificationResult.isAuthentic ? 'Document Integrity Verified' : 'Verification Failed'}</h5>
+                        <p className="mb-0">{verificationResult.isAuthentic ? 'SHA-256 and ECDSA checks confirm enterprise authenticity.' : 'Document appears altered, unsigned, or non-compliant.'}</p>
                       </div>
                     </div>
 
@@ -199,8 +199,8 @@ function Verify() {
           <div>
             <h5 className="mb-2">How Verification Works</h5>
             <p className="mb-0 text-muted">
-              The system computes a SHA-256 cryptographic hash of your uploaded document and compares it with the hash stored in our registry.
-              If the hashes match, the document is authentic. Any modification to the document, even a single character, will result in a completely different hash.
+              The system computes a SHA-256 cryptographic hash and compares it with the enterprise registry fingerprint.
+              A valid hash and ECDSA signature confirm non-repudiation, authenticity, and tamper detection.
             </p>
           </div>
         </div>
