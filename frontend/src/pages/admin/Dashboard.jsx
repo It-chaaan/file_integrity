@@ -192,7 +192,7 @@ function Dashboard() {
                 <div className="card-body p-3 p-md-4">
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <h5 className="card-title mb-0">Recent Activity</h5>
-                    <i className="bi bi-activity text-muted"></i>
+                    <i className="bi bi-clock-history text-muted"></i>
                   </div>
 
                   {recentActivity.length === 0 ? (

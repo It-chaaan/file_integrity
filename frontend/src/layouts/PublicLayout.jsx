@@ -123,14 +123,18 @@ const PublicLayout = () => {
                 {/* Login Button */}
                 <Link 
                   to="/login" 
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-sm"
                   style={{ 
                     minHeight: '44px',
                     fontSize: '0.9rem',
                     padding: '0.5rem 1.25rem',
                     display: 'flex',
                     alignItems: 'center',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    backgroundColor: 'transparent',
+                    color: '#0D1526',
+                    border: '1px solid #D2D9E5',
+                    fontWeight: '600'
                   }}
                 >
                   Enterprise Login
@@ -216,10 +220,14 @@ const PublicLayout = () => {
             <div className="d-grid px-3 pb-3">
               <Link 
                 to="/login" 
-                className="btn btn-primary btn-lg"
+                className="btn btn-lg"
                 style={{ 
                   minHeight: '44px',
-                  fontSize: '1rem'
+                  fontSize: '1rem',
+                  backgroundColor: 'transparent',
+                  color: '#0D1526',
+                  border: '1px solid #D2D9E5',
+                  fontWeight: '600'
                 }}
               >
                 Enterprise Login
@@ -233,48 +241,6 @@ const PublicLayout = () => {
       <main className="flex-grow-1" style={{ overflowX: 'hidden' }}>
         <Outlet />
       </main>
-
-      <footer className="public-footer">
-        <div className="container">
-          <div className="row gy-4">
-            <div className="col-lg-4">
-              <div className="d-flex align-items-center gap-2 mb-3">
-                <img
-                  src={Logo}
-                  alt="Parity Logo"
-                  style={{ width: '28px', height: '28px' }}
-                />
-                <span className="footer-brand">PARITY</span>
-              </div>
-              <div className="small mb-0">
-                PARITY Enterprise Document Integrity Platform. Securing business-critical records with cryptographic trust and compliance-ready governance.
-              </div>
-            </div>
-            <div className="col-md-4 col-lg-3">
-              <h6>Quick Links</h6>
-              <div className="d-flex flex-column gap-2 small">
-                <Link to="/about">Terms of Service</Link>
-                <Link to="/about">Privacy Policy</Link>
-                <Link to="/about">Enterprise Compliance</Link>
-                <Link to="/about">Security Disclosure</Link>
-                <Link to="/about">Support Center</Link>
-              </div>
-            </div>
-            <div className="col-md-4 col-lg-3">
-              <h6>Enterprise Contact</h6>
-              <div className="small d-flex flex-column gap-2">
-                <span>Sales and security coordination:</span>
-                <a href="mailto:sales@parityenterprise.com">sales@parityenterprise.com</a>
-                <a href="mailto:security@parityenterprise.com">security@parityenterprise.com</a>
-                <span>+1 (800) 555-2748</span>
-              </div>
-            </div>
-          </div>
-          <div className="footer-bottom text-center">
-            © 2026 PARITY · Enterprise Document Integrity Platform. All rights reserved.
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

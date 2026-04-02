@@ -190,14 +190,14 @@ function Login() {
   };
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#F3F4F6' }}>
-      <div className="container">
+    <div className="min-vh-100 d-flex align-items-center justify-content-center py-4" style={{ backgroundColor: '#F3F4F6' }}>
+      <div className="container-fluid px-3 px-md-4">
         <div className="row justify-content-center">
-          <div className="col-xl-10 col-lg-11">
-            <div className="card shadow-lg border-0" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+          <div className="col-12 d-flex justify-content-center">
+            <div className="card shadow-lg border-0 w-100" style={{ borderRadius: '16px', overflow: 'hidden', maxWidth: '980px' }}>
               <div className="row g-0">
                 {/* Form side - White */}
-                <div className="col-lg-7 p-5">
+                <div className="col-lg-7 p-4 p-md-5">
                   {/* Back Button */}
                   <button
                     onClick={() => navigate('/')}

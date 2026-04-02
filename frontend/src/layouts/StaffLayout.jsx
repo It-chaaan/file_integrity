@@ -1,7 +1,6 @@
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import Topbar from '../components/Topbar';
 import { getCurrentUser, isAuthenticated, getCurrentSession, logout as performLogout } from '../services/auth';
 
 const StaffLayout = () => {
@@ -108,19 +107,27 @@ const StaffLayout = () => {
         flexDirection: 'column',
         transition: 'margin-left 0.3s ease, width 0.3s ease'
       }}>
-        {/* Topbar - Sticky with responsive padding */}
-        <div style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 998,
-          backgroundColor: 'white',
-          borderBottom: '1px solid #dee2e6',
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
-        }}>
-          <Topbar
-            onMenuToggle={toggleSidebar}
-          />
-        </div>
+        {/* Mobile menu toggle when sidebar is closed */}
+        {isMobile && !sidebarOpen && (
+          <button
+            onClick={toggleSidebar}
+            className="btn btn-light border"
+            aria-label="Open sidebar menu"
+            style={{
+              position: 'fixed',
+              top: '0.9rem',
+              left: '0.9rem',
+              zIndex: 1001,
+              width: '44px',
+              height: '44px',
+              padding: 0,
+              borderRadius: '10px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)'
+            }}
+          >
+            <i className="bi bi-list" style={{ fontSize: '1.35rem', color: '#0D1526' }}></i>
+          </button>
+        )}
 
         {/* Page Content - Responsive padding */}
         <main style={{
