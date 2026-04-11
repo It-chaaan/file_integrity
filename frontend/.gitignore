@@ -28,4 +28,4 @@ design figma/*.pdf
 # any local python env files if they exist in the frontend
 .python-version
 
-frontend/node_modules/
+node_modules/
