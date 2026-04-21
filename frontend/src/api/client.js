@@ -14,23 +14,41 @@
 import axios from 'axios';
 import { parseApiError, logError, ErrorTypes } from '../utils/errors';
 
-// Get base URL from environment variables, fallback to localhost
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+// Backend origin and API base path are configurable per environment.
+const API_ORIGIN = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_PATH_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v1';
+const REQUEST_TIMEOUT = Number.parseInt(import.meta.env.VITE_API_TIMEOUT || '15000', 10);
 
 // Token storage keys from environment variables
-const TOKEN_KEY = import.meta.env.VITE_TOKEN_KEY || 'parity_auth_token';
-const REFRESH_KEY = import.meta.env.VITE_REFRESH_KEY || 'parity_refresh_token';
+const TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || import.meta.env.VITE_TOKEN_KEY || 'parity_auth_token';
+const REFRESH_KEY = import.meta.env.VITE_REFRESH_TOKEN_KEY || import.meta.env.VITE_REFRESH_KEY || 'parity_refresh_token';
+
+const normalizeUrlPath = (url) => {
+  if (typeof url !== 'string' || !url.startsWith('/')) {
+    return url;
+  }
+
+  if (url.startsWith('/v1/')) {
+    return `${API_PATH_PREFIX}${url.slice(3)}`;
+  }
+
+  if (url.startsWith('/api/')) {
+    return url;
+  }
+
+  return `${API_PATH_PREFIX}${url}`;
+};
 
 /**
  * Create axios instance with default configuration
  * All API requests will use this configured instance
  */
 const apiClient = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_ORIGIN,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000, // 15 seconds timeout
+  timeout: REQUEST_TIMEOUT,
 });
 
 /**
@@ -40,6 +58,8 @@ const apiClient = axios.create({
  */
 apiClient.interceptors.request.use(
   (config) => {
+    config.url = normalizeUrlPath(config.url);
+
     // Get access token from localStorage
     const token = localStorage.getItem(TOKEN_KEY);
     
@@ -94,7 +114,8 @@ apiClient.interceptors.response.use(
         const refreshToken = localStorage.getItem(REFRESH_KEY);
         
         if (refreshToken) {
-          const response = await axios.post(`${BASE_URL}/v1/auth/refresh/`, {
+          const refreshPath = normalizeUrlPath('/auth/refresh/');
+          const response = await axios.post(`${API_ORIGIN}${refreshPath}`, {
             refresh: refreshToken,
           });
 

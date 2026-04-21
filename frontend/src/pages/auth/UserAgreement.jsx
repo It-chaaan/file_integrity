@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentSession } from '../../services/auth';
-import { createAuditLog } from '../../api/adapter';
+import { getCurrentSession, refreshCurrentUser } from '../../services/auth';
+import { createAuditLog } from '../../api/logs.api';
 
 function UserAgreement() {
   const navigate = useNavigate();
@@ -12,13 +12,31 @@ function UserAgreement() {
 
   // Get user from session on mount
   useEffect(() => {
-    const session = getCurrentSession();
-    if (!session || !session.user) {
-      navigate('/login', { replace: true });
-      return;
-    }
-    setCurrentUser(session.user);
-    setLoadingUser(false);
+    const resolveUser = async () => {
+      const session = getCurrentSession();
+
+      if (!session) {
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      if (session.user) {
+        setCurrentUser(session.user);
+        setLoadingUser(false);
+        return;
+      }
+
+      const fetchedUser = await refreshCurrentUser();
+      if (!fetchedUser) {
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      setCurrentUser(fetchedUser);
+      setLoadingUser(false);
+    };
+
+    resolveUser();
   }, [navigate]);
 
   const handleAgree = async () => {
@@ -34,7 +52,7 @@ function UserAgreement() {
         acceptedAt: new Date().toISOString()
       }));
 
-      // Log to audit logs (works in both mock and API mode)
+      // Log to audit trail endpoint
       await createAuditLog({
         userId: currentUser?.id,
         userName: currentUser?.name,

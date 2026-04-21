@@ -8,23 +8,20 @@
  */
 
 // ============================================
-// API MODES
-// ============================================
-
-export const API_MODES = {
-  MOCK: 'MOCK',
-  REAL: 'REAL',
-};
-
-// Current API mode from environment
-export const CURRENT_API_MODE = import.meta.env.VITE_API_MODE || API_MODES.MOCK;
-
-// ============================================
 // BASE URLS
 // ============================================
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+export const API_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v1';
 export const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000', 10);
+
+export const buildApiPath = (path = '/') => {
+  if (!path.startsWith('/')) {
+    return `${API_PREFIX}/${path}`;
+  }
+
+  return `${API_PREFIX}${path}`;
+};
 
 // ============================================
 // API ENDPOINTS
@@ -33,55 +30,58 @@ export const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000',
 export const ENDPOINTS = {
   // Authentication
   AUTH: {
-    LOGIN: '/auth/login',
-    LOGOUT: '/auth/logout',
-    VERIFY_TOKEN: '/auth/verify',
-    TWO_FACTOR_VERIFY: '/auth/2fa/verify',
-    REFRESH_TOKEN: '/auth/refresh',
+    LOGIN: '/auth/login/',
+    LOGOUT: '/auth/logout/',
+    VERIFY_TOKEN: '/auth/verify/',
+    TWO_FACTOR_VERIFY: '/auth/verify-2fa/',
+    REFRESH_TOKEN: '/auth/refresh/',
+    REGISTER: '/auth/register/',
+    ME: '/auth/me/',
+    CHANGE_PASSWORD: '/auth/change-password/',
   },
 
   // User Management
   USERS: {
-    BASE: '/users',
-    BY_ID: (id) => `/users/${id}`,
-    CREATE: '/users',
-    UPDATE: (id) => `/users/${id}`,
-    DELETE: (id) => `/users/${id}`,
+    BASE: '/users/',
+    BY_ID: (id) => `/users/${id}/`,
+    CREATE: '/users/',
+    UPDATE: (id) => `/users/${id}/`,
+    DELETE: (id) => `/users/${id}/`,
   },
 
   // Document Registry
   DOCUMENTS: {
-    BASE: '/documents',
-    BY_ID: (id) => `/documents/${id}`,
-    UPLOAD: '/documents/upload',
-    VERIFY: '/documents/verify',
-    DELETE: (id) => `/documents/${id}`,
-    DOWNLOAD: (id) => `/documents/${id}/download`,
+    BASE: '/documents/',
+    BY_ID: (id) => `/documents/${id}/`,
+    UPLOAD: '/documents/',
+    VERIFY: '/documents/verify/',
+    DELETE: (id) => `/documents/${id}/`,
+    DOWNLOAD: (id) => `/documents/${id}/download/`,
   },
 
   // Ticket System
   TICKETS: {
-    BASE: '/tickets',
-    BY_ID: (id) => `/tickets/${id}`,
-    CREATE: '/tickets',
-    UPDATE: (id) => `/tickets/${id}`,
-    DELETE: (id) => `/tickets/${id}`,
+    BASE: '/tickets/',
+    BY_ID: (id) => `/tickets/${id}/`,
+    CREATE: '/tickets/',
+    UPDATE: (id) => `/tickets/${id}/`,
+    DELETE: (id) => `/tickets/${id}/`,
   },
 
   // Security/Keys Management
   SECURITY: {
-    KEYS: '/security/keys',
-    KEY_BY_ID: (id) => `/security/keys/${id}`,
-    GENERATE_KEY: '/security/keys/generate',
-    ROTATE_KEY: (id) => `/security/keys/${id}/rotate`,
-    REVOKE_KEY: (id) => `/security/keys/${id}/revoke`,
+    KEYS: '/security-keys/',
+    KEY_BY_ID: (id) => `/security-keys/${id}/`,
+    GENERATE_KEY: '/security-keys/',
+    ROTATE_KEY: (id) => `/security-keys/${id}/rotate/`,
+    REVOKE_KEY: (id) => `/security-keys/${id}/revoke/`,
   },
 
   // Audit Logs
   LOGS: {
-    BASE: '/logs',
-    BY_ID: (id) => `/logs/${id}`,
-    EXPORT: '/logs/export',
+    BASE: '/audit-logs/',
+    BY_ID: (id) => `/audit-logs/${id}/`,
+    EXPORT: '/audit-logs/export/',
   },
 
   // Dashboard Statistics
@@ -337,7 +337,9 @@ export const PAGINATION = {
 // ============================================
 
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: import.meta.env.VITE_AUTH_TOKEN_KEY || 'authToken',
+  AUTH_TOKEN: import.meta.env.VITE_AUTH_TOKEN_KEY || 'parity_auth_token',
+  REFRESH_TOKEN: import.meta.env.VITE_REFRESH_TOKEN_KEY || 'parity_refresh_token',
+  CURRENT_USER: import.meta.env.VITE_USER_STORAGE_KEY || 'parity_current_user',
   USER_ROLE: 'userRole',
   USER_NAME: 'userName',
   USER_EMAIL: 'userEmail',
@@ -450,33 +452,21 @@ export const getStatusLabel = (status, type = 'document') => {
 };
 
 /**
- * Check if current API mode is MOCK
- * @returns {boolean}
- */
-export const isMockMode = () => CURRENT_API_MODE === API_MODES.MOCK;
-
-/**
- * Check if current API mode is REAL
- * @returns {boolean}
- */
-export const isRealMode = () => CURRENT_API_MODE === API_MODES.REAL;
-
-/**
  * Get full API URL for an endpoint
  * @param {string} endpoint - Endpoint path
  * @returns {string} Full URL
  */
-export const getApiUrl = (endpoint) => `${API_BASE_URL}${endpoint}`;
+export const getApiUrl = (endpoint) => `${API_BASE_URL}${buildApiPath(endpoint)}`;
 
 // ============================================
 // EXPORT DEFAULT
 // ============================================
 
 export default {
-  API_MODES,
-  CURRENT_API_MODE,
   API_BASE_URL,
+  API_PREFIX,
   API_TIMEOUT,
+  buildApiPath,
   ENDPOINTS,
   HTTP_STATUS,
   ERROR_CODES,
@@ -507,7 +497,5 @@ export default {
   TOAST_TYPES,
   getStatusColor,
   getStatusLabel,
-  isMockMode,
-  isRealMode,
   getApiUrl,
 };

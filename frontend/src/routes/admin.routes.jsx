@@ -4,7 +4,6 @@ import Security from '../pages/admin/Security';
 import AuditLogs from '../pages/admin/AuditLogs';
 import Tickets from '../pages/admin/Tickets';
 import ProfilePage from '../components/ProfilePage';
-import { mockProfiles } from '../mock';
 
 const adminRoutes = [
   { path: 'dashboard', element: <Dashboard /> },
@@ -12,7 +11,7 @@ const adminRoutes = [
   { path: 'security', element: <Security /> },
   { path: 'audit-logs', element: <AuditLogs /> },
   { path: 'tickets', element: <Tickets /> },
-  { path: 'profile', element: <ProfilePage initialProfile={mockProfiles.admin} /> },
+  { path: 'profile', element: <ProfilePage /> },
   { path: '', element: <Dashboard /> }
 ];
 

@@ -8,7 +8,7 @@ function AuditLogs() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Fetch logs via hook (adapter-backed; mock or real)
+  // Fetch logs via hook (adapter-backed to backend API modules)
   const { logs: fetchedLogs = [], loading, error } = useLogs();
 
   // Filter logs based on search term and status

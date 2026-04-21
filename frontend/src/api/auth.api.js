@@ -93,7 +93,7 @@ export const refreshToken = async (refreshToken) => {
   
   // Update access token in localStorage
   if (access) {
-    localStorage.setItem(import.meta.env.VITE_TOKEN_KEY || 'parity_auth_token', access);
+    localStorage.setItem(import.meta.env.VITE_AUTH_TOKEN_KEY || 'parity_auth_token', access);
   }
 
   return response.data;

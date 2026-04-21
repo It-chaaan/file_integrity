@@ -4,7 +4,6 @@ import Upload from '../pages/staff/Upload';
 import Registry from '../pages/staff/Registry';
 import Report from '../pages/staff/Report';
 import ProfilePage from '../components/ProfilePage';
-import { mockProfiles } from '../mock';
 
 const staffRoutes = [
   { path: 'dashboard', element: <Dashboard /> },
@@ -12,7 +11,7 @@ const staffRoutes = [
   { path: 'upload', element: <Upload /> },
   { path: 'registry', element: <Registry /> },
   { path: 'report', element: <Report /> },
-  { path: 'profile', element: <ProfilePage initialProfile={mockProfiles.staff} /> },
+  { path: 'profile', element: <ProfilePage /> },
   { path: '', element: <Dashboard /> }
 ];
 

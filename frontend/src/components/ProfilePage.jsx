@@ -2,13 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   changePassword,
-  updateProfile,
+  updateUserProfile,
+  getUserProfile,
+} from '../api/auth.api';
+import {
   uploadProfilePhoto,
   removeProfilePhoto,
-  getCurrentUser as fetchCurrentUser,
   PROFILE_PHOTO_ENABLED,
-} from '../api/adapter';
-import { getCurrentUser as getStoredUser } from '../services/auth';
+} from '../api/profile.api';
+import { getCurrentUser as getStoredUser, refreshCurrentUser } from '../services/auth';
 
 const defaultProfile = {
   name: '',
@@ -43,7 +45,7 @@ function ProfilePage({ initialProfile }) {
     const loadProfile = async () => {
       setFetchingProfile(true);
       try {
-        const userData = await fetchCurrentUser();
+        const userData = await getUserProfile();
         if (userData) {
           setProfile((prev) => ({
             ...prev,
@@ -52,6 +54,8 @@ function ProfilePage({ initialProfile }) {
             department: userData.department || prev.department,
             role: userData.role || prev.role,
           }));
+
+          refreshCurrentUser();
         }
       } catch (error) {
         // Keep initial profile; surface a soft error
@@ -94,7 +98,8 @@ function ProfilePage({ initialProfile }) {
         role: profile.role,
       };
 
-      await updateProfile(payload);
+      await updateUserProfile(payload);
+      refreshCurrentUser();
       setSuccessMessage('Profile saved successfully.');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {

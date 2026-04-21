@@ -373,6 +373,19 @@ export const createKey = async (keyData) => {
 };
 
 /**
+ * Update security key metadata/status.
+ */
+export const updateKey = async (keyId, updateData) => {
+  const response = await withErrorContext(
+    () => apiClient.patch(`/v1/security-keys/${keyId}/`, updateData),
+    'securityKeys.update',
+    { resource: 'securityKey', action: 'update', resourceId: keyId }
+  );
+
+  return response.data;
+};
+
+/**
  * Delete security key (placeholder).
  */
 export const deleteKey = async (keyId) => {
@@ -403,5 +416,6 @@ export default {
   getRecentActivity,
   getKeys,
   createKey,
+  updateKey,
   deleteKey,
 };

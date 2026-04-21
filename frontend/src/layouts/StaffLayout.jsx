@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { getCurrentUser, isAuthenticated, getCurrentSession, logout as performLogout } from '../services/auth';
+import { getCurrentUser, isAuthenticated, getCurrentSession, logout as performLogout, refreshCurrentUser } from '../services/auth';
 
 const StaffLayout = () => {
   const navigate = useNavigate();
@@ -24,6 +24,12 @@ const StaffLayout = () => {
     const timer = setTimeout(checkAuth, 100);
     return () => clearTimeout(timer);
   }, [navigate]);
+
+  React.useEffect(() => {
+    if (isReady) {
+      refreshCurrentUser();
+    }
+  }, [isReady]);
   
   // Prepare user object with fallback
   const user = currentUser ? {

@@ -4,7 +4,7 @@
  * =============================================================================
  * 
  * This file provides custom React hooks for fetching and managing data from
- * the backend API. All hooks work seamlessly with both mock and real API modes.
+ * the backend API.
  * 
  * AVAILABLE HOOKS:
  * - useData()       → Generic data fetching hook
@@ -23,7 +23,7 @@
  * 
  * FOR BACKEND DEVELOPERS:
  * - Hooks call adapter functions (src/api/adapter.js)
- * - Adapter routes to real API when VITE_USE_MOCK_API=false
+ * - Adapter routes to real API modules
  * - Response format: { results: [...], count: n } for paginated data
  * - Or direct array [...] for non-paginated data
  * 
@@ -394,6 +394,17 @@ export const useKeys = () => {
     }
   }, [fetchKeys]);
 
+  const updateKey = useCallback(async (id, keyData) => {
+    try {
+      const result = await adapter.updateKey(id, keyData);
+      await fetchKeys();
+      return result;
+    } catch (error) {
+      setError(error);
+      throw error;
+    }
+  }, [fetchKeys]);
+
   const deleteKey = useCallback(async (id) => {
     try {
       await adapter.deleteKey(id);
@@ -413,6 +424,7 @@ export const useKeys = () => {
     loading,
     error,
     createKey,
+    updateKey,
     deleteKey,
     refetch: fetchKeys,
   };

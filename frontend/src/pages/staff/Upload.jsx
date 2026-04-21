@@ -4,7 +4,8 @@ import { getCurrentUser } from '../../services/auth';
 import { shortHash, formatFileSize, validateFileType, validateFileSize } from '../../services/utils';
 import UploadArea from '../../components/UploadArea';
 import SimpleStepper from '../../components/SimpleStepper';
-import * as adapter from '../../api/adapter';
+import { verifyDocument } from '../../api/documents.api';
+import { createAuditLog } from '../../api/logs.api';
 
 function Upload() {
   const { createDocument } = useDocuments();
@@ -134,7 +135,7 @@ function Upload() {
 
       setStatus('verifying');
       try {
-        const verifyRes = await adapter.verifyDocument(file);
+        const verifyRes = await verifyDocument(file);
         setVerificationResult(verifyRes);
       } catch (verificationError) {
         setVerificationResult({ error: verificationError?.message || 'Verification failed' });
@@ -142,7 +143,7 @@ function Upload() {
 
       const docId = result?.documentId || result?.document_id || result?.id;
       try {
-        await adapter.createAuditLog({
+        await createAuditLog({
           action: 'DOCUMENT_UPLOAD',
           resource_type: 'document',
           resource_id: docId,

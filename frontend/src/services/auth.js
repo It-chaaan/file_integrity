@@ -1,21 +1,27 @@
-/**
- * Authentication Service Wrapper
- * 
- * This service provides a unified authentication interface
- * that works with both mock and real API through the adapter.
- * 
- * It maintains backward compatibility with existing code
- * while enabling real API integration.
- * 
- * Key Features:
- * - Seamless switching between mock and real auth
- * - Session management
- * - Role-based access control
- * - Token handling (for real API)
- */
-
 import * as adapter from '../api/adapter';
-import * as mockAuth from './mockAuth';
+
+const USER_STORAGE_KEY = import.meta.env.VITE_USER_STORAGE_KEY || 'parity_current_user';
+
+const saveUser = (user) => {
+  if (!user) return;
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+};
+
+const clearUser = () => {
+  localStorage.removeItem(USER_STORAGE_KEY);
+};
+
+const readUser = () => {
+  const raw = localStorage.getItem(USER_STORAGE_KEY);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    clearUser();
+    return null;
+  }
+};
 
 /**
  * Initialize authentication system
@@ -23,6 +29,10 @@ import * as mockAuth from './mockAuth';
  */
 export const initAuth = () => {
   adapter.initializeApp();
+
+  if (!adapter.isAuthenticated()) {
+    clearUser();
+  }
 };
 
 /**
@@ -32,7 +42,25 @@ export const initAuth = () => {
  * @returns {Promise<Object>} Session data with user info
  */
 export const login = async (username, password) => {
-  return await adapter.login(username, password);
+  const loginResponse = await adapter.login(username, password);
+
+  const responseUser = loginResponse?.user || null;
+  if (responseUser) {
+    saveUser(responseUser);
+    return { ...loginResponse, user: responseUser };
+  }
+
+  try {
+    const profile = await adapter.getCurrentUser();
+    if (profile) {
+      saveUser(profile);
+      return { ...loginResponse, user: profile };
+    }
+  } catch {
+    // If profile endpoint is unavailable right after login, return login response as-is.
+  }
+
+  return loginResponse;
 };
 
 /**
@@ -41,7 +69,24 @@ export const login = async (username, password) => {
  * @returns {Promise<Object>} Verification result
  */
 export const verify2FA = async (code) => {
-  return await adapter.verify2FA(code);
+  const verification = await adapter.verify2FA(code);
+  const responseUser = verification?.user || null;
+
+  if (responseUser) {
+    saveUser(responseUser);
+    return verification;
+  }
+
+  try {
+    const profile = await adapter.getCurrentUser();
+    if (profile) {
+      saveUser(profile);
+    }
+  } catch {
+    // Keep flow resilient if profile fetch fails; guarded routes still rely on token.
+  }
+
+  return verification;
 };
 
 /**
@@ -50,37 +95,50 @@ export const verify2FA = async (code) => {
  * @returns {Promise<void>}
  */
 export const logout = async () => {
-  return await adapter.logout();
+  try {
+    return await adapter.logout();
+  } finally {
+    clearUser();
+  }
 };
 
 /**
  * Get current authenticated user
  * Returns user profile/session data
- * @returns {Promise<Object>|Object} User data (async for real API, sync for mock)
+ * @returns {Object|null} User data cached from backend profile
  */
-export const getCurrentUser = () => {
-  // Normalize to always return a user object when possible
-  const result = adapter.getCurrentUser();
-  // Mock: synchronous session object; return nested user
-  if (adapter.USE_MOCK_API && result && result.user) {
-    return result.user;
+export const getCurrentUser = () => readUser();
+
+/**
+ * Refreshes user profile from backend and updates cached auth user.
+ * @returns {Promise<Object|null>}
+ */
+export const refreshCurrentUser = async () => {
+  try {
+    const user = await adapter.getCurrentUser();
+    if (user) {
+      saveUser(user);
+      return user;
+    }
+    return null;
+  } catch {
+    return readUser();
   }
-  return result; // Real API: Promise of user profile
 };
 
 /**
- * Get current session (backward compatible with mockAuth)
- * For mock mode: returns session object synchronously
- * For real mode: returns simple flag-based object
+ * Get current session from token and cached user data.
  * @returns {Object|null} Session object or null if not authenticated
  */
 export const getCurrentSession = () => {
-  if (adapter.USE_MOCK_API) {
-    // Mock: get session directly from mockAuth (sync)
-    return mockAuth.getCurrentSession();
+  if (!adapter.isAuthenticated()) {
+    return null;
   }
-  // Real API: simple flag-based session representation
-  return adapter.isAuthenticated() ? { verified: true } : null;
+
+  return {
+    verified: true,
+    user: readUser(),
+  };
 };
 
 /**
@@ -97,7 +155,14 @@ export const isAuthenticated = () => {
  * @returns {boolean}
  */
 export const hasRole = (requiredRole) => {
-  return adapter.hasRole(requiredRole);
+  const user = readUser();
+  if (!user) return false;
+
+  const roleHierarchy = { admin: 3, staff: 2, public: 1 };
+  const userRole = String(user.role || '').toLowerCase();
+  const expectedRole = String(requiredRole || '').toLowerCase();
+
+  return (roleHierarchy[userRole] || 0) >= (roleHierarchy[expectedRole] || 0);
 };
 
 /**
@@ -112,16 +177,6 @@ export const changePassword = async (passwordData) => {
   return await adapter.changePassword(passwordData);
 };
 
-/**
- * Initialize mock users (for development)
- * Only works in mock mode
- */
-export const initializeMockUsers = () => {
-  if (adapter.USE_MOCK_API) {
-    adapter.initializeApp();
-  }
-};
-
 // Export everything for backward compatibility
 export default {
   initAuth,
@@ -129,9 +184,9 @@ export default {
   verify2FA,
   logout,
   getCurrentUser,
+  refreshCurrentUser,
   getCurrentSession,
   isAuthenticated,
   hasRole,
   changePassword,
-  initializeMockUsers,
 };

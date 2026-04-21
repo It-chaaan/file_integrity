@@ -8,7 +8,6 @@ function TwoFactor() {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [session, setSession] = useState(null);
 
   useEffect(() => {
     // Check if user has a session
@@ -16,7 +15,6 @@ function TwoFactor() {
     if (!currentSession) {
       navigate('/login');
     }
-    setSession(currentSession);
   }, [navigate]);
 
   const handleCodeChange = (index, value) => {

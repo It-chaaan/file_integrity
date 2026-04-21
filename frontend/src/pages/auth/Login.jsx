@@ -123,7 +123,7 @@ function Login() {
     setIsLoading(true);
     
     try {
-      // Using unified auth service (works with both mock and real API)
+      // Unified auth service calls backend APIs and stores session state locally.
       const session = await login(username, password);
       
       // Success - clear failed attempts

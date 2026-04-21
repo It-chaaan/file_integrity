@@ -1,16 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import StatusBadge from '../../components/StatusBadge';
 import DataTable from '../../components/DataTable';
 import { useKeys } from '../../hooks/useData';
 
 function Security() {
-  const { keys = [], updateKey, loading = false } = useKeys();
+  const { keys = [], updateKey, createKey, loading = false } = useKeys();
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showRotateModal, setShowRotateModal] = useState(false);
   const [selectedKey, setSelectedKey] = useState(null);
   const [rotationReason, setRotationReason] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [operationError, setOperationError] = useState('');
 
   // Filter keys
   const filteredKeys = useMemo(() => {
@@ -64,28 +64,41 @@ function Security() {
     setShowRotateModal(true);
   };
 
-  const handleRevokeKey = (key) => {
-    if (updateKey && key) {
-      updateKey(key.id, {
+  const handleRevokeKey = async (key) => {
+    if (!updateKey || !key) return;
+
+    setOperationError('');
+
+    try {
+      await updateKey(key.id, {
         ...key,
         status: 'revoked',
         lastUsed: 'Revoked now'
       });
+    } catch (error) {
+      setOperationError(error?.message || 'Failed to revoke key.');
     }
   };
 
-  const handleRotateKey = () => {
-    if (selectedKey && updateKey) {
-      updateKey(selectedKey.id, {
+  const handleRotateKey = async () => {
+    if (!selectedKey || !updateKey) return;
+
+    setOperationError('');
+
+    try {
+      await updateKey(selectedKey.id, {
         ...selectedKey,
         status: 'active',
         created: new Date().toISOString().split('T')[0],
         expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
         lastUsed: 'Now'
       });
+
       setShowRotateModal(false);
       setSelectedKey(null);
       setRotationReason('');
+    } catch (error) {
+      setOperationError(error?.message || 'Failed to rotate key.');
     }
   };
 
@@ -149,6 +162,13 @@ function Security() {
           <i className="bi bi-plus"></i> Generate New Key
         </button>
       </div>
+
+      {operationError && (
+        <div className="alert alert-danger mb-4" role="alert">
+          <i className="bi bi-exclamation-triangle me-2"></i>
+          {operationError}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="row mb-4">
@@ -261,9 +281,20 @@ function Security() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={() => {
-                    alert('Key pair generated successfully');
-                    setShowGenerateModal(false);
+                  onClick={async () => {
+                    setOperationError('');
+                    try {
+                      if (createKey) {
+                        await createKey({
+                          algorithm: 'ECDSA P-256 (secp256r1)',
+                          expires_in_days: 365,
+                        });
+                      }
+                      setShowGenerateModal(false);
+                    } catch (error) {
+                      setOperationError(error?.message || 'Failed to generate key.');
+                      setShowGenerateModal(false);
+                    }
                   }}
                 >
                   Generate

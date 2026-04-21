@@ -14,13 +14,11 @@
  * 
  * INITIALIZATION:
  * - Initializes authentication system on mount
- * - Loads mock data if VITE_USE_MOCK_API=true
- * - Handles API mode switching (mock vs real)
+ * - Prepares app for backend API usage
  * 
  * FOR BACKEND DEVELOPERS:
  * - Authentication is checked in layout components (AdminLayout, StaffLayout)
  * - Unauthenticated users are redirected to /login
- * - API mode is determined by VITE_USE_MOCK_API environment variable
  * 
  * FOR TESTERS:
  * - All routes are defined here
@@ -58,7 +56,6 @@ import UserAgreement from './pages/auth/UserAgreement';
 // SERVICES
 // ============================================================================
 import { initAuth } from './services/auth';
-import { initializeMockData } from './services/mockStorage';
 
 /**
  * Main Application Component
@@ -72,23 +69,11 @@ function App() {
   /**
    * Application Initialization Effect
    * 
-   * Runs once on component mount to:
-   * 1. Initialize authentication system (session check, token validation)
-   * 2. Load mock data if running in mock mode
-   * 
-   * Environment Variables Used:
-   * - VITE_USE_MOCK_API: Controls mock vs real API mode
+   * Runs once on component mount to initialize authentication.
    */
   useEffect(() => {
     try {
-      // Initialize authentication system
       initAuth();
-      
-      // Load mock data only if mock mode is enabled
-      // Backend developers: Set VITE_USE_MOCK_API=false to use real API
-      if (import.meta.env.VITE_USE_MOCK_API !== 'false') {
-        initializeMockData();
-      }
     } catch (error) {
       console.error('Error initializing auth:', error);
     }

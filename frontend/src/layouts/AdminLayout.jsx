@@ -42,7 +42,7 @@ import Sidebar from '../components/Sidebar';
 // ============================================================================
 // AUTHENTICATION SERVICES
 // ============================================================================
-import { getCurrentUser, isAuthenticated, getCurrentSession, logout as performLogout } from '../services/auth';
+import { getCurrentUser, isAuthenticated, getCurrentSession, logout as performLogout, refreshCurrentUser } from '../services/auth';
 
 /**
  * Admin Layout Component
@@ -100,6 +100,12 @@ const AdminLayout = () => {
     // Cleanup: Clear timeout if component unmounts
     return () => clearTimeout(timer);
   }, [navigate]);
+
+  React.useEffect(() => {
+    if (isReady) {
+      refreshCurrentUser();
+    }
+  }, [isReady]);
   
   // ============================================================================
   // USER DATA PREPARATION
@@ -181,7 +187,7 @@ const AdminLayout = () => {
   const handleLogout = async () => {
     if (!window.confirm('Are you sure you want to logout?')) return;
     try {
-      await performLogout(); // clears mock session or real tokens
+      await performLogout();
     } finally {
       navigate('/login');
     }
