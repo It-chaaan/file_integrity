@@ -104,7 +104,6 @@ function Dashboard() {
     {
       title: 'Total Enterprise Documents',
       value: stats.totalDocuments,
-      trend: '+12%',
       icon: 'bi-file-earmark-text',
       color: '#111827',
       onClick: () => handleCardClick('documents')
@@ -112,7 +111,6 @@ function Dashboard() {
     {
       title: 'Security Alerts',
       value: stats.criticalTickets,
-      trend: '+5%',
       icon: 'bi-ticket-perforated',
       color: '#F59E0B',
       onClick: () => handleCardClick('tickets')
@@ -120,7 +118,6 @@ function Dashboard() {
     {
       title: 'Pending Approvals',
       value: stats.openTickets,
-      trend: '+3%',
       icon: 'bi-hourglass-split',
       color: '#3B82F6',
       onClick: () => handleCardClick('users')
@@ -128,7 +125,6 @@ function Dashboard() {
     {
       title: 'Active Signing Keys',
       value: activeKeys,
-      trend: '0%',
       icon: 'bi-key',
       color: '#8B5CF6',
       onClick: () => navigate('/admin/security')
@@ -177,7 +173,6 @@ function Dashboard() {
                           <div className="h4 fw-bold mb-0">{stat.value}</div>
                         </div>
                       </div>
-                      <div className="text-success small">{stat.trend}</div>
                     </div>
                   </div>
                 </div>

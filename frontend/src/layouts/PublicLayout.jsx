@@ -131,13 +131,13 @@ const PublicLayout = () => {
                     display: 'flex',
                     alignItems: 'center',
                     flexShrink: 0,
-                    backgroundColor: 'transparent',
-                    color: '#0D1526',
+                    backgroundColor: '#0D1526',
+                    color: '#FFFFFF',
                     border: '1px solid #D2D9E5',
                     fontWeight: '600'
                   }}
                 >
-                  Enterprise Login
+                  Enterprise
                 </Link>
               </>
             )}
