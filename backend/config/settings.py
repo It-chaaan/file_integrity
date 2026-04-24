@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "django-insecure-test-key-change-in-production"
@@ -9,8 +13,13 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+# Mock mode for API testing without database
+MOCK_MODE = os.getenv("MOCK_MODE", "False").lower() in ("true", "1", "yes")
+
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "django.contrib.sessions",
     "rest_framework",
     "corsheaders",
     "enterprise_integrity",
@@ -54,9 +63,10 @@ STATIC_URL = "/static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+# Allow all localhost ports for development
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",
+    r"^http://127\.0\.0\.1:\d+$",
 ]
 
 REST_FRAMEWORK = {
