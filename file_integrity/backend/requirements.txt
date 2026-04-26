@@ -1,0 +1,5 @@
+cffi==2.0.0
+cryptography==46.0.4
+pycparser==3.0
+Django>=4.2
+djangorestframework>=3.15
