@@ -1,10 +1,16 @@
-import uuid
-
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+import uuid
 
 from .constants import DOCUMENT_STATUS_CHOICES, STATUS_VERIFIED
 
+class User(AbstractUser):
+    ROLE_CHOICES = (
+        ('ADMIN', 'Admin'),
+        ('STAFF', 'Staff'),
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='STAFF')
 
 class DocumentRecord(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
