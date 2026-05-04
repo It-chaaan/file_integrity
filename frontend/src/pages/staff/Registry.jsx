@@ -19,10 +19,10 @@ function Registry() {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(doc =>
-        doc.documentId.toLowerCase().includes(term) ||
-        doc.fileName.toLowerCase().includes(term) ||
+        (doc.referenceNumber || doc.documentId || '').toLowerCase().includes(term) ||
+        (doc.fileName || '').toLowerCase().includes(term) ||
         (doc.documentType || doc.type || '').toLowerCase().includes(term) ||
-        doc.department.toLowerCase().includes(term)
+        (doc.department || '').toLowerCase().includes(term)
       );
     }
     
@@ -36,12 +36,12 @@ function Registry() {
   const columns = [
     {
       key: 'documentId',
-      label: 'Document ID',
+      label: 'Reference Number',
       sortable: true,
       filterable: true,
-      render: (value) => (
+      render: (value, row) => (
         <span className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
-          {value}
+          {row?.referenceNumber || value}
         </span>
       )
     },
@@ -228,10 +228,10 @@ function Registry() {
                 <div className="row g-3">
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
-                      Document ID
+                      Reference Number
                     </label>
                     <p className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
-                      {selectedDoc.documentId}
+                      {selectedDoc.referenceNumber || selectedDoc.documentId}
                     </p>
                   </div>
                   <div className="col-md-6">

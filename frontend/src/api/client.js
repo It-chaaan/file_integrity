@@ -15,9 +15,17 @@ import axios from 'axios';
 import { parseApiError, logError, ErrorTypes } from '../utils/errors';
 
 // Backend origin and API base path are configurable per environment.
-const API_ORIGIN = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const API_PATH_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v1';
+const API_ORIGIN = import.meta.env.VITE_API_BASE_URL;
+const API_PATH_PREFIX = import.meta.env.VITE_API_PREFIX;
 const REQUEST_TIMEOUT = Number.parseInt(import.meta.env.VITE_API_TIMEOUT || '15000', 10);
+
+if (!API_ORIGIN) {
+  throw new Error('Missing required environment variable: VITE_API_BASE_URL');
+}
+
+if (!API_PATH_PREFIX) {
+  throw new Error('Missing required environment variable: VITE_API_PREFIX');
+}
 
 // Token storage keys from environment variables
 const TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || import.meta.env.VITE_TOKEN_KEY || 'parity_auth_token';

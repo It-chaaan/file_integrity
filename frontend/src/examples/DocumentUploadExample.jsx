@@ -28,6 +28,7 @@ const DocumentUploadExample = () => {
   const [error, setError] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [verificationResult, setVerificationResult] = useState(null);
+  const [verificationReference, setVerificationReference] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -156,8 +157,8 @@ const DocumentUploadExample = () => {
   const handleVerify = async (e) => {
     e.preventDefault();
 
-    if (!formData.file) {
-      setError('Please select a file to verify');
+    if (!formData.file || !verificationReference) {
+      setError('Please select a file and reference number to verify');
       return;
     }
 
@@ -166,10 +167,10 @@ const DocumentUploadExample = () => {
     setVerificationResult(null);
 
     try {
-      const result = await verifyDocument(formData.file);
+      const result = await verifyDocument(formData.file, verificationReference.trim());
       setVerificationResult(result);
 
-      if (result.verified) {
+      if (result.isAuthentic) {
         alert('✓ Document verified! This file exists in the registry.');
       } else {
         alert('✗ Document not found in registry.');
@@ -273,10 +274,18 @@ const DocumentUploadExample = () => {
             <button type="submit" disabled={loading}>
               {loading ? 'Uploading...' : 'Upload Document'}
             </button>
+            <input
+              type="text"
+              className="reference-input"
+              placeholder="Reference number"
+              value={verificationReference}
+              onChange={(event) => setVerificationReference(event.target.value)}
+              disabled={loading}
+            />
             <button
               type="button"
               onClick={handleVerify}
-              disabled={loading || !formData.file}
+              disabled={loading || !formData.file || !verificationReference}
             >
               {loading ? 'Verifying...' : 'Verify Document'}
             </button>
@@ -288,22 +297,18 @@ const DocumentUploadExample = () => {
       {verificationResult && (
         <div className="card">
           <h3>Verification Result</h3>
-          <div className={`result ${verificationResult.verified ? 'success' : 'warning'}`}>
+          <div className={`result ${verificationResult.isAuthentic ? 'success' : 'warning'}`}>
             <p>
               <strong>Status:</strong>{' '}
-              {verificationResult.verified ? '✓ Verified' : '✗ Not Found'}
+              {verificationResult.isAuthentic ? '✓ Verified' : '✗ Not Found'}
             </p>
             <p>
               <strong>Hash:</strong> <code>{verificationResult.hash}</code>
             </p>
-            {verificationResult.document && (
+            {verificationResult.referenceNumber && (
               <div>
                 <p>
-                  <strong>Original Document:</strong> {verificationResult.document.title}
-                </p>
-                <p>
-                  <strong>Uploaded:</strong>{' '}
-                  {new Date(verificationResult.document.created_at).toLocaleString()}
+                  <strong>Reference:</strong> {verificationResult.referenceNumber}
                 </p>
               </div>
             )}

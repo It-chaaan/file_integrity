@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { validateFileType, validateFileSize } from '../../services/utils';
 import UploadArea from '../../components/UploadArea';
+import { verifyDocument } from '../../api/documents.api';
 
 function Verify() {
   const [file, setFile] = useState(null);
+  const [referenceNumber, setReferenceNumber] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -35,28 +37,33 @@ function Verify() {
     setFile(selected);
   };
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
-    if (!file) return;
+    if (!file || !referenceNumber) return;
 
     setIsVerifying(true);
-    
-    // Simulate verification process
-    setTimeout(() => {
-      setIsVerifying(false);
+
+    try {
+      const response = await verifyDocument(file, referenceNumber.trim());
       setResult({
-        isValid: Math.random() > 0.3, // 70% success rate
-        documentId: 'DOC-2026-001847',
-        fileName: file.name,
-        hash: 'd4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35',
-        signature: '3045022100f1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0',
-        verifiedDate: new Date().toLocaleString()
+        isValid: Boolean(response?.isAuthentic),
+        referenceNumber: response?.referenceNumber || referenceNumber,
+        fileName: response?.fileName || file?.name,
+        hash: response?.hash,
+        signature: response?.signature,
+        verifiedDate: response?.uploadDate || response?.verified_at || new Date().toLocaleString(),
+        status: response?.status,
       });
-    }, 2000);
+    } catch (verifyError) {
+      setError(verifyError?.message || 'Verification failed.');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const resetForm = () => {
     setFile(null);
+    setReferenceNumber('');
     setResult(null);
   };
 
@@ -112,8 +119,8 @@ function Verify() {
                       <p className="mb-0">{result.fileName}</p>
                     </div>
                     <div className="col-md-6">
-                      <label className="small text-muted">Document ID</label>
-                      <p className="mb-0">{result.documentId}</p>
+                      <label className="small text-muted">Reference Number</label>
+                      <p className="mb-0">{result.referenceNumber}</p>
                     </div>
                     <div className="col-12">
                       <label className="small text-muted">Verification Date</label>
@@ -159,6 +166,17 @@ function Verify() {
           <div className="card border-0 shadow-sm">
             <div className="card-body p-5">
               <form onSubmit={handleVerify}>
+                <div className="mb-4">
+                  <label className="form-label fw-semibold mb-2">Reference Number</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter document reference number"
+                    value={referenceNumber}
+                    onChange={(e) => setReferenceNumber(e.target.value)}
+                  />
+                </div>
+
                 {/* File Upload */}
                 <div className="mb-4">
                   <label className="form-label fw-semibold mb-3">Document Upload</label>
@@ -174,7 +192,7 @@ function Verify() {
                 <button 
                   type="submit" 
                   className="btn btn-primary btn-lg w-100"
-                  disabled={!file}
+                  disabled={!file || !referenceNumber}
                 >
                   Start Verification
                 </button>

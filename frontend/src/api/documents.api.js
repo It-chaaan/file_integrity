@@ -122,26 +122,29 @@ export const uploadDocument = async (uploadData, onUploadProgress = null, constr
 };
 
 /**
- * Verify a document's integrity by comparing its hash
- * Uploads a file to check if it matches any existing document in the registry
+ * Verify a document's integrity by reference number and hash
+ * Uploads a file to compare with the stored hash/signature for the reference number
  * 
  * @param {File} file - File object to verify
+ * @param {string} referenceNumber - Document reference number
  * @param {Object} constraints - Optional validation constraints (maxSize, minSize, allowedTypes)
  * @returns {Promise<Object>} Verification result with match status, hash, and original document.
  */
-export const verifyDocument = async (file, constraints = {}) => {
+export const verifyDocument = async (file, referenceNumber, constraints = {}) => {
   const validation = validateFile(file, constraints);
   if (!validation.valid) {
     throw new Error(validation.errors.join('; '));
   }
 
-  const formData = createFormDataFromFile(file);
+  const formData = createFormDataFromFile(file, {
+    reference_number: referenceNumber,
+  });
   const config = createFormDataConfig();
 
   const response = await withErrorContext(
     () => apiClient.post('/v1/documents/verify/', formData, config),
     'documents.verify',
-    { resource: 'document', action: 'verify', fileName: file?.name }
+    { resource: 'document', action: 'verify', fileName: file?.name, referenceNumber }
   );
 
   return response.data;

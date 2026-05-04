@@ -135,13 +135,14 @@ function Upload() {
 
       setStatus('verifying');
       try {
-        const verifyRes = await verifyDocument(file);
+        const referenceNumber = result?.referenceNumber || result?.documentId || result?.document_id || result?.id;
+        const verifyRes = await verifyDocument(file, referenceNumber);
         setVerificationResult(verifyRes);
       } catch (verificationError) {
         setVerificationResult({ error: verificationError?.message || 'Verification failed' });
       }
 
-      const docId = result?.documentId || result?.document_id || result?.id;
+      const docId = result?.referenceNumber || result?.documentId || result?.document_id || result?.id;
       try {
         await createAuditLog({
           action: 'DOCUMENT_UPLOAD',
@@ -293,7 +294,7 @@ function Upload() {
                     <h6 className="mb-1">Document Uploaded Successfully</h6>
                     <p className="text-muted mb-2 small">Integrity signature and hash stored for verification.</p>
                     <div className="d-flex flex-wrap gap-3 small text-muted">
-                      <div><span className="text-dark fw-semibold">Document ID:</span> {uploadedDoc.documentId || uploadedDoc.document_id || uploadedDoc.id || '—'}</div>
+                      <div><span className="text-dark fw-semibold">Reference Number:</span> {uploadedDoc.referenceNumber || uploadedDoc.documentId || uploadedDoc.document_id || uploadedDoc.id || '—'}</div>
                       <div><span className="text-dark fw-semibold">Hash:</span> {uploadedDoc.shortHash || (uploadedDoc.hash && shortHash(uploadedDoc.hash)) || uploadedDoc.hash || '—'}</div>
                       <div><span className="text-dark fw-semibold">Size:</span> {file ? formatFileSize(file.size) : 'N/A'}</div>
                     </div>

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { validateFileType, validateFileSize } from '../../services/utils';
 import SimpleStepper from '../../components/SimpleStepper';
+import { verifyDocument } from '../../api/documents.api';
 
 function Verify() {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [referenceNumber, setReferenceNumber] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState(null);
   const [error, setError] = useState('');
@@ -14,7 +16,7 @@ function Verify() {
 
   const steps = ['Select File', 'Hash', 'Complete'];
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     setError('');
 
@@ -36,26 +38,32 @@ function Verify() {
     setCurrentStep(2);
     setIsVerifying(true);
 
-    setTimeout(() => {
+    try {
+      const response = await verifyDocument(file, referenceNumber.trim());
+      setVerificationResult({
+        filename: response?.fileName || file.name,
+        referenceNumber: response?.referenceNumber || referenceNumber,
+        documentType: response?.documentType || '—',
+        fileSize: response?.fileSize || '—',
+        uploadDate: response?.uploadDate || response?.verified_at || '—',
+        uploadedBy: response?.uploadedBy || '—',
+        hash: response?.hash,
+        signature: response?.signature,
+        isAuthentic: Boolean(response?.isAuthentic),
+        status: response?.status,
+      });
+    } catch (verifyError) {
+      setError(verifyError?.message || 'Verification failed.');
+    } finally {
       setIsVerifying(false);
       setCurrentStep(3);
-      setVerificationResult({
-        filename: file.name,
-        documentId: 'DOC-2026-001847',
-        documentType: 'Master Service Agreement (MSA)',
-        fileSize: '2.4 MB',
-        uploadDate: '2026-01-08 14:32:15',
-        uploadedBy: 'Sofia Martinez',
-        hash: 'd4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35',
-        signature: '3045022100f1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0',
-        isAuthentic: true
-      });
-    }, 2000);
+    }
   };
 
   const resetVerification = () => {
     setCurrentStep(1);
     setSelectedFile(null);
+    setReferenceNumber('');
     setVerificationResult(null);
     setError('');
   };
@@ -76,6 +84,16 @@ function Verify() {
           {/* Step 1: Upload */}
           {currentStep === 1 && (
             <div>
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Reference Number</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Enter document reference number"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                />
+              </div>
               <div
                 className="border-2 border-dashed rounded p-5 text-center"
                 style={{ borderColor: '#dee2e6', borderStyle: 'dashed' }}
@@ -88,6 +106,7 @@ function Verify() {
                   className="d-none"
                   accept=".pdf,.doc,.docx,.txt"
                   onChange={handleFileSelect}
+                  disabled={!referenceNumber}
                 />
                 <label htmlFor="fileUpload" className="btn btn-primary">
                   Select File
@@ -130,8 +149,8 @@ function Verify() {
                       <p className="mb-0">{verificationResult.filename}</p>
                     </div>
                     <div className="mb-3">
-                      <label className="text-muted small">Document ID</label>
-                      <p className="mb-0">{verificationResult.documentId}</p>
+                      <label className="text-muted small">Reference Number</label>
+                      <p className="mb-0">{verificationResult.referenceNumber}</p>
                     </div>
                     <div className="mb-3">
                       <label className="text-muted small">Document Type</label>

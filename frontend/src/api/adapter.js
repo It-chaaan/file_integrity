@@ -167,8 +167,8 @@ export const createDocument = uploadDocument;
  * @param {File} file 
  * @returns {Promise<Object>}
  */
-export const verifyDocument = async (file) => {
-  return await realDocsAPI.verifyDocument(file);
+export const verifyDocument = async (file, referenceNumber) => {
+  return await realDocsAPI.verifyDocument(file, referenceNumber);
 };
 
 /**
