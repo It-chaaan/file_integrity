@@ -1,0 +1,22 @@
+[run]
+branch = True
+source =
+    auth_api
+    users_api
+    enterprise_integrity
+    tickets
+    security_keys
+    common
+    accounts
+omit =
+    */migrations/*
+    */tests/*
+    */__init__.py
+
+[report]
+show_missing = True
+skip_covered = False
+fail_under = 75
+
+[xml]
+output = coverage.xml

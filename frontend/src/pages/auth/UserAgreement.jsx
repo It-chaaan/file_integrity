@@ -54,38 +54,40 @@ function UserAgreement() {
 
       // Log to audit trail endpoint
       await createAuditLog({
-        userId: currentUser?.id,
-        userName: currentUser?.name,
         action: 'AGREEMENT_ACCEPTED',
-        details: 'User accepted Enterprise System Usage Agreement',
-        status: 'Success'
+        resource_type: 'user',
+        resource_id: currentUser?.id,
+        metadata: {
+          username: currentUser?.username,
+          email: currentUser?.email,
+        },
       });
 
       // Redirect to appropriate dashboard based on user role
       setTimeout(() => {
         const userRole = currentUser?.role?.toLowerCase();
-        
-        if (userRole === 'admin') {
+        if (userRole === 'admin' || userRole === 'super_admin') {
           navigate('/admin/dashboard', { replace: true });
         } else if (userRole === 'staff') {
           navigate('/staff/dashboard', { replace: true });
+        } else if (userRole === 'verifier') {
+          navigate('/staff/verify', { replace: true });
         } else {
-          // Fallback to login if role is not recognized
-          navigate('/login', { replace: true });
+          navigate('/', { replace: true });
         }
       }, 800);
     } catch (error) {
-      console.error('Error accepting agreement:', error);
       // Still navigate even if audit log fails
       setTimeout(() => {
         const userRole = currentUser?.role?.toLowerCase();
-        
-        if (userRole === 'admin') {
+        if (userRole === 'admin' || userRole === 'super_admin') {
           navigate('/admin/dashboard', { replace: true });
         } else if (userRole === 'staff') {
           navigate('/staff/dashboard', { replace: true });
+        } else if (userRole === 'verifier') {
+          navigate('/staff/verify', { replace: true });
         } else {
-          navigate('/login', { replace: true });
+          navigate('/', { replace: true });
         }
       }, 800);
     }

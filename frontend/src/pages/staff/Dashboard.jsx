@@ -12,24 +12,20 @@ function Dashboard() {
     return { verifiedDocs: verified };
   }, [documents]);
 
-  const expiringAgreements = useMemo(() => {
-    return documents.filter(doc => doc.status === 'expired').length;
-  }, [documents]);
+  const openTickets = useMemo(() => {
+    return tickets.filter(ticket => ['open', 'waiting_response'].includes(ticket.status)).length;
+  }, [tickets]);
 
-  const complianceFlags = useMemo(() => {
-    return tickets.filter(ticket => ticket.priority === 'critical' || ticket.status === 'open').length;
+  const urgentTickets = useMemo(() => {
+    return tickets.filter(ticket => ticket.priority === 'urgent').length;
   }, [tickets]);
 
   const recentVerifications = useMemo(() => {
     return documents
       .filter(doc => doc.status === 'verified')
-      .sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 4);
   }, [documents]);
-
-  const auditEvents = useMemo(() => {
-    return tickets.filter(ticket => (ticket.ticketId || ticket.id || '').startsWith('TKT-DOC')).length;
-  }, [tickets]);
 
   const stats = [
     {
@@ -41,28 +37,20 @@ function Dashboard() {
       onClick: () => navigate('/staff/registry')
     },
     {
-      title: 'Compliance Flags',
-      value: complianceFlags,
-      icon: 'bi-cloud-upload',
+      title: 'Open Tickets',
+      value: openTickets,
+      icon: 'bi-exclamation-triangle',
       bgColor: '#3B82F6',
       iconColor: '#FFFFFF',
       onClick: () => navigate('/staff/report')
     },
     {
-      title: 'Audit Events',
-      value: auditEvents,
-      icon: 'bi-exclamation-triangle',
+      title: 'Urgent Tickets',
+      value: urgentTickets,
+      icon: 'bi-exclamation-circle',
       bgColor: '#F59E0B',
       iconColor: '#FFFFFF',
       onClick: () => navigate('/staff/report')
-    },
-    {
-      title: 'Expiring Agreements',
-      value: expiringAgreements,
-      icon: 'bi-clock-history',
-      bgColor: '#6B7280',
-      iconColor: '#FFFFFF',
-      onClick: () => navigate('/staff/registry')
     }
   ];
 
@@ -138,9 +126,9 @@ function Dashboard() {
                         </div>
                         <div className="flex-grow-1">
                           <h6 className="mb-1 small">
-                            {doc.documentType || doc.type || 'Document'} #{doc.documentId}
+                            {doc.document_type || 'Document'} #{doc.reference_number}
                           </h6>
-                          <p className="text-muted small mb-0">{getTimeAgo(doc.uploadDate)}</p>
+                          <p className="text-muted small mb-0">{getTimeAgo(doc.created_at)}</p>
                         </div>
                       </div>
                     </div>

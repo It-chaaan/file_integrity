@@ -80,7 +80,7 @@ export const getTicketById = async (ticketId) => {
  * Create a new support ticket (validates attachments when present).
  *
  * @param {Object} ticketData
- * @param {string} ticketData.subject
+ * @param {string} ticketData.title
  * @param {string} ticketData.description
  * @param {string} ticketData.category
  * @param {string} ticketData.priority
@@ -101,7 +101,7 @@ export const createTicket = async (ticketData) => {
     }
 
     const formData = createFormDataFromFiles(ticketData.attachments, {
-      subject: ticketData.subject,
+      title: ticketData.title,
       description: ticketData.description,
       category: ticketData.category,
       priority: ticketData.priority,
@@ -120,7 +120,7 @@ export const createTicket = async (ticketData) => {
 
   const response = await withErrorContext(
     () => apiClient.post('/v1/tickets/', {
-      subject: ticketData.subject,
+      title: ticketData.title,
       description: ticketData.description,
       category: ticketData.category,
       priority: ticketData.priority,
@@ -134,11 +134,11 @@ export const createTicket = async (ticketData) => {
 
 /**
  * Update ticket details
- * Can update subject, description, priority, status, etc.
+ * Can update title, description, priority, status, etc.
  * 
  * @param {string|number} ticketId - Ticket ID
  * @param {Object} updateData - Fields to update
- * @param {string} updateData.subject - Ticket subject
+ * @param {string} updateData.title - Ticket title
  * @param {string} updateData.description - Ticket description
  * @param {string} updateData.priority - Priority level
  * @param {string} updateData.status - Status (open, in_progress, resolved, closed)

@@ -18,7 +18,7 @@
  */
 
 import apiClient from './client';
-import { createDownloadConfig, mergeQueryParams } from './utils/axiosConfig';
+import { mergeQueryParams } from './utils/axiosConfig';
 import { withErrorContext } from './utils/errorContext';
 import {
   createFormDataConfig,
@@ -201,7 +201,7 @@ export const deleteDocument = async (documentId) => {
  */
 export const downloadDocument = async (documentId) => {
   const response = await withErrorContext(
-    () => apiClient.get(`/v1/documents/${documentId}/download/`, createDownloadConfig()),
+    () => apiClient.get(`/v1/documents/${documentId}/download/`),
     'documents.download',
     { resource: 'document', action: 'download', resourceId: documentId }
   );

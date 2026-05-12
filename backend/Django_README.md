@@ -1,81 +1,76 @@
 ## Overview
 
-The Django backend supports two modes:
-- **Mock Mode**: Returns simulated data without requiring a database
-- **Database Mode**: Uses the actual database (default)
+This backend is a Django + DRF API with standardized response envelopes, JWT auth, audit logging, and zero-retention document handling.
 
 ## Quick Start
 
-### 1. Install Dependencies
+1. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure Mock Mode
-
-Edit the `.env` file in the `backend/` directory:
+2. Configure environment (.env in backend/):
 
 ```env
-# Set to True to use mock data (no database required)
-# Set to False to use real database
-MOCK_MODE=True
+DJANGO_SECRET_KEY=...
+DJANGO_DEBUG=false
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+DJANGO_CORS_ALLOWED_ORIGINS=http://localhost:5173
+
+POSTGRES_DB=ecommerce_secure_db
+POSTGRES_USER=...
+POSTGRES_PASSWORD=...
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
 ```
 
-## Files Created/Modified
+3. Run migrations:
 
-### New Files Created 
-1. **`enterprise_integrity/views_mock.py`** - Mock views with same endpoints as real views
-2. **`enterprise_integrity/mock_data.py`** - Mock data generator 
-3. **`.env`** - Environment configuration file
-4. **`MOCK_MODE_GUIDE.md`** - This documentation
-5. **`manage.py`** - Django management script
-6. **`config/__init__.py`** - Config package initialization
-7. **`config/settings.py`** - Django settings (modified by Cline for mock mode)
-8. **`config/urls.py`** - Project URL configuration
-9. **`config/wsgi.py`** - WSGI configuration
-10. **`config/asgi.py`** - ASGI configuration
-11. **`config/settings.py`** - Django settings file for configuration
+```bash
+python manage.py migrate
+```
 
-### Files Modified
-1. **`enterprise_integrity/urls.py`**:
-   - Added conditional import based on `MOCK_MODE` setting
+4. Start the server:
 
-2. **`requirements.txt`**:
-   - Added `django-cors-headers>=4.3.0`
-   - Added `python-dotenv>=1.0.0`
+```bash
+python manage.py runserver
+```
 
+## Test Database Configuration (CI-Ready)
 
+Tests use a dedicated test database name. Configure it with:
 
-## Switching Between Modes
+```env
+POSTGRES_TEST_DB=ecommerce_secure_db_test
+```
 
-### To Enable Mock Mode (No Database)
-1. Set `MOCK_MODE=True` in `.env`
-2. Restart the Django server
-3. No database migrations needed
+CI options:
+- **Preferred**: grant `CREATEDB` on the DB user for CI/test runs.
+- **Alternative**: pre-create the test database and run tests with `--keepdb` to reuse it.
 
-### To Disable Mock Mode (Use Database)
-1. Set `MOCK_MODE=False` in `.env`
-2. Run migrations: `python manage.py migrate`
-3. Restart the Django server
+Example test run:
 
-## Troubleshooting
+```bash
+python manage.py test --keepdb
+```
 
-### Mock mode not working?
-- Ensure `MOCK_MODE=True` in `.env`
-- Restart the Django server after changing `.env`
-- Check that `python-dotenv` is installed
+## OpenAPI Contract
 
-### Import errors?
-- Run `pip install -r requirements.txt`
-- Ensure all dependencies are installed
+Schema endpoints:
+- `/api/schema/` (OpenAPI JSON)
+- `/api/docs/` (Swagger UI)
 
-### CORS errors from frontend?
-- Ensure frontend is running on `localhost:5173` or `localhost:3000`
-- Check that `django-cors-headers` is installed
-- Verify CORS settings in `config/settings.py`
+Generate the committed schema file:
 
-### Server port issues?
-- The backend runs on `http://localhost:8000/` by default
-- If port 8000 is busy, specify a different port: `python manage.py runserver 8001`
-- CORS is configured to allow any localhost port
+```bash
+python manage.py spectacular --file backend/openapi.yaml
+```
+
+## Security Hardening
+
+- Request correlation IDs via `X-Request-ID` header
+- Rate limiting for auth endpoints
+- MIME sniffing prevention
+- Structured JSON logging with request context
+- Strict upload validation and size limits

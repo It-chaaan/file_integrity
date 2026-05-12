@@ -19,9 +19,9 @@ function Registry() {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(doc =>
-        (doc.referenceNumber || doc.documentId || '').toLowerCase().includes(term) ||
-        (doc.fileName || '').toLowerCase().includes(term) ||
-        (doc.documentType || doc.type || '').toLowerCase().includes(term) ||
+        (doc.reference_number || '').toLowerCase().includes(term) ||
+        (doc.file_name || '').toLowerCase().includes(term) ||
+        (doc.document_type || '').toLowerCase().includes(term) ||
         (doc.department || '').toLowerCase().includes(term)
       );
     }
@@ -35,18 +35,18 @@ function Registry() {
 
   const columns = [
     {
-      key: 'documentId',
+      key: 'reference_number',
       label: 'Reference Number',
       sortable: true,
       filterable: true,
       render: (value, row) => (
         <span className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
-          {row?.referenceNumber || value}
+          {value}
         </span>
       )
     },
     {
-      key: 'fileName',
+      key: 'file_name',
       label: 'Document Name',
       sortable: true,
       filterable: true,
@@ -55,7 +55,7 @@ function Registry() {
       )
     },
     {
-      key: 'documentType',
+      key: 'document_type',
       label: 'Document Type',
       sortable: true,
       filterable: true,
@@ -73,7 +73,7 @@ function Registry() {
       )
     },
     {
-      key: 'fileSize',
+      key: 'file_size',
       label: 'Size',
       sortable: true,
       render: (value) => (
@@ -81,13 +81,13 @@ function Registry() {
       )
     },
     {
-      key: 'uploadDate',
+      key: 'created_at',
       label: 'Upload Date',
       sortable: true,
       filterable: true,
       render: (value) => (
         <span style={{ fontSize: '14px', color: '#1F2937' }}>
-          {new Date(value).toLocaleDateString()}
+          {value ? new Date(value).toLocaleDateString() : '—'}
         </span>
       )
     },
@@ -231,7 +231,7 @@ function Registry() {
                       Reference Number
                     </label>
                     <p className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
-                      {selectedDoc.referenceNumber || selectedDoc.documentId}
+                      {selectedDoc.reference_number}
                     </p>
                   </div>
                   <div className="col-md-6">
@@ -249,20 +249,20 @@ function Registry() {
                       File Name
                     </label>
                     <p className="fw-semibold" style={{ fontSize: '14px', color: '#1E3A8A' }}>
-                      {selectedDoc.fileName}
+                      {selectedDoc.file_name}
                     </p>
                   </div>
                   <div className="col-md-6">
                       <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                         Document Type
                       </label>
-                      <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.documentType || selectedDoc.type || '—'}</p>
+                      <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.document_type || '—'}</p>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                       File Size
                     </label>
-                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{formatFileSize(selectedDoc.fileSize)}</p>
+                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{formatFileSize(selectedDoc.file_size)}</p>
                   </div>
                   <div className="col-md-6">
                       <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
@@ -275,7 +275,7 @@ function Registry() {
                       Upload Date
                     </label>
                     <p style={{ fontSize: '14px', color: '#1F2937' }}>
-                      {new Date(selectedDoc.uploadDate).toLocaleDateString()}
+                      {selectedDoc.created_at ? new Date(selectedDoc.created_at).toLocaleDateString() : '—'}
                     </p>
                   </div>
                   <div className="col-12">
@@ -293,14 +293,14 @@ function Registry() {
                         color: '#374151'
                       }}
                     >
-                      {selectedDoc.hash}
+                      {selectedDoc.document_hash}
                     </div>
                   </div>
                   <div className="col-12">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                       Uploaded By
                     </label>
-                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.uploadedBy}</p>
+                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.uploaded_by}</p>
                   </div>
                 </div>
               </div>

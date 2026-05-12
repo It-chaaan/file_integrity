@@ -94,7 +94,7 @@ export const createFormDataFromFiles = (files, sharedMetadata = {}, fileFieldNam
  * 
  * @example
  * const config = createFormDataConfig({
- *   onUploadProgress: (progress) => console.log(progress)
+ *   onUploadProgress: (progress) => updateProgress(progress)
  * });
  */
 export const createFormDataConfig = (options = {}) => {

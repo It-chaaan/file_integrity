@@ -75,18 +75,9 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Log request in development mode
-    if (import.meta.env.DEV) {
-      console.log(`🚀 API Request: ${config.method.toUpperCase()} ${config.url}`, {
-        params: config.params,
-        data: config.data,
-      });
-    }
-
     return config;
   },
   (error) => {
-    console.error('Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -100,12 +91,14 @@ apiClient.interceptors.request.use(
  */
 apiClient.interceptors.response.use(
   (response) => {
-    // Log response in development mode
-    if (import.meta.env.DEV) {
-      console.log(`API Response: ${response.config.method.toUpperCase()} ${response.config.url}`, {
-        status: response.status,
-        data: response.data,
-      });
+    const payload = response.data;
+    if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'data')) {
+      response.data = payload.data;
+      response.meta = {
+        success: payload.success,
+        message: payload.message,
+        errors: payload.errors,
+      };
     }
 
     return response;
@@ -127,7 +120,7 @@ apiClient.interceptors.response.use(
             refresh: refreshToken,
           });
 
-          const { access } = response.data;
+          const access = response.data?.data?.access || response.data?.access;
           
           // Store new access token
           localStorage.setItem(TOKEN_KEY, access);
@@ -162,18 +155,6 @@ apiClient.interceptors.response.use(
       url: error.config?.url,
       method: error.config?.method,
     });
-
-    // Log error in development mode with more details
-    if (import.meta.env.DEV) {
-      console.error('❌ API Error:', {
-        url: error.config?.url,
-        method: error.config?.method,
-        status: error.response?.status,
-        message: parsedError.message,
-        type: parsedError.type,
-        data: error.response?.data,
-      });
-    }
 
     // Return parsed error for consistent handling
     return Promise.reject(parsedError);
@@ -254,9 +235,6 @@ export const withRetry = async (requestFn, maxRetries = 2) => {
       const delay = Math.pow(2, attempt) * 1000;
       await new Promise(resolve => setTimeout(resolve, delay));
       
-      if (import.meta.env.DEV) {
-        console.log(`Retrying request (attempt ${attempt + 2}/${maxRetries + 1})...`);
-      }
     }
   }
   

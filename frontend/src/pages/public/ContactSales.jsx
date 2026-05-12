@@ -17,7 +17,6 @@ function ContactSales() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Contact form submitted:', formData);
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);

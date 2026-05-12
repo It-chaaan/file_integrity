@@ -51,6 +51,10 @@ def build_document_id(now: Optional[datetime] = None) -> str:
     return f"DOC-{current.year}-{suffix}"
 
 
+def build_reference_number(now: Optional[datetime] = None) -> str:
+    return build_document_id(now)
+
+
 def compute_hash_and_signature(file_bytes: bytes) -> Tuple[str, str, str, str]:
     sha256_hash = generate_hash_from_bytes(file_bytes)
     private_key = get_signing_private_key()
@@ -70,6 +74,8 @@ def get_signing_private_key() -> EllipticCurvePrivateKey:
         return _PRIVATE_KEY_CACHE
 
     pem_value = os.getenv("PARITY_ECDSA_PRIVATE_KEY_PEM", "").strip()
+    if "\\n" in pem_value:
+        pem_value = pem_value.replace("\\n", "\n")
 
     if pem_value:
         key_bytes = pem_value.encode("utf-8")
@@ -82,7 +88,18 @@ def get_signing_private_key() -> EllipticCurvePrivateKey:
     return private_key
 
 
+def get_verification_public_key_pem() -> str:
+    pem_value = os.getenv("PARITY_ECDSA_PUBLIC_KEY_PEM", "").strip()
+    if "\\n" in pem_value:
+        pem_value = pem_value.replace("\\n", "\n")
+    if pem_value:
+        return pem_value
+
+    private_key = get_signing_private_key()
+    return serialize_public_key_to_pem(private_key.public_key())
+
+
 def format_short_hash(sha256_hash: str) -> str:
     if len(sha256_hash) <= 13:
         return sha256_hash
-    return f"{sha256_hash[:8]}...{sha256_hash[-5:]}"
+    return f"{sha256_hash[:6]}...{sha256_hash[-4:]}"

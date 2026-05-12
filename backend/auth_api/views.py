@@ -1,0 +1,433 @@
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import check_password
+from django.core.mail import send_mail
+from django.core import signing
+from django.utils import timezone
+import pyotp
+from rest_framework import generics, permissions, status
+from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.utils import extend_schema
+
+from common.responses import error_response, success_response
+from common.audit import log_audit_event
+from enterprise_integrity.models import AuditLog
+from .serializers import (
+    AuthTokenSerializer,
+    ChangePasswordSerializer,
+    DetailResponseSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    ProfilePhotoSerializer,
+    RegisterSerializer,
+    TwoFactorSetupSerializer,
+    TwoFactorVerifySerializer,
+    UserSerializer,
+)
+
+User = get_user_model()
+
+
+class LoginView(TokenObtainPairView):
+    serializer_class = AuthTokenSerializer
+    throttle_scope = "auth_burst"
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            AuditLog.objects.create(
+                user=None,
+                action="AUTH_LOGIN_FAILED",
+                resource_type="auth",
+                resource_id=str(request.data.get("username", "")),
+                details={"username": request.data.get("username")},
+                metadata={"username": request.data.get("username")},
+                ip_address=request.META.get("REMOTE_ADDR", ""),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                severity=AuditLog.SEVERITY_WARNING,
+                status=AuditLog.STATUS_FAILED,
+            )
+            return error_response("Invalid credentials.", errors=serializer.errors, status_code=401)
+
+        user = serializer.user
+        user.last_activity = timezone.now()
+        user.save(update_fields=["last_activity"])
+
+        AuditLog.objects.create(
+            user=user,
+            action="AUTH_LOGIN_SUCCESS",
+            resource_type="auth",
+            resource_id=str(user.id),
+            details={"username": user.username},
+            metadata={"username": user.username},
+            ip_address=request.META.get("REMOTE_ADDR", ""),
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            severity=AuditLog.SEVERITY_INFO,
+            status=AuditLog.STATUS_SUCCESS,
+        )
+
+        return success_response(serializer.validated_data, message="Login successful")
+
+
+class RefreshView(TokenRefreshView):
+    throttle_scope = "auth_burst"
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        log_audit_event(
+            request=request,
+            user=request.user if getattr(request, "user", None) and request.user.is_authenticated else None,
+            action="AUTH_REFRESH",
+            resource_type="auth",
+            resource_id=getattr(request.user, "id", "") if getattr(request, "user", None) else "",
+        )
+        return success_response(response.data, message="Token refreshed")
+
+
+class RegisterView(generics.CreateAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = RegisterSerializer
+    throttle_scope = "auth_burst"
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        log_audit_event(
+            request=request,
+            user=user,
+            action="AUTH_REGISTERED",
+            resource_type="auth",
+            resource_id=user.id,
+            metadata={"username": user.username, "email": user.email},
+        )
+        return success_response(UserSerializer(user, context={"request": request}).data, message="User created", status_code=201)
+
+
+class LogoutView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(request=None, responses={200: DetailResponseSerializer})
+    def post(self, request):
+        log_audit_event(
+            request=request,
+            user=request.user if getattr(request, "user", None) and request.user.is_authenticated else None,
+            action="AUTH_LOGOUT",
+            resource_type="auth",
+            resource_id=getattr(request.user, "id", "") if getattr(request, "user", None) else "",
+            details={"username": getattr(request.user, "username", "") if getattr(request, "user", None) else ""},
+        )
+        return success_response({"detail": "Logged out."}, message="Logged out")
+
+
+class MeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(responses={200: UserSerializer})
+    def get(self, request):
+        return success_response(UserSerializer(request.user, context={"request": request}).data)
+
+    @extend_schema(request=UserSerializer, responses={200: UserSerializer})
+    def patch(self, request):
+        serializer = UserSerializer(request.user, data=request.data, partial=True, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        log_audit_event(
+            request=request,
+            user=request.user,
+            action="PROFILE_UPDATED",
+            resource_type="user",
+            resource_id=request.user.id,
+            details={"username": request.user.username},
+        )
+        return success_response(serializer.data, message="Profile updated")
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "auth_sensitive"
+
+    @extend_schema(request=ChangePasswordSerializer, responses={200: DetailResponseSerializer})
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        if not check_password(serializer.validated_data["old_password"], user.password):
+            log_audit_event(
+                request=request,
+                user=request.user,
+                action="PASSWORD_CHANGE_FAILED",
+                resource_type="auth",
+                resource_id=request.user.id,
+                details={"reason": "invalid_old_password"},
+                status=AuditLog.STATUS_FAILED,
+                severity=AuditLog.SEVERITY_WARNING,
+            )
+            return error_response("Old password is incorrect.", status_code=400)
+
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
+        log_audit_event(
+            request=request,
+            user=request.user,
+            action="PASSWORD_CHANGED",
+            resource_type="auth",
+            resource_id=request.user.id,
+            details={"username": request.user.username},
+        )
+        return success_response({"detail": "Password updated."}, message="Password updated")
+
+
+class ProfilePhotoView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(request=ProfilePhotoSerializer, responses={200: UserSerializer})
+    def post(self, request):
+        serializer = ProfilePhotoSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        log_audit_event(
+            request=request,
+            user=request.user,
+            action="PROFILE_PHOTO_UPDATED",
+            resource_type="user",
+            resource_id=request.user.id,
+            details={"username": request.user.username},
+        )
+        return success_response(UserSerializer(request.user, context={"request": request}).data, message="Profile photo updated")
+
+    @extend_schema(request=None, responses={200: UserSerializer})
+    def delete(self, request):
+        request.user.profile_photo.delete(save=True)
+        log_audit_event(
+            request=request,
+            user=request.user,
+            action="PROFILE_PHOTO_REMOVED",
+            resource_type="user",
+            resource_id=request.user.id,
+            details={"username": request.user.username},
+        )
+        return success_response(UserSerializer(request.user, context={"request": request}).data, message="Profile photo removed")
+
+
+class EnableTwoFactorView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "auth_sensitive"
+
+    @extend_schema(request=None, responses={200: TwoFactorSetupSerializer})
+    def post(self, request):
+        if request.user.two_factor_enabled and request.user.two_factor_secret:
+            return success_response({"detail": "2FA already enabled."}, message="2FA already enabled")
+
+        secret = pyotp.random_base32()
+        request.user.two_factor_secret = secret
+        request.user.save(update_fields=["two_factor_secret"])
+
+        totp = pyotp.TOTP(secret)
+        otpauth_url = totp.provisioning_uri(name=request.user.username, issuer_name="Parity")
+
+        log_audit_event(
+            request=request,
+            user=request.user,
+            action="TWO_FACTOR_SETUP",
+            resource_type="auth",
+            resource_id=request.user.id,
+            details={"username": request.user.username},
+        )
+        return success_response({"secret": secret, "otpauth_url": otpauth_url}, message="2FA setup generated")
+
+
+class VerifyTwoFactorView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "auth_sensitive"
+
+    @extend_schema(request=TwoFactorVerifySerializer, responses={200: DetailResponseSerializer})
+    def post(self, request):
+        serializer = TwoFactorVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if not request.user.two_factor_secret:
+            log_audit_event(
+                request=request,
+                user=request.user,
+                action="TWO_FACTOR_VERIFY_FAILED",
+                resource_type="auth",
+                resource_id=request.user.id,
+                details={"reason": "not_configured"},
+                status=AuditLog.STATUS_FAILED,
+                severity=AuditLog.SEVERITY_WARNING,
+            )
+            return error_response("2FA not configured.", status_code=400)
+
+        totp = pyotp.TOTP(request.user.two_factor_secret)
+        if not totp.verify(serializer.validated_data["code"], valid_window=1):
+            log_audit_event(
+                request=request,
+                user=request.user,
+                action="TWO_FACTOR_VERIFY_FAILED",
+                resource_type="auth",
+                resource_id=request.user.id,
+                details={"reason": "invalid_code"},
+                status=AuditLog.STATUS_FAILED,
+                severity=AuditLog.SEVERITY_WARNING,
+            )
+            return error_response("Invalid 2FA code.", status_code=400)
+
+        request.user.two_factor_enabled = True
+        request.user.save(update_fields=["two_factor_enabled"])
+        log_audit_event(
+            request=request,
+            user=request.user,
+            action="TWO_FACTOR_ENABLED",
+            resource_type="auth",
+            resource_id=request.user.id,
+            details={"username": request.user.username},
+        )
+        return success_response({"detail": "2FA verified."}, message="2FA verified")
+
+
+class DisableTwoFactorView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "auth_sensitive"
+
+    @extend_schema(request=TwoFactorVerifySerializer, responses={200: DetailResponseSerializer})
+    def post(self, request):
+        serializer = TwoFactorVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if not request.user.two_factor_secret:
+            log_audit_event(
+                request=request,
+                user=request.user,
+                action="TWO_FACTOR_DISABLE_FAILED",
+                resource_type="auth",
+                resource_id=request.user.id,
+                details={"reason": "not_configured"},
+                status=AuditLog.STATUS_FAILED,
+                severity=AuditLog.SEVERITY_WARNING,
+            )
+            return error_response("2FA not configured.", status_code=400)
+
+        totp = pyotp.TOTP(request.user.two_factor_secret)
+        if not totp.verify(serializer.validated_data["code"], valid_window=1):
+            log_audit_event(
+                request=request,
+                user=request.user,
+                action="TWO_FACTOR_DISABLE_FAILED",
+                resource_type="auth",
+                resource_id=request.user.id,
+                details={"reason": "invalid_code"},
+                status=AuditLog.STATUS_FAILED,
+                severity=AuditLog.SEVERITY_WARNING,
+            )
+            return error_response("Invalid 2FA code.", status_code=400)
+
+        request.user.two_factor_enabled = False
+        request.user.two_factor_secret = ""
+        request.user.save(update_fields=["two_factor_enabled", "two_factor_secret"])
+        log_audit_event(
+            request=request,
+            user=request.user,
+            action="TWO_FACTOR_DISABLED",
+            resource_type="auth",
+            resource_id=request.user.id,
+            details={"username": request.user.username},
+        )
+        return success_response({"detail": "2FA disabled."}, message="2FA disabled")
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "auth_burst"
+
+    @extend_schema(request=PasswordResetRequestSerializer, responses={200: DetailResponseSerializer})
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.filter(email=serializer.validated_data["email"]).first()
+        if not user:
+            log_audit_event(
+                request=request,
+                user=None,
+                action="PASSWORD_RESET_REQUESTED",
+                resource_type="auth",
+                resource_id="",
+                details={"email": serializer.validated_data["email"], "result": "not_found"},
+            )
+            return success_response({"detail": "If the email exists, a reset link was sent."}, message="Reset email sent")
+
+        token = signing.dumps({"uid": user.pk}, salt="password-reset")
+        reset_url = f"{request.build_absolute_uri('/')}reset-password?token={token}"
+
+        send_mail(
+            "Password reset",
+            f"Use this link to reset your password: {reset_url}",
+            getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@example.com"),
+            [user.email],
+            fail_silently=True,
+        )
+
+        log_audit_event(
+            request=request,
+            user=user,
+            action="PASSWORD_RESET_REQUESTED",
+            resource_type="auth",
+            resource_id=user.id,
+            metadata={"email": user.email},
+            details={"email": user.email},
+        )
+
+        return success_response({"detail": "If the email exists, a reset link was sent."}, message="Reset email sent")
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "auth_burst"
+
+    @extend_schema(request=PasswordResetConfirmSerializer, responses={200: DetailResponseSerializer})
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            payload = signing.loads(serializer.validated_data["token"], salt="password-reset", max_age=3600)
+        except signing.BadSignature:
+            log_audit_event(
+                request=request,
+                user=None,
+                action="PASSWORD_RESET_CONFIRM_FAILED",
+                resource_type="auth",
+                resource_id="",
+                details={"reason": "invalid_or_expired"},
+                status=AuditLog.STATUS_FAILED,
+                severity=AuditLog.SEVERITY_WARNING,
+            )
+            return error_response("Invalid or expired token.", status_code=400)
+
+        user = User.objects.filter(pk=payload.get("uid")).first()
+        if not user:
+            log_audit_event(
+                request=request,
+                user=None,
+                action="PASSWORD_RESET_CONFIRM_FAILED",
+                resource_type="auth",
+                resource_id="",
+                details={"reason": "user_not_found"},
+                status=AuditLog.STATUS_FAILED,
+                severity=AuditLog.SEVERITY_WARNING,
+            )
+            return error_response("Invalid token.", status_code=400)
+
+        user.set_password(serializer.validated_data["password"])
+        user.save()
+        log_audit_event(
+            request=request,
+            user=user,
+            action="PASSWORD_RESET_CONFIRMED",
+            resource_type="auth",
+            resource_id=user.id,
+            details={"email": user.email},
+        )
+        return success_response({"detail": "Password reset."}, message="Password reset")
