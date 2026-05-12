@@ -135,11 +135,13 @@ function Login() {
       if (REQUIRE_2FA) {
         navigate('/two-factor');
       } else {
-        const userRole = session?.user?.role;
-        if (userRole === 'admin') {
+        const userRole = String(session?.user?.role || '').toLowerCase();
+        if (userRole === 'admin' || userRole === 'super_admin') {
           navigate('/admin/dashboard');
         } else if (userRole === 'staff') {
           navigate('/staff/dashboard');
+        } else if (userRole === 'verifier') {
+          navigate('/staff/verify');
         } else {
           navigate('/');
         }

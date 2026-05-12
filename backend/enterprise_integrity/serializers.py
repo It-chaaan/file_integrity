@@ -1,11 +1,12 @@
 from rest_framework import serializers
 
 from .models import AuditLog, DocumentRecord, VerificationAttempt
+from common.validators import validate_document_file
 from .services import parse_metadata_value
 
 
 class DocumentUploadSerializer(serializers.Serializer):
-    file = serializers.FileField(required=True)
+    file = serializers.FileField(required=True, validators=[validate_document_file])
     title = serializers.CharField(max_length=255)
     document_type = serializers.CharField(max_length=120)
     description = serializers.CharField(required=False, allow_blank=True, default="")
@@ -30,7 +31,8 @@ class DocumentUpdateSerializer(serializers.Serializer):
 
 
 class DocumentResponseSerializer(serializers.ModelSerializer):
-    documentId = serializers.CharField(source="document_id", read_only=True)
+    documentId = serializers.CharField(source="reference_number", read_only=True)
+    referenceNumber = serializers.CharField(source="reference_number", read_only=True)
     fileName = serializers.CharField(source="file_name", read_only=True)
     documentType = serializers.CharField(source="document_type", read_only=True)
     fileSize = serializers.IntegerField(source="file_size", read_only=True)
@@ -42,8 +44,9 @@ class DocumentResponseSerializer(serializers.ModelSerializer):
         model = DocumentRecord
         fields = [
             "id",
-            "document_id",
+            "reference_number",
             "documentId",
+            "referenceNumber",
             "title",
             "description",
             "document_type",
@@ -56,32 +59,33 @@ class DocumentResponseSerializer(serializers.ModelSerializer):
             "department",
             "uploaded_by",
             "uploadedBy",
-            "sha256_hash",
+            "document_hash",
             "hash",
             "short_hash",
             "shortHash",
             "signature",
             "status",
             "metadata",
+            "verified_at",
             "created_at",
             "uploadDate",
             "updated_at",
         ]
 
-    hash = serializers.CharField(source="sha256_hash", read_only=True)
+    hash = serializers.CharField(source="document_hash", read_only=True)
 
 
 class VerificationAttemptSerializer(serializers.ModelSerializer):
-    document_id = serializers.CharField(source="document.document_id", read_only=True)
+    reference_number = serializers.CharField(source="document.reference_number", read_only=True)
 
     class Meta:
         model = VerificationAttempt
         fields = [
             "id",
-            "document_id",
+            "reference_number",
             "file_name",
             "file_size",
-            "sha256_hash",
+            "document_hash",
             "found",
             "is_authentic",
             "status",
@@ -90,14 +94,23 @@ class VerificationAttemptSerializer(serializers.ModelSerializer):
 
 
 class AuditLogSerializer(serializers.ModelSerializer):
+    user_id = serializers.CharField(source="user.id", read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
+
     class Meta:
         model = AuditLog
         fields = [
             "id",
+            "user_id",
+            "username",
             "action",
             "resource_type",
             "resource_id",
+            "status",
             "details",
             "metadata",
-            "timestamp",
+            "ip_address",
+            "user_agent",
+            "severity",
+            "created_at",
         ]

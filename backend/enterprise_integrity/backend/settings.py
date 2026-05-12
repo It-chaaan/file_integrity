@@ -10,7 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +25,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7j3)#fc@q^2r8n&hy6&n=klwvfohaq56^_9w#-on@(cggf_azo'
+def _get_env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in ("true", "1", "yes")
+
+
+def _get_env_list(name: str) -> list[str]:
+    raw = os.getenv(name, "")
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _require_env(name: str) -> str:
+    value = os.getenv(name, "")
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
+SECRET_KEY = _require_env("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _get_env_bool("DJANGO_DEBUG", False)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = _get_env_list("DJANGO_ALLOWED_HOSTS")
 
 
 # Application definition
@@ -74,12 +98,12 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ParityDB',
-        'USER': 'parity_admin',
-        'PASSWORD': "parity123",
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
+        'ENGINE': os.getenv('DJANGO_DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': _require_env('POSTGRES_DB'),
+        'USER': _require_env('POSTGRES_USER'),
+        'PASSWORD': _require_env('POSTGRES_PASSWORD'),
+        'HOST': _require_env('POSTGRES_HOST'),
+        'PORT': _require_env('POSTGRES_PORT'),
     }
 }
 

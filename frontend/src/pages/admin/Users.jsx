@@ -1,33 +1,53 @@
 import React, { useState, useMemo } from 'react';
 import DataTable from '../../components/DataTable';
+import Modal from '../../components/Modal';
 import { useUsers } from '../../hooks/useData';
 
 function Users() {
-  const { users, loading, updateUser, createUser } = useUsers();
+  const { users, loading, updateUser, createUser, deleteUser } = useUsers();
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
+    first_name: '',
+    last_name: '',
     email: '',
-    role: 'Enterprise User',
+    role: 'client',
+    password: '',
     department: '',
-    status: 'Active'
+    is_active: true
   });
+
+  const roleLabelMap = {
+    super_admin: 'System Administrator',
+    admin: 'Administrator',
+    staff: 'Staff',
+    verifier: 'Verifier',
+    client: 'Enterprise User',
+  };
 
   // Filter users
   const filteredUsers = useMemo(() => {
     if (!users || !Array.isArray(users)) return [];
     
-    let result = [...users];
+    let result = [...users].map((user) => ({
+      ...user,
+      displayName: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username,
+      displayRole: roleLabelMap[user.role] || user.role,
+      displayStatus: user.is_active ? 'Active' : 'Inactive',
+    }));
     
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(user =>
-        user.id.toLowerCase().includes(term) ||
-        user.name.toLowerCase().includes(term) ||
-        user.email.toLowerCase().includes(term)
+        String(user.id).toLowerCase().includes(term) ||
+        String(user.displayName || '').toLowerCase().includes(term) ||
+        String(user.username || '').toLowerCase().includes(term) ||
+        String(user.email || '').toLowerCase().includes(term)
       );
     }
     
@@ -50,7 +70,7 @@ function Users() {
       )
     },
     {
-      key: 'name',
+      key: 'displayName',
       label: 'Name',
       sortable: true,
       filterable: true,
@@ -68,7 +88,7 @@ function Users() {
       )
     },
     {
-      key: 'role',
+      key: 'displayRole',
       label: 'Role',
       sortable: true,
       filterable: true,
@@ -94,7 +114,7 @@ function Users() {
       )
     },
     {
-      key: 'status',
+      key: 'displayStatus',
       label: 'Status',
       sortable: true,
       filterable: true,
@@ -116,11 +136,14 @@ function Users() {
         onClick={() => {
           setSelectedUser(user);
           setFormData({
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            department: user.department,
-            status: user.status
+            username: user.username || '',
+            first_name: user.first_name || '',
+            last_name: user.last_name || '',
+            email: user.email || '',
+            role: user.role || 'client',
+            password: '',
+            department: user.department || '',
+            is_active: Boolean(user.is_active),
           });
           setShowEditModal(true);
         }}
@@ -128,24 +151,61 @@ function Users() {
         <i className="bi bi-pencil me-1"></i>
         Edit
       </button>
+      <button
+        className="btn btn-sm btn-outline-danger ms-2"
+        onClick={() => {
+          setDeleteTarget(user);
+          setShowDeleteModal(true);
+        }}
+      >
+        <i className="bi bi-trash me-1"></i>
+        Delete
+      </button>
     </>
   );
+
+  const passwordTooShort = !selectedUser && formData.password.length > 0 && formData.password.length < 8;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (selectedUser) {
-      await updateUser(selectedUser.id, formData);
+      const updatePayload = {
+        username: formData.username,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        role: formData.role,
+        department: formData.department,
+        is_active: formData.is_active,
+      };
+      await updateUser(selectedUser.id, updatePayload);
     } else {
-      await createUser(formData);
+      if (formData.password.length < 8) {
+        return;
+      }
+      const createPayload = {
+        username: formData.username,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        role: formData.role,
+        password: formData.password,
+        department: formData.department,
+        is_active: formData.is_active,
+      };
+      await createUser(createPayload);
     }
     setShowEditModal(false);
     setSelectedUser(null);
     setFormData({
-      name: '',
+      username: '',
+      first_name: '',
+      last_name: '',
       email: '',
-      role: 'Enterprise User',
+      role: 'client',
+      password: '',
       department: '',
-      status: 'Active'
+      is_active: true
     });
   };
 
@@ -153,11 +213,14 @@ function Users() {
     setShowEditModal(false);
     setSelectedUser(null);
     setFormData({
-      name: '',
+      username: '',
+      first_name: '',
+      last_name: '',
       email: '',
-      role: 'Enterprise User',
+      role: 'client',
+      password: '',
       department: '',
-      status: 'Active'
+      is_active: true
     });
   };
 
@@ -198,15 +261,11 @@ function Users() {
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
                 <option value="all">All Roles</option>
-                <option value="System Administrator">System Administrator</option>
-                <option value="Compliance Officer">Compliance Officer</option>
-                <option value="Legal Officer">Legal Officer</option>
-                <option value="Finance Manager">Finance Manager</option>
-                <option value="HR Manager">HR Manager</option>
-                <option value="Department Head">Department Head</option>
-                <option value="Auditor">Auditor</option>
-                <option value="Enterprise User">Enterprise User</option>
-                <option value="External Verifier">External Verifier</option>
+                <option value="super_admin">System Administrator</option>
+                <option value="admin">Administrator</option>
+                <option value="staff">Staff</option>
+                <option value="verifier">Verifier</option>
+                <option value="client">Enterprise User</option>
               </select>
             </div>
             <div className="col-md-3 d-flex justify-content-end">
@@ -215,11 +274,14 @@ function Users() {
                 onClick={() => {
                   setSelectedUser(null);
                   setFormData({
-                    name: '',
+                    username: '',
+                    first_name: '',
+                    last_name: '',
                     email: '',
-                    role: 'Enterprise User',
+                    role: 'client',
+                    password: '',
                     department: '',
-                    status: 'Active'
+                    is_active: true
                   });
                   setShowEditModal(true);
                 }}
@@ -269,15 +331,35 @@ function Users() {
                       </p>
                     </div>
                   )}
-                  <div className="mb-3">
-                    <label className="form-label">Name *</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
+                  <div className="row g-3">
+                    <div className="col-md-4">
+                      <label className="form-label">Username *</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label">First Name</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={formData.first_name}
+                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label">Last Name</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={formData.last_name}
+                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                      />
+                    </div>
                   </div>
                   <div className="mb-3">
                     <label className="form-label">Email *</label>
@@ -289,6 +371,24 @@ function Users() {
                       required
                     />
                   </div>
+                  {!selectedUser && (
+                    <div className="mb-3">
+                      <label className="form-label">Password *</label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        minLength={8}
+                        required
+                      />
+                      {passwordTooShort && (
+                        <div className="text-danger small mt-1">
+                          Password must be at least 8 characters long.
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="row g-3">
                     <div className="col-md-6">
                       <label className="form-label">Role</label>
@@ -297,23 +397,19 @@ function Users() {
                         value={formData.role}
                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       >
-                        <option value="System Administrator">System Administrator</option>
-                        <option value="Compliance Officer">Compliance Officer</option>
-                        <option value="Legal Officer">Legal Officer</option>
-                        <option value="Finance Manager">Finance Manager</option>
-                        <option value="HR Manager">HR Manager</option>
-                        <option value="Department Head">Department Head</option>
-                        <option value="Auditor">Auditor</option>
-                        <option value="Enterprise User">Enterprise User</option>
-                        <option value="External Verifier">External Verifier</option>
+                        <option value="super_admin">System Administrator</option>
+                        <option value="admin">Administrator</option>
+                        <option value="staff">Staff</option>
+                        <option value="verifier">Verifier</option>
+                        <option value="client">Enterprise User</option>
                       </select>
                     </div>
                     <div className="col-md-6">
                       <label className="form-label">Status</label>
                       <select
                         className="form-select"
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                        value={formData.is_active ? 'Active' : 'Inactive'}
+                        onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'Active' })}
                       >
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
@@ -334,7 +430,12 @@ function Users() {
                   <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn text-white" style={{ backgroundColor: '#0D1526' }}>
+                  <button
+                    type="submit"
+                    className="btn text-white"
+                    style={{ backgroundColor: '#0D1526' }}
+                    disabled={passwordTooShort}
+                  >
                     <i className="bi bi-check-circle me-2"></i>
                     Save Changes
                   </button>
@@ -344,6 +445,45 @@ function Users() {
           </div>
         </div>
       )}
+
+      <Modal
+        show={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteTarget(null);
+        }}
+        title="Delete User"
+        footer={(
+          <>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeleteTarget(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={async () => {
+                if (!deleteTarget) return;
+                await deleteUser(deleteTarget.id);
+                setShowDeleteModal(false);
+                setDeleteTarget(null);
+              }}
+            >
+              Delete
+            </button>
+          </>
+        )}
+      >
+        <p className="mb-0">
+          This will permanently remove <strong>{deleteTarget?.displayName || deleteTarget?.username}</strong>. This action cannot be undone.
+        </p>
+      </Modal>
     </div>
   );
 }

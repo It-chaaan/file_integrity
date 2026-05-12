@@ -75,7 +75,7 @@ function App() {
     try {
       initAuth();
     } catch (error) {
-      console.error('Error initializing auth:', error);
+      // Avoid blocking app boot if auth init fails.
     }
   }, []); // Empty dependency array = run once on mount
 

@@ -44,8 +44,8 @@ function Dashboard() {
       case 'tickets':
         navigate('/admin/tickets');
         break;
-      case 'critical':
-        navigate('/admin/tickets', { state: { filter: 'critical' } });
+      case 'urgent':
+        navigate('/admin/tickets', { state: { filter: 'urgent' } });
         break;
       default:
         break;
@@ -58,13 +58,26 @@ function Dashboard() {
 
   const recentActivity = useMemo(() => {
     const list = Array.isArray(stats.recentLogs) ? stats.recentLogs : [];
-    return list.slice(0, 4);
+    return list.slice(0, 4).map((activity) => {
+      const details = activity.details ?? activity.metadata ?? null;
+      const detailsText = typeof details === 'string'
+        ? details
+        : details
+          ? JSON.stringify(details)
+          : '';
+      return {
+        ...activity,
+        detailsText,
+        timestamp: activity.created_at || activity.timestamp,
+        userName: activity.username || activity.userName || 'System',
+      };
+    });
   }, [stats.recentLogs]);
 
   const recentTickets = useMemo(() => {
     const list = Array.isArray(tickets) ? tickets : [];
     return [...list]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 5);
   }, [tickets]);
 
@@ -82,7 +95,7 @@ function Dashboard() {
 
   const getTicketPriority = (priority) => {
     const map = {
-      critical: { label: 'HIGH', className: 'bg-danger-subtle text-danger' },
+      urgent: { label: 'URGENT', className: 'bg-danger-subtle text-danger' },
       high: { label: 'HIGH', className: 'bg-danger-subtle text-danger' },
       medium: { label: 'MEDIUM', className: 'bg-warning-subtle text-warning' },
       low: { label: 'LOW', className: 'bg-info-subtle text-info' }
@@ -93,7 +106,8 @@ function Dashboard() {
   const getTicketStatus = (status) => {
     const map = {
       open: { label: 'OPEN', className: 'bg-primary-subtle text-primary' },
-      'in-progress': { label: 'IN-PROGRESS', className: 'bg-warning-subtle text-warning' },
+      in_progress: { label: 'IN-PROGRESS', className: 'bg-warning-subtle text-warning' },
+      waiting_response: { label: 'WAITING', className: 'bg-info-subtle text-info' },
       resolved: { label: 'RESOLVED', className: 'bg-success-subtle text-success' },
       closed: { label: 'RESOLVED', className: 'bg-success-subtle text-success' }
     };
@@ -113,7 +127,7 @@ function Dashboard() {
       value: stats.criticalTickets,
       icon: 'bi-ticket-perforated',
       color: '#F59E0B',
-      onClick: () => handleCardClick('tickets')
+      onClick: () => handleCardClick('urgent')
     },
     {
       title: 'Pending Approvals',
@@ -210,7 +224,7 @@ function Dashboard() {
                               <div className="flex-grow-1">
                                 <div className="d-flex justify-content-between">
                                   <div>
-                                    <div className="fw-semibold">{activity.details || actionLabel}</div>
+                                    <div className="fw-semibold">{activity.detailsText || actionLabel}</div>
                                     <div className="text-muted small">{activity.userName} • {getTimeAgo(activity.timestamp)}</div>
                                   </div>
                                   <span className={`badge ${statusClass}`}>{statusLabel}</span>
@@ -246,7 +260,7 @@ function Dashboard() {
                           <div key={ticket.id} className="list-group-item border-0 px-0 py-3">
                             <div className="fw-semibold mb-1">{ticket.title}</div>
                             <div className="text-muted small mb-2">
-                              {ticket.ticketId} • {getTimeAgo(ticket.createdAt)}
+                              {ticket.ticket_number} • {getTimeAgo(ticket.created_at)}
                             </div>
                             <div className="d-flex gap-2">
                               <span className={`badge ${priority.className}`}>{priority.label}</span>

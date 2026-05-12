@@ -213,14 +213,8 @@ export const formatErrorForLogging = (error, context = {}) => {
 export const logError = (error, context = {}) => {
   const errorLog = formatErrorForLogging(error, context);
 
-  // Always log to console in development
-  if (import.meta.env.DEV) {
-    console.error('Error:', errorLog);
-  }
-
   // In production, send to error logging service (e.g., Sentry, LogRocket)
   if (import.meta.env.PROD) {
-    // TODO: Integrate with error logging service
     // Example: Sentry.captureException(error, { extra: errorLog });
   }
 };

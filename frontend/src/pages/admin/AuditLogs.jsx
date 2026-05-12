@@ -11,9 +11,26 @@ function AuditLogs() {
   // Fetch logs via hook (adapter-backed to backend API modules)
   const { logs: fetchedLogs = [], loading, error } = useLogs();
 
+  const normalizedLogs = useMemo(() => {
+    const list = Array.isArray(fetchedLogs) ? fetchedLogs : [];
+    return list.map((log) => {
+      const details = log.details ?? log.metadata ?? {};
+      const detailsText = typeof details === 'string' ? details : JSON.stringify(details);
+      return {
+        ...log,
+        timestamp: log.created_at || log.timestamp || '—',
+        userId: log.user_id || log.userId || '—',
+        userName: log.username || log.userName || '—',
+        ipAddress: log.ip_address || log.ipAddress || log.ip || '—',
+        detailsText,
+        status: log.status || 'SUCCESS',
+      };
+    });
+  }, [fetchedLogs]);
+
   // Filter logs based on search term and status
   const filteredLogs = useMemo(() => {
-    let result = Array.isArray(fetchedLogs) ? fetchedLogs : [];
+    let result = normalizedLogs;
     
     // Apply search filter
     if (searchTerm.trim()) {
@@ -25,7 +42,7 @@ function AuditLogs() {
           (log.userName || '').toLowerCase().includes(term) ||
           ip.includes(term) ||
           (log.action || '').toLowerCase().includes(term) ||
-          (log.details || '').toLowerCase().includes(term)
+          (log.detailsText || '').toLowerCase().includes(term)
         );
       });
     }
@@ -125,11 +142,11 @@ function AuditLogs() {
                     <td className="font-monospace small">{log.timestamp}</td>
                     <td className="font-monospace small">{log.userId}</td>
                     <td>{log.userName}</td>
-                    <td className="font-monospace small">{log.ipAddress || log.ip || '—'}</td>
+                    <td className="font-monospace small">{log.ipAddress}</td>
                     <td>
                       <span className="badge bg-secondary">{log.action}</span>
                     </td>
-                    <td>{log.details}</td>
+                    <td>{log.detailsText || '—'}</td>
                     <td>
                       <span className={`badge ${(log.status || '').toLowerCase() === 'success' ? 'bg-success' : 'bg-danger'}`}>
                         {log.status}

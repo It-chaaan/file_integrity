@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 /**
  * Responsive sidebar navigation for admin/staff portals.
  * @param {Object} props
- * @param {{name?: string}} [props.user] - Current user info for avatar/labels.
+ * @param {{displayName?: string, roleLabel?: string}} [props.user] - Current user info for avatar/labels.
  * @param {'admin'|'staff'} props.role - Role to determine menu set.
  * @param {() => void} [props.onLogout] - Logout handler.
  * @param {boolean} [props.isOpen] - Whether sidebar is visible.
@@ -37,8 +37,11 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
   };
 
   const getInitials = (name) => {
-    return name
+    const safeName = String(name || '').trim();
+    if (!safeName) return '?';
+    return safeName
       .split(' ')
+      .filter(Boolean)
       .map(n => n[0])
       .join('')
       .toUpperCase();
@@ -73,7 +76,12 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
     { id: 'report', label: 'Report', icon: 'bi-exclamation-triangle', section: 'GENERAL', path: '/staff/report' }
   ];
 
-  const menuItems = role === 'admin' ? adminMenuItems : staffMenuItems;
+  const verifierMenuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'bi-grid-fill', section: 'GENERAL', path: '/staff/dashboard' },
+    { id: 'verify', label: 'Verify', icon: 'bi-shield-check', section: 'GENERAL', path: '/staff/verify' }
+  ];
+
+  const menuItems = role === 'admin' ? adminMenuItems : (role === 'verifier' ? verifierMenuItems : staffMenuItems);
   const sections = [...new Set(menuItems.map(item => item.section))];
 
   const isActive = (path) => {
@@ -282,7 +290,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                   flexShrink: 0
                 }}
               >
-                {user && getInitials(user.name)}
+                {getInitials(user?.displayName)}
               </div>
 
               {/* User Info */}
@@ -298,7 +306,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                     textOverflow: 'ellipsis'
                   }}
                 >
-                  {role === 'admin' ? 'System Administrator' : 'Enterprise User'}
+                  {user?.displayName || 'User'}
                 </div>
                 <small 
                   style={{ 
@@ -311,7 +319,7 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
                     textOverflow: 'ellipsis'
                   }}
                 >
-                  {role === 'admin' ? 'System Administrator' : 'Enterprise User'}
+                  {user?.roleLabel || 'User'}
                 </small>
               </div>
             </button>
@@ -343,7 +351,8 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
 
 Sidebar.propTypes = {
   user: PropTypes.shape({
-    name: PropTypes.string
+    displayName: PropTypes.string,
+    roleLabel: PropTypes.string,
   }),
   role: PropTypes.oneOf(['admin', 'staff']).isRequired,
   onLogout: PropTypes.func,

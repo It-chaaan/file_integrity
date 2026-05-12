@@ -32,14 +32,34 @@ const StaffLayout = () => {
   }, [isReady]);
   
   // Prepare user object with fallback
+  const roleLabelMap = {
+    super_admin: 'System Administrator',
+    admin: 'Administrator',
+    staff: 'Staff',
+    verifier: 'Verifier',
+    client: 'Enterprise User',
+  };
+
+  const normalizedRole = String(currentUser?.role || '').toLowerCase();
+  const isStaffPortalRole = ['super_admin', 'admin', 'staff', 'verifier'].includes(normalizedRole);
+
+  const displayName = currentUser
+    ? [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ') || currentUser.username
+    : 'Loading...';
+
+  React.useEffect(() => {
+    if (!isReady || !currentUser) return;
+    if (!isStaffPortalRole) {
+      navigate('/', { replace: true });
+    }
+  }, [currentUser, isReady, isStaffPortalRole, navigate]);
+
   const user = currentUser ? {
-    name: currentUser.name || 'Enterprise User',
-    initials: currentUser.name ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'ST',
-    role: currentUser.role || 'staff'
+    displayName: displayName || 'Enterprise User',
+    roleLabel: roleLabelMap[currentUser.role] || currentUser.role || 'Staff',
+    role: normalizedRole === 'super_admin' ? 'admin' : (normalizedRole || 'staff')
   } : {
-    name: 'Loading...',
-    initials: '...',
-    role: 'staff'
+    displayName: 'Loading...'
   };
 
   // Responsive state management

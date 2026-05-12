@@ -12,7 +12,7 @@ export const PROFILE_PHOTO_ENABLED = import.meta.env.VITE_PROFILE_PHOTO_ENABLED 
  */
 export const uploadProfilePhoto = async (file) => {
   const formData = new FormData();
-  formData.append('photo', file);
+  formData.append('profile_photo', file);
 
   const response = await withErrorContext(
     () => apiClient.post('/v1/auth/me/photo/', formData, {

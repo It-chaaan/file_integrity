@@ -10,17 +10,21 @@ import PropTypes from 'prop-types';
 const StatusBadge = ({ status, priority }) => {
   const getColor = () => {
     if (priority) {
-      if (priority === 'Critical') return 'danger';
-      if (priority === 'High') return 'warning';
-      if (priority === 'Medium') return 'info';
+      const normalizedPriority = priority.toLowerCase();
+      if (normalizedPriority === 'urgent') return 'danger';
+      if (normalizedPriority === 'high') return 'warning';
+      if (normalizedPriority === 'medium') return 'info';
       return 'secondary';
     }
-    
-    if (status === 'Active' || status === 'Success') return 'success';
-    if (status === 'Failed' || status === 'Inactive') return 'danger';
-    if (status === 'Revoked' || status === 'Under Review') return 'warning';
-    if (status === 'Expired') return 'secondary';
-    if (status === 'Open') return 'primary';
+
+    const normalizedStatus = (status || '').toLowerCase();
+    if (normalizedStatus === 'verified') return 'success';
+    if (normalizedStatus === 'failed') return 'danger';
+    if (normalizedStatus === 'pending') return 'warning';
+    if (normalizedStatus === 'expired') return 'secondary';
+    if (normalizedStatus === 'open') return 'primary';
+    if (normalizedStatus === 'in_progress') return 'warning';
+    if (normalizedStatus === 'waiting_response') return 'info';
     return 'primary';
   };
 

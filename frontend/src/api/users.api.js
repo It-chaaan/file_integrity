@@ -17,7 +17,7 @@
  */
 
 import apiClient from './client';
-import { createDownloadConfig, mergeQueryParams } from './utils/axiosConfig';
+import { mergeQueryParams } from './utils/axiosConfig';
 import { withErrorContext } from './utils/errorContext';
 
 /**
@@ -29,7 +29,7 @@ import { withErrorContext } from './utils/errorContext';
  * @param {number} [params.page_size] - Legacy page size key.
  * @param {number} [params.pageSize] - Page size (preferred key).
  * @param {string} [params.search] - Search by username/email/name.
- * @param {string} [params.role] - Role filter (admin|staff|user).
+ * @param {string} [params.role] - Role filter (super_admin|admin|staff|verifier|client).
  * @param {boolean} [params.is_active] - Active status filter.
  * @param {boolean} [params.is_verified] - Verification status filter.
  * @param {string} [params.ordering='-date_joined'] - Sort field.
@@ -79,7 +79,7 @@ export const getUserById = async (userId) => {
  * @param {string} userData.password
  * @param {string} userData.first_name
  * @param {string} userData.last_name
- * @param {string} userData.role - admin|staff|user
+ * @param {string} userData.role - super_admin|admin|staff|verifier|client
  * @param {boolean} [userData.is_active]
  * @returns {Promise<Object>} Created user data.
  */
@@ -157,7 +157,7 @@ export const activateUser = async (userId) => {
 /**
  * Update user role.
  * @param {string|number} userId - User ID.
- * @param {string} role - New role (admin|staff|user).
+ * @param {string} role - New role (super_admin|admin|staff|verifier|client).
  * @returns {Promise<Object>} Updated user data.
  */
 export const updateUserRole = async (userId, role) => {
@@ -263,7 +263,7 @@ export const bulkUpdateUsers = async (userIds, updateData) => {
   const response = await withErrorContext(
     () => apiClient.post('/v1/users/bulk-update/', {
       user_ids: userIds,
-      update_data: updateData,
+      updates: updateData,
     }),
     'users.bulkUpdate',
     { resource: 'users', action: 'bulkUpdate', count: userIds?.length }
@@ -279,16 +279,16 @@ export const bulkUpdateUsers = async (userIds, updateData) => {
  * @returns {Promise<Blob>} File blob.
  */
 export const exportUsers = async (format = 'csv', filters = {}) => {
-  const downloadConfig = createDownloadConfig();
-
   const response = await withErrorContext(
-    () => apiClient.get('/v1/users/export/', {
-      params: { format, ...filters },
-      ...downloadConfig,
-    }),
+    () => apiClient.get('/v1/users/export/', { params: { format, ...filters } }),
     'users.export',
     { resource: 'users', action: 'export', format }
   );
+
+  if (response?.data?.content) {
+    const blob = new Blob([response.data.content], { type: response.data.content_type || 'text/csv' });
+    return { blob, filename: response.data.filename || 'users.csv' };
+  }
 
   return response.data;
 };

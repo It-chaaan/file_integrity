@@ -106,6 +106,16 @@ const AdminLayout = () => {
       refreshCurrentUser();
     }
   }, [isReady]);
+
+  const normalizedRole = String(currentUser?.role || '').toLowerCase();
+  const isAdminRole = ['super_admin', 'admin'].includes(normalizedRole);
+
+  React.useEffect(() => {
+    if (!isReady || !currentUser) return;
+    if (!isAdminRole) {
+      navigate(normalizedRole === 'staff' || normalizedRole === 'verifier' ? '/staff/dashboard' : '/', { replace: true });
+    }
+  }, [currentUser, isAdminRole, isReady, navigate, normalizedRole]);
   
   // ============================================================================
   // USER DATA PREPARATION
@@ -118,16 +128,24 @@ const AdminLayout = () => {
    * - initials: First letters of name for avatar (e.g., "JD" for "John Doe")
    * - role: User role (admin, staff)
    */
+  const roleLabelMap = {
+    super_admin: 'System Administrator',
+    admin: 'Administrator',
+    staff: 'Staff',
+    verifier: 'Verifier',
+    client: 'Enterprise User',
+  };
+
+  const displayName = currentUser
+    ? [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ') || currentUser.username
+    : 'Loading...';
+
   const user = currentUser ? {
-    name: currentUser.name || 'System Administrator',
-    initials: currentUser.name 
-      ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) 
-      : 'AD',
-    role: currentUser.role || 'admin'
+    displayName: displayName || 'System Administrator',
+    roleLabel: roleLabelMap[currentUser.role] || currentUser.role || 'Administrator',
+    role: isAdminRole ? 'admin' : normalizedRole || 'admin'
   } : {
-    name: 'Loading...',
-    initials: '...',
-    role: 'admin'
+    displayName: 'Loading...'
   };
 
   // ============================================================================
@@ -242,7 +260,7 @@ const AdminLayout = () => {
       {/* ================================================================ */}
       <Sidebar
         user={user}
-        role="admin"
+        role={isAdminRole ? 'admin' : normalizedRole || 'admin'}
         onLogout={handleLogout}
         isOpen={sidebarOpen}
         onToggle={toggleSidebar}

@@ -149,13 +149,19 @@ export const ERROR_CODES = {
 // ============================================
 
 export const USER_ROLES = {
+  SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
   STAFF: 'staff',
+  VERIFIER: 'verifier',
+  CLIENT: 'client',
 };
 
 export const ROLE_LABELS = {
+  [USER_ROLES.SUPER_ADMIN]: 'Super Admin',
   [USER_ROLES.ADMIN]: 'Administrator',
   [USER_ROLES.STAFF]: 'Staff Member',
+  [USER_ROLES.VERIFIER]: 'Verifier',
+  [USER_ROLES.CLIENT]: 'Client',
 };
 
 // ============================================
@@ -182,21 +188,21 @@ export const DOCUMENT_STATUS = {
   VERIFIED: 'verified',
   PENDING: 'pending',
   FAILED: 'failed',
-  TAMPERED: 'tampered',
+  EXPIRED: 'expired',
 };
 
 export const DOCUMENT_STATUS_LABELS = {
   [DOCUMENT_STATUS.VERIFIED]: 'Verified',
   [DOCUMENT_STATUS.PENDING]: 'Pending',
   [DOCUMENT_STATUS.FAILED]: 'Failed',
-  [DOCUMENT_STATUS.TAMPERED]: 'Tampered',
+  [DOCUMENT_STATUS.EXPIRED]: 'Expired',
 };
 
 export const DOCUMENT_STATUS_COLORS = {
   [DOCUMENT_STATUS.VERIFIED]: 'success',
   [DOCUMENT_STATUS.PENDING]: 'warning',
   [DOCUMENT_STATUS.FAILED]: 'danger',
-  [DOCUMENT_STATUS.TAMPERED]: 'danger',
+  [DOCUMENT_STATUS.EXPIRED]: 'secondary',
 };
 
 // ============================================
@@ -207,21 +213,21 @@ export const TICKET_PRIORITY = {
   LOW: 'low',
   MEDIUM: 'medium',
   HIGH: 'high',
-  CRITICAL: 'critical',
+  URGENT: 'urgent',
 };
 
 export const PRIORITY_LABELS = {
   [TICKET_PRIORITY.LOW]: 'Low',
   [TICKET_PRIORITY.MEDIUM]: 'Medium',
   [TICKET_PRIORITY.HIGH]: 'High',
-  [TICKET_PRIORITY.CRITICAL]: 'Critical',
+  [TICKET_PRIORITY.URGENT]: 'Urgent',
 };
 
 export const PRIORITY_COLORS = {
   [TICKET_PRIORITY.LOW]: 'secondary',
   [TICKET_PRIORITY.MEDIUM]: 'info',
   [TICKET_PRIORITY.HIGH]: 'warning',
-  [TICKET_PRIORITY.CRITICAL]: 'danger',
+  [TICKET_PRIORITY.URGENT]: 'danger',
 };
 
 // ============================================
@@ -230,7 +236,8 @@ export const PRIORITY_COLORS = {
 
 export const TICKET_STATUS = {
   OPEN: 'open',
-  IN_PROGRESS: 'in-progress',
+  IN_PROGRESS: 'in_progress',
+  WAITING_RESPONSE: 'waiting_response',
   RESOLVED: 'resolved',
   CLOSED: 'closed',
 };
@@ -238,6 +245,7 @@ export const TICKET_STATUS = {
 export const TICKET_STATUS_LABELS = {
   [TICKET_STATUS.OPEN]: 'Open',
   [TICKET_STATUS.IN_PROGRESS]: 'In Progress',
+  [TICKET_STATUS.WAITING_RESPONSE]: 'Waiting Response',
   [TICKET_STATUS.RESOLVED]: 'Resolved',
   [TICKET_STATUS.CLOSED]: 'Closed',
 };
@@ -245,6 +253,7 @@ export const TICKET_STATUS_LABELS = {
 export const TICKET_STATUS_COLORS = {
   [TICKET_STATUS.OPEN]: 'warning',
   [TICKET_STATUS.IN_PROGRESS]: 'info',
+  [TICKET_STATUS.WAITING_RESPONSE]: 'secondary',
   [TICKET_STATUS.RESOLVED]: 'success',
   [TICKET_STATUS.CLOSED]: 'secondary',
 };

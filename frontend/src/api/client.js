@@ -15,9 +15,17 @@ import axios from 'axios';
 import { parseApiError, logError, ErrorTypes } from '../utils/errors';
 
 // Backend origin and API base path are configurable per environment.
-const API_ORIGIN = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const API_PATH_PREFIX = import.meta.env.VITE_API_PREFIX || '/api/v1';
+const API_ORIGIN = import.meta.env.VITE_API_BASE_URL;
+const API_PATH_PREFIX = import.meta.env.VITE_API_PREFIX;
 const REQUEST_TIMEOUT = Number.parseInt(import.meta.env.VITE_API_TIMEOUT || '15000', 10);
+
+if (!API_ORIGIN) {
+  throw new Error('Missing required environment variable: VITE_API_BASE_URL');
+}
+
+if (!API_PATH_PREFIX) {
+  throw new Error('Missing required environment variable: VITE_API_PREFIX');
+}
 
 // Token storage keys from environment variables
 const TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || import.meta.env.VITE_TOKEN_KEY || 'parity_auth_token';
@@ -67,18 +75,9 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Log request in development mode
-    if (import.meta.env.DEV) {
-      console.log(`🚀 API Request: ${config.method.toUpperCase()} ${config.url}`, {
-        params: config.params,
-        data: config.data,
-      });
-    }
-
     return config;
   },
   (error) => {
-    console.error('Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -92,12 +91,14 @@ apiClient.interceptors.request.use(
  */
 apiClient.interceptors.response.use(
   (response) => {
-    // Log response in development mode
-    if (import.meta.env.DEV) {
-      console.log(`API Response: ${response.config.method.toUpperCase()} ${response.config.url}`, {
-        status: response.status,
-        data: response.data,
-      });
+    const payload = response.data;
+    if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'data')) {
+      response.data = payload.data;
+      response.meta = {
+        success: payload.success,
+        message: payload.message,
+        errors: payload.errors,
+      };
     }
 
     return response;
@@ -119,7 +120,7 @@ apiClient.interceptors.response.use(
             refresh: refreshToken,
           });
 
-          const { access } = response.data;
+          const access = response.data?.data?.access || response.data?.access;
           
           // Store new access token
           localStorage.setItem(TOKEN_KEY, access);
@@ -154,18 +155,6 @@ apiClient.interceptors.response.use(
       url: error.config?.url,
       method: error.config?.method,
     });
-
-    // Log error in development mode with more details
-    if (import.meta.env.DEV) {
-      console.error('❌ API Error:', {
-        url: error.config?.url,
-        method: error.config?.method,
-        status: error.response?.status,
-        message: parsedError.message,
-        type: parsedError.type,
-        data: error.response?.data,
-      });
-    }
 
     // Return parsed error for consistent handling
     return Promise.reject(parsedError);
@@ -246,9 +235,6 @@ export const withRetry = async (requestFn, maxRetries = 2) => {
       const delay = Math.pow(2, attempt) * 1000;
       await new Promise(resolve => setTimeout(resolve, delay));
       
-      if (import.meta.env.DEV) {
-        console.log(`Retrying request (attempt ${attempt + 2}/${maxRetries + 1})...`);
-      }
     }
   }
   

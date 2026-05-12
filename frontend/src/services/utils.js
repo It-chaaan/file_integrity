@@ -1,19 +1,4 @@
-// Utility functions for hash generation, file handling, and data formatting
-
-/**
- * Generate a mock SHA-256 hash for a File.
- * @param {File} file - File to hash (not actually read; used for interface parity).
- * @returns {string} 64-character hexadecimal hash string.
- */
-export const generateHash = (file) => {
-  void file;
-  const characters = '0123456789abcdef';
-  let hash = '';
-  for (let i = 0; i < 64; i++) {
-    hash += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return hash;
-};
+// Utility functions for file handling and data formatting
 
 // Generate short hash
 export const shortHash = (hash) => {
@@ -21,36 +6,6 @@ export const shortHash = (hash) => {
   return `${hash.substring(0, 8)}...${hash.substring(hash.length - 6)}`;
 };
 
-/**
- * Generate a document ID string.
- * @returns {string} ID in format DOC-YYYY-XXXXXX.
- */
-export const generateDocumentId = () => {
-  const year = new Date().getFullYear();
-  const random = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
-  return `DOC-${year}-${random}`;
-};
-
-/**
- * Generate a user ID string by role.
- * @param {'Admin'|'Staff'|string} role - User role to influence prefix.
- * @returns {string} ID in format USR-PFX-XXX.
- */
-export const generateUserId = (role) => {
-  const prefix = role === 'Admin' ? 'ADM' : 'STF';
-  const random = Math.floor(Math.random() * 999).toString().padStart(3, '0');
-  return `USR-${prefix}-${random}`;
-};
-
-/**
- * Generate a ticket ID string.
- * @param {string} [type='SYS'] - Ticket category code.
- * @returns {string} ID in format TKT-TYPE-XXX.
- */
-export const generateTicketId = (type = 'SYS') => {
-  const random = Math.floor(Math.random() * 999).toString().padStart(3, '0');
-  return `TKT-${type}-${random}`;
-};
 
 /**
  * Format a file size in human-readable units.
@@ -231,7 +186,7 @@ export const getStatusColor = (status) => {
     'Open': 'info',
     'Closed': 'secondary',
     'Under Review': 'warning',
-    'Critical': 'danger',
+    'Urgent': 'danger',
     'High': 'warning',
     'Medium': 'info',
     'Low': 'secondary',
@@ -245,22 +200,22 @@ export const getStatusColor = (status) => {
 
 // Calculate dashboard statistics
 export const calculateStats = (documents, users, tickets, logs) => {
+  const today = new Date().toISOString().split('T')[0];
   return {
     totalDocuments: documents.length,
-    activeDocuments: documents.filter(d => d.status === 'Active').length,
+    activeDocuments: documents.filter(d => d.status === 'verified').length,
     totalUsers: users.length,
-    activeUsers: users.filter(u => u.status === 'Active').length,
+    activeUsers: users.filter(u => u.is_active).length,
     totalTickets: tickets.length,
-    openTickets: tickets.filter(t => t.status === 'Open').length,
-    criticalTickets: tickets.filter(t => t.priority === 'Critical').length,
+    openTickets: tickets.filter(t => t.status === 'open').length,
+    criticalTickets: tickets.filter(t => t.priority === 'urgent').length,
     recentLogs: logs.slice(0, 10),
     todayUploads: documents.filter(d => {
-      const today = new Date().toISOString().split('T')[0];
-      return d.date === today;
+      return d.created_at && d.created_at.startsWith(today);
     }).length,
     todayVerifications: logs.filter(l => {
-      const today = new Date().toISOString().split('T')[0];
-      return l.action === 'DOCUMENT_VERIFY' && l.timestamp.includes(today);
+      const action = String(l.action || '');
+      return action.includes('VERIFY') && l.created_at && l.created_at.startsWith(today);
     }).length
   };
 };

@@ -5,7 +5,6 @@ import { shortHash, formatFileSize, validateFileType, validateFileSize } from '.
 import UploadArea from '../../components/UploadArea';
 import SimpleStepper from '../../components/SimpleStepper';
 import { verifyDocument } from '../../api/documents.api';
-import { createAuditLog } from '../../api/logs.api';
 
 function Upload() {
   const { createDocument } = useDocuments();
@@ -135,27 +134,11 @@ function Upload() {
 
       setStatus('verifying');
       try {
-        const verifyRes = await verifyDocument(file);
+        const referenceNumber = result?.reference_number;
+        const verifyRes = await verifyDocument(file, referenceNumber);
         setVerificationResult(verifyRes);
       } catch (verificationError) {
         setVerificationResult({ error: verificationError?.message || 'Verification failed' });
-      }
-
-      const docId = result?.documentId || result?.document_id || result?.id;
-      try {
-        await createAuditLog({
-          action: 'DOCUMENT_UPLOAD',
-          resource_type: 'document',
-          resource_id: docId,
-          details: `Uploaded document: ${formData.title}`,
-          metadata: {
-            department: formData.department,
-            file_name: file.name,
-            file_size: file.size,
-          },
-        });
-      } catch (auditLogError) {
-        console.warn('Audit log skipped:', auditLogError?.message || auditLogError);
       }
 
       setStatus('complete');
@@ -293,8 +276,8 @@ function Upload() {
                     <h6 className="mb-1">Document Uploaded Successfully</h6>
                     <p className="text-muted mb-2 small">Integrity signature and hash stored for verification.</p>
                     <div className="d-flex flex-wrap gap-3 small text-muted">
-                      <div><span className="text-dark fw-semibold">Document ID:</span> {uploadedDoc.documentId || uploadedDoc.document_id || uploadedDoc.id || '—'}</div>
-                      <div><span className="text-dark fw-semibold">Hash:</span> {uploadedDoc.shortHash || (uploadedDoc.hash && shortHash(uploadedDoc.hash)) || uploadedDoc.hash || '—'}</div>
+                      <div><span className="text-dark fw-semibold">Reference Number:</span> {uploadedDoc.reference_number || '—'}</div>
+                      <div><span className="text-dark fw-semibold">Hash:</span> {uploadedDoc.short_hash || (uploadedDoc.document_hash && shortHash(uploadedDoc.document_hash)) || '—'}</div>
                       <div><span className="text-dark fw-semibold">Size:</span> {file ? formatFileSize(file.size) : 'N/A'}</div>
                     </div>
                     {verificationResult && (

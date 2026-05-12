@@ -31,8 +31,8 @@ import { withErrorContext } from './utils/errorContext';
  * @param {string} [params.resource_type] - Filter by resource type.
  * @param {string} [params.date_from] - From date (YYYY-MM-DD).
  * @param {string} [params.date_to] - To date (YYYY-MM-DD).
- * @param {string} [params.severity] - Severity filter (info|warning|error|critical).
- * @param {string} [params.ordering='-timestamp'] - Sort field.
+ * @param {string} [params.severity] - Severity filter (info|warning|critical).
+ * @param {string} [params.ordering='-created_at'] - Sort field.
  * @returns {Promise<Object>} Paginated audit logs.
  */
 export const getAuditLogs = async (params = {}) => {
@@ -141,7 +141,7 @@ export const getResourceAuditLogs = async (resourceType, resourceId, params = {}
  * Returns logs for security events (failed logins, unauthorized access, etc.)
  * 
  * @param {Object} params - Query parameters
- * @param {string} params.severity - Filter by severity (warning, error, critical)
+ * @param {string} params.severity - Filter by severity (warning, critical)
  * @param {string} params.date_from - Filter from date
  * @param {string} params.date_to - Filter to date
  * @returns {Promise<Object>} Security event logs
@@ -232,16 +232,16 @@ export const getActivityTimeline = async (params = {}) => {
  * @throws {Error} If export fails
  */
 export const exportAuditLogs = async (format = 'csv', filters = {}) => {
-  const downloadConfig = createDownloadConfig();
-
   const response = await withErrorContext(
-    () => apiClient.get('/v1/audit-logs/export/', {
-      params: { format, ...filters },
-      ...downloadConfig,
-    }),
+    () => apiClient.get('/v1/audit-logs/export/', { params: { format, ...filters } }),
     'auditLogs.export',
     { resource: 'auditLogs', action: 'export', format }
   );
+
+  if (response?.data?.content) {
+    const blob = new Blob([response.data.content], { type: response.data.content_type || 'text/csv' });
+    return { blob, filename: response.data.filename || 'audit_logs.csv' };
+  }
 
   return response.data;
 };

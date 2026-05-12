@@ -17,7 +17,6 @@ function Report() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('System issue reported:', formData);
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);

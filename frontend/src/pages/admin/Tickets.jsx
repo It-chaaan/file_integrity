@@ -22,7 +22,7 @@ function Tickets() {
 
   const getPriorityBadge = (priority) => {
     const badges = {
-      critical: 'danger',
+      urgent: 'danger',
       high: 'warning',
       medium: 'info',
       low: 'secondary'
@@ -33,7 +33,8 @@ function Tickets() {
   const getStatusBadge = (status) => {
     const badges = {
       open: 'primary',
-      'in-progress': 'warning',
+      in_progress: 'warning',
+      waiting_response: 'info',
       resolved: 'success',
       closed: 'secondary'
     };
@@ -58,7 +59,7 @@ function Tickets() {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(t => 
-        (t.ticketId || '').toLowerCase().includes(term) || 
+        (t.ticket_number || '').toLowerCase().includes(term) || 
         (t.title || '').toLowerCase().includes(term)
       );
     }
@@ -68,7 +69,7 @@ function Tickets() {
 
   const columns = [
     {
-      key: 'ticketId',
+      key: 'ticket_number',
       label: 'Ticket ID',
       sortable: true,
       filterable: true,
@@ -122,12 +123,12 @@ function Tickets() {
           className={`badge bg-${getStatusBadge(value)}`}
           style={{ fontSize: '12px', fontWeight: '500', padding: '6px 12px', textTransform: 'capitalize' }}
         >
-          {value === 'in-progress' ? 'In Progress' : value}
+          {value === 'in_progress' ? 'In Progress' : value === 'waiting_response' ? 'Waiting Response' : value}
         </span>
       )
     },
     {
-      key: 'createdAt',
+      key: 'created_at',
       label: 'Created',
       sortable: true,
       render: (value) => (
@@ -158,7 +159,7 @@ function Tickets() {
   const handleSubmitAction = async (e) => {
     e.preventDefault();
     if (selectedTicket && updateTicket) {
-      const newStatus = actionType === 'resolve' ? 'resolved' : actionType === 'progress' ? 'in-progress' : 'closed';
+      const newStatus = actionType === 'resolve' ? 'resolved' : actionType === 'progress' ? 'in_progress' : 'closed';
       await updateTicket(selectedTicket.id, { status: newStatus });
     }
     setShowActionModal(false);
@@ -250,7 +251,7 @@ function Tickets() {
                 onChange={(e) => setPriorityFilter(e.target.value)}
               >
                 <option value="all">All Priorities</option>
-                <option value="critical">Critical</option>
+                <option value="urgent">Urgent</option>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
@@ -264,7 +265,8 @@ function Tickets() {
               >
                 <option value="all">All Status</option>
                 <option value="open">Open</option>
-                <option value="in-progress">In Progress</option>
+                <option value="in_progress">In Progress</option>
+                <option value="waiting_response">Waiting Response</option>
                 <option value="resolved">Resolved</option>
                 <option value="closed">Closed</option>
               </select>
@@ -313,7 +315,7 @@ function Tickets() {
                         Ticket ID
                       </label>
                       <p className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
-                        {selectedTicket.ticketId}
+                        {selectedTicket.ticket_number}
                       </p>
                     </div>
                   )}
@@ -348,12 +350,11 @@ function Tickets() {
                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       >
                         <option value="general">General</option>
-                        <option value="hash">Hash Verification</option>
-                        <option value="upload">Upload Issue</option>
-                        <option value="key">Key Management</option>
-                        <option value="authentication">Authentication</option>
-                        <option value="database">Database</option>
-                        <option value="network">Network</option>
+                        <option value="technical">Technical</option>
+                        <option value="billing">Billing</option>
+                        <option value="verification">Verification</option>
+                        <option value="account">Account</option>
+                        <option value="abuse">Abuse</option>
                       </select>
                     </div>
                     <div className="col-md-4">
@@ -366,7 +367,7 @@ function Tickets() {
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
-                        <option value="critical">Critical</option>
+                        <option value="urgent">Urgent</option>
                       </select>
                     </div>
                     <div className="col-md-4">
@@ -377,7 +378,8 @@ function Tickets() {
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                       >
                         <option value="open">Open</option>
-                        <option value="in-progress">In Progress</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="waiting_response">Waiting Response</option>
                         <option value="resolved">Resolved</option>
                         <option value="closed">Closed</option>
                       </select>
@@ -388,12 +390,12 @@ function Tickets() {
                       <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                         Created By
                       </label>
-                      <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedTicket.createdBy}</p>
+                      <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedTicket.created_by}</p>
                       <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                         Created At
                       </label>
                       <p style={{ fontSize: '14px', color: '#1F2937' }}>
-                        {selectedTicket.createdAt ? new Date(selectedTicket.createdAt).toLocaleString() : '—'}
+                        {selectedTicket.created_at ? new Date(selectedTicket.created_at).toLocaleString() : '—'}
                       </p>
                     </div>
                   )}
@@ -432,7 +434,7 @@ function Tickets() {
                       Ticket ID
                     </label>
                     <p className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
-                      {selectedTicket.ticketId}
+                      {selectedTicket.ticket_number}
                     </p>
                   </div>
                   <div className="mb-3">
