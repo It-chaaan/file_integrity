@@ -46,6 +46,29 @@ import 'bootstrap/dist/css/bootstrap.min.css';  // Bootstrap framework
 import './styles/custom.css';                     // Custom overrides
 import './styles/responsive.css';                 // Responsive utilities
 
+// Use the packaged logo as the favicon at runtime so builds don't require
+// copying the file to `public/`. Vite will provide the correct URL.
+import faviconUrl from './assets/icons/Logo - Integrity Verification.png';
+
+function _setFavicon(url) {
+  try {
+    const head = document.getElementsByTagName('head')[0];
+    let link = head.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      head.appendChild(link);
+    }
+    link.href = url;
+  } catch (err) {
+    // Fail silently in environments without DOM (SSR/test harnesses)
+    // eslint-disable-next-line no-console
+    console.warn('Could not set favicon', err);
+  }
+}
+
+_setFavicon(faviconUrl);
+
 /**
  * Initialize React Application
  * 
