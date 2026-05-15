@@ -1,10 +1,71 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useDocuments } from '../../hooks/useData';
 import { getCurrentUser } from '../../services/auth';
 import { shortHash, formatFileSize, validateFileType, validateFileSize } from '../../services/utils';
 import UploadArea from '../../components/UploadArea';
 import SimpleStepper from '../../components/SimpleStepper';
 import { verifyDocument } from '../../api/documents.api';
+
+const DOCUMENT_CATEGORY_MAP = [
+  {
+    department: 'Sales & Procurement',
+    types: [
+      'Purchase Orders (PO)',
+      'Vendor Contracts',
+      'Invoices',
+      'Shipping Manifests',
+    ],
+  },
+  {
+    department: 'Finance',
+    types: [
+      'Financial Audit Reports',
+      'Tax Filings',
+      'Budget Approvals',
+      'Loan Agreements',
+    ],
+  },
+  {
+    department: 'Human Resources',
+    types: [
+      'Employment Contracts',
+      'Non-Disclosure Agreements (NDA)',
+      'Performance Reviews',
+    ],
+  },
+  {
+    department: 'Legal & Compliance',
+    types: [
+      'Intellectual Property Agreements',
+      'Compliance Certificates',
+      'Board Resolutions',
+      'Shareholder Agreements',
+    ],
+  },
+  {
+    department: 'Operations',
+    types: [
+      'Data Processing Agreements (DPA)',
+      'Inventory Audit Sheets',
+      'Insurance Policies',
+    ],
+  },
+  {
+    department: 'IT & Risk Management',
+    types: [
+      'System Audit Logs',
+      'Security Policies',
+      'Risk Assessment Reports',
+    ],
+  },
+];
+
+const DOCUMENT_TYPE_TO_DEPARTMENT = DOCUMENT_CATEGORY_MAP.reduce((accumulator, group) => {
+  group.types.forEach((type) => {
+    accumulator[type] = group.department;
+  });
+  return accumulator;
+}, {});
 
 function Upload() {
   const { createDocument } = useDocuments();
@@ -14,7 +75,7 @@ function Upload() {
   const [formData, setFormData] = useState({
     title: '',
     type: '',
-    department: 'Legal Department'
+    department: ''
   });
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -25,34 +86,45 @@ function Upload() {
 
   const stepLabels = ['Select File', 'Enter Metadata', 'Hash & Sign', 'Complete'];
 
-  const documentTypes = [
-    'Master Service Agreement (MSA)',
-    'Non-Disclosure Agreement (NDA)',
-    'Purchase Order (PO)',
-    'Vendor Contract',
-    'Employment Contract',
-    'Board Resolution',
-    'Financial Audit Report',
-    'Compliance Certificate',
-    'Insurance Policy',
-    'Intellectual Property Agreement',
-    'Shareholder Agreement',
-    'Loan Agreement',
-    'Data Processing Agreement (DPA)'
-  ];
+  const departmentNames = useMemo(
+    () => DOCUMENT_CATEGORY_MAP.map((group) => group.department),
+    []
+  );
 
-  const departments = [
-    'Legal Department',
-    'Finance Department',
-    'Human Resources',
-    'Compliance Office',
-    'Procurement',
-    'Risk Management',
-    'IT Security',
-    'Executive Office',
-    'Operations Division',
-    'Corporate Governance'
-  ];
+  const selectedDocumentDepartment = DOCUMENT_TYPE_TO_DEPARTMENT[formData.type] || '';
+
+  const selectedDepartment = formData.department || selectedDocumentDepartment;
+
+  const documentTypeGroups = useMemo(() => {
+    if (!selectedDepartment) {
+      return DOCUMENT_CATEGORY_MAP;
+    }
+
+    const selectedGroup = DOCUMENT_CATEGORY_MAP.find((group) => group.department === selectedDepartment);
+    return selectedGroup ? [selectedGroup] : DOCUMENT_CATEGORY_MAP;
+  }, [selectedDepartment]);
+
+  const handleDepartmentChange = (e) => {
+    const department = e.target.value;
+    const typeBelongsToDepartment = DOCUMENT_TYPE_TO_DEPARTMENT[formData.type] === department;
+
+    setFormData((prev) => ({
+      ...prev,
+      department,
+      type: typeBelongsToDepartment ? prev.type : '',
+    }));
+  };
+
+  const handleDocumentTypeChange = (e) => {
+    const type = e.target.value;
+    const department = DOCUMENT_TYPE_TO_DEPARTMENT[type] || '';
+
+    setFormData((prev) => ({
+      ...prev,
+      type,
+      department,
+    }));
+  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -145,7 +217,7 @@ function Upload() {
 
       setTimeout(() => {
         setFile(null);
-        setFormData({ title: '', type: '', department: 'Legal Department' });
+        setFormData({ title: '', type: '', department: '' });
         setUploadProgress(0);
         setStatus('idle');
       }, 10000);
@@ -161,7 +233,7 @@ function Upload() {
 
   const handleReset = () => {
     setFile(null);
-    setFormData({ title: '', type: '', department: 'Legal Department' });
+    setFormData({ title: '', type: '', department: '' });
     setUploadProgress(0);
     setUploadedDoc(null);
     setVerificationResult(null);
@@ -215,13 +287,17 @@ function Upload() {
                 <select
                   className="form-select"
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  onChange={handleDocumentTypeChange}
                   required
                   disabled={uploading}
                 >
                   <option value="">Select document type</option>
-                  {documentTypes.map((type, idx) => (
-                    <option key={idx} value={type}>{type}</option>
+                  {documentTypeGroups.map((group) => (
+                    <optgroup key={group.department} label={group.department}>
+                      {group.types.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
@@ -231,13 +307,13 @@ function Upload() {
                 <select
                   className="form-select"
                   value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  onChange={handleDepartmentChange}
                   required
                   disabled={uploading}
                 >
                   <option value="">Select department</option>
-                  {departments.map((dept, idx) => (
-                    <option key={idx} value={dept}>{dept}</option>
+                  {departmentNames.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
                   ))}
                 </select>
               </div>
@@ -331,32 +407,6 @@ function Upload() {
         </div>
       </div>
 
-      <div className="card border-0 shadow-sm">
-        <div className="card-body">
-          <h6 className="card-title text-primary d-flex align-items-center gap-2 mb-3">
-            <i className="bi bi-exclamation-triangle-fill"></i>
-            Enterprise Upload Guidance
-          </h6>
-          <ul className="list-unstyled mb-0 small">
-            <li className="d-flex align-items-start gap-2 mb-2">
-              <i className="bi bi-check-circle text-success mt-1"></i>
-              Keep files under 5MB and in PDF/DOC/DOCX/TXT format.
-            </li>
-            <li className="d-flex align-items-start gap-2 mb-2">
-              <i className="bi bi-check-circle text-success mt-1"></i>
-              Use accurate titles and department metadata for governance and retrieval.
-            </li>
-            <li className="d-flex align-items-start gap-2 mb-2">
-              <i className="bi bi-check-circle text-success mt-1"></i>
-              Every upload is hashed and ready for verification.
-            </li>
-            <li className="d-flex align-items-start gap-2">
-              <i className="bi bi-check-circle text-success mt-1"></i>
-              Audit trails, signer roles, and approval traces are captured in downstream workflows.
-            </li>
-          </ul>
-        </div>
-      </div>
     </div>
   );
 }

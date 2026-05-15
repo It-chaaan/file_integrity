@@ -1,58 +1,93 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDocuments, useTickets } from '../../hooks/useData';
+import { useDocuments } from '../../hooks/useData';
 
 function Dashboard() {
   const navigate = useNavigate();
-  const { documents = [], loading = false } = useDocuments();
-  const { tickets = [] } = useTickets();
+  const { documents = [], loading = false, refetch: refetchDocuments } = useDocuments();
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
-  const { verifiedDocs } = useMemo(() => {
-    const verified = documents.filter(doc => doc.status === 'verified').length;
-    return { verifiedDocs: verified };
-  }, [documents]);
+  const refreshDashboard = useCallback(async () => {
+    await refetchDocuments();
+    setLastUpdatedAt(new Date());
+  }, [refetchDocuments]);
 
-  const openTickets = useMemo(() => {
-    return tickets.filter(ticket => ['open', 'waiting_response'].includes(ticket.status)).length;
-  }, [tickets]);
+  useEffect(() => {
+    if (!loading) {
+      setLastUpdatedAt(new Date());
+    }
+  }, [documents, loading]);
 
-  const urgentTickets = useMemo(() => {
-    return tickets.filter(ticket => ticket.priority === 'urgent').length;
-  }, [tickets]);
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      refreshDashboard();
+    }, 15000);
+
+    const handleFocus = () => {
+      refreshDashboard();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshDashboard]);
+
+  const normalizedDocuments = useMemo(
+    () => documents.map((doc) => ({
+      ...doc,
+      status: String(doc.status || '').toLowerCase(),
+    })),
+    [documents]
+  );
+
+  const totalDocs = normalizedDocuments.length;
+  const verifiedDocs = normalizedDocuments.filter(doc => doc.status === 'verified').length;
+  const failedDocs = normalizedDocuments.filter(doc => doc.status === 'failed').length;
+  const successRate = totalDocs > 0 ? Math.round((verifiedDocs / totalDocs) * 1000) / 10 : 0;
 
   const recentVerifications = useMemo(() => {
-    return documents
+    return normalizedDocuments
       .filter(doc => doc.status === 'verified')
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 4);
-  }, [documents]);
+  }, [normalizedDocuments]);
 
   const stats = [
     {
-      title: 'Signed Contracts',
-      value: verifiedDocs,
-      icon: 'bi-shield-check',
-      bgColor: '#10B981',
-      iconColor: '#FFFFFF',
+      title: 'Total Documents',
+      value: totalDocs,
+      subtitle: 'All uploaded documents in registry',
+      icon: 'bi-file-earmark-text',
+      accent: '#111827',
+      iconBg: '#111827',
       onClick: () => navigate('/staff/registry')
     },
     {
-      title: 'Open Tickets',
-      value: openTickets,
-      icon: 'bi-exclamation-triangle',
-      bgColor: '#3B82F6',
-      iconColor: '#FFFFFF',
-      onClick: () => navigate('/staff/report')
+      title: 'Verified Documents',
+      value: verifiedDocs,
+      subtitle: `${successRate.toFixed(1)}% success rate`,
+      icon: 'bi-shield-check',
+      accent: '#10B981',
+      iconBg: '#10B981',
+      onClick: () => navigate('/staff/verify')
     },
     {
-      title: 'Urgent Tickets',
-      value: urgentTickets,
-      icon: 'bi-exclamation-circle',
-      bgColor: '#F59E0B',
-      iconColor: '#FFFFFF',
+      title: 'Failed Verification',
+      value: failedDocs,
+      subtitle: 'Tampering detected',
+      icon: 'bi-exclamation-triangle',
+      accent: '#EF4444',
+      iconBg: '#EF4444',
       onClick: () => navigate('/staff/report')
     }
   ];
+
+  const formatNumber = useCallback((value) => {
+    return new Intl.NumberFormat('en-US').format(Number(value) || 0);
+  }, []);
 
   const getTimeAgo = (dateString) => {
     const diffMs = Date.now() - new Date(dateString).getTime();
@@ -68,34 +103,58 @@ function Dashboard() {
 
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="mb-1">Dashboard</h2>
-        <p className="text-muted">Enterprise User Portal</p>
+      <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+          <h2 className="mb-1">Dashboard</h2>
+          <p className="text-muted mb-0">Enterprise User Portal</p>
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="row g-3 mb-4">
-        {stats.map((stat, index) => (
-          <div key={index} className="col-12 col-md-6 col-xl-3">
-            <div 
-              className="card border-0 shadow-sm h-100"
-              style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+        {stats.map((stat) => (
+          <div key={stat.title} className="col-12 col-lg-4">
+            <button
+              type="button"
+              className="card border-1 shadow-sm h-100 text-start w-100 p-0"
               onClick={stat.onClick}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              style={{
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                border: '1px solid rgba(15, 23, 42, 0.08)',
+                background: 'linear-gradient(180deg, #FFFFFF 0%, #FBFBFD 100%)',
+                borderRadius: '18px',
+                appearance: 'none',
+                WebkitAppearance: 'none'
+              }}
             >
-              <div className="card-body">
-                <div className="d-flex align-items-center">
-                  <div className="rounded p-3 me-3" style={{ backgroundColor: stat.bgColor }}>
-                    <i className={`bi ${stat.icon} fs-4`} style={{ color: stat.iconColor }}></i>
+              <div className="card-body p-4 position-relative overflow-hidden">
+                <div className="d-flex flex-column gap-3 position-relative">
+                  <div
+                    className="d-inline-flex align-items-center justify-content-center rounded-3"
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      backgroundColor: stat.iconBg,
+                      color: '#FFFFFF'
+                    }}
+                  >
+                    <i className={`bi ${stat.icon}`} style={{ fontSize: '1rem' }} />
                   </div>
                   <div>
-                    <h6 className="text-muted mb-1 fw-normal small">{stat.title}</h6>
-                    <h3 className="mb-0 fw-bold">{stat.value}</h3>
+                    <div className="text-muted small mb-1">{stat.title}</div>
+                    <div className="display-6 fw-semibold mb-2" style={{ letterSpacing: '-0.04em', color: '#0F172A' }}>
+                      {loading ? '—' : formatNumber(stat.value)}
+                    </div>
+                    <div className="small" style={{ color: stat.accent }}>
+                      {stat.subtitle}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </button>
           </div>
         ))}
       </div>
