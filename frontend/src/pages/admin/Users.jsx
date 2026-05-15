@@ -130,9 +130,9 @@ function Users() {
   ];
 
   const actions = (user) => (
-    <>
+    <div className="d-flex gap-2 align-items-center" style={{ flexWrap: 'nowrap' }}>
       <button
-        className="btn btn-sm btn-primary"
+        className="btn btn-sm btn-dark"
         onClick={() => {
           setSelectedUser(user);
           setFormData({
@@ -147,21 +147,23 @@ function Users() {
           });
           setShowEditModal(true);
         }}
+        style={{ whiteSpace: 'nowrap' }}
       >
         <i className="bi bi-pencil me-1"></i>
         Edit
       </button>
       <button
-        className="btn btn-sm btn-outline-danger ms-2"
+        className="btn btn-sm btn-outline-danger"
         onClick={() => {
           setDeleteTarget(user);
           setShowDeleteModal(true);
         }}
+        style={{ whiteSpace: 'nowrap' }}
       >
         <i className="bi bi-trash me-1"></i>
         Delete
       </button>
-    </>
+    </div>
   );
 
   const passwordTooShort = !selectedUser && formData.password.length > 0 && formData.password.length < 8;
@@ -391,17 +393,20 @@ function Users() {
                   )}
                   <div className="row g-3">
                     <div className="col-md-6">
-                      <label className="form-label">Role</label>
+                      <label className="form-label">Department *</label>
                       <select
                         className="form-select"
-                        value={formData.role}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        value={formData.department}
+                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                        required
                       >
-                        <option value="super_admin">System Administrator</option>
-                        <option value="admin">Administrator</option>
-                        <option value="staff">Staff</option>
-                        <option value="verifier">Verifier</option>
-                        <option value="client">Enterprise User</option>
+                        <option value="">Select Department</option>
+                        <option value="Sales & Procurement">Sales & Procurement</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Human Resources">Human Resources</option>
+                        <option value="Legal & Compliance">Legal & Compliance</option>
+                        <option value="Operations">Operations</option>
+                        <option value="IT & Risk Management">IT & Risk Management</option>
                       </select>
                     </div>
                     <div className="col-md-6">
@@ -417,13 +422,19 @@ function Users() {
                     </div>
                   </div>
                   <div className="mb-3">
-                    <label className="form-label">Department</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={formData.department}
-                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    />
+                    <label className="form-label">Role *</label>
+                    <select
+                      className="form-select"
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      required
+                    >
+                      <option value="super_admin">System Administrator</option>
+                      <option value="admin">Administrator</option>
+                      <option value="staff">Staff</option>
+                      <option value="verifier">Verifier</option>
+                      <option value="client">Enterprise User</option>
+                    </select>
                   </div>
                 </div>
                 <div className="modal-footer border-top-0" style={{ backgroundColor: '#F9FAFB' }}>
