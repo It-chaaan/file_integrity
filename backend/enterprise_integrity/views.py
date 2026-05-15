@@ -47,7 +47,6 @@ from common.permissions import (
     IsAdminOrSuper,
     IsStaffOrAdmin,
     IsStaffOrAdminOrClient,
-    IsVerifierOrStaffOrAdmin,
     IsStaffOrAdminOrVerifierOrClient,
 )
 from common.audit import log_audit_event
@@ -65,7 +64,7 @@ class DocumentViewSet(ModelViewSet):
             return [permissions.IsAuthenticated(), IsStaffOrAdminOrClient()]
         if self.action in {"partial_update", "destroy"}:
             return [permissions.IsAuthenticated(), IsStaffOrAdmin()]
-        return [permissions.IsAuthenticated(), IsVerifierOrStaffOrAdmin()]
+        return [permissions.IsAuthenticated(), IsStaffOrAdminOrVerifierOrClient()]
 
     def get_queryset(self):
         queryset = super().get_queryset()

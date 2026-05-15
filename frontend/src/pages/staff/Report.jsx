@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
+import { createTicket } from '../../api/adapter';
+import { getCurrentUser } from '../../services/auth';
 
 function Report() {
+  const currentUser = getCurrentUser();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
     message: ''
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [ticketNumber, setTicketNumber] = useState('');
+
+
 
   const handleChange = (e) => {
     setFormData({
@@ -15,17 +21,28 @@ function Report() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setFormData({
-        name: '',
-        email: '',
-        message: ''
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    try {
+      const response = await createTicket({
+        title: 'System issue report',
+        description: formData.message.trim(),
+        category: 'technical',
+        priority: 'medium'
       });
-    }, 3000);
+
+      const createdTicket = response?.data || response;
+      setTicketNumber(createdTicket?.ticket_number || '');
+      setSubmitted(true);
+      setFormData({ message: '' });
+    } catch (error) {
+      setSubmitError(error?.message || 'We could not submit the report right now.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -43,42 +60,17 @@ function Report() {
             <div className="alert alert-success" role="alert">
               <i className="bi bi-check-circle-fill me-2"></i>
               Thank you! Your report has been received. Our system admin team will investigate and respond shortly.
+              {ticketNumber && <div className="fw-semibold mt-2">Reference: {ticketNumber}</div>}
+            </div>
+          )}
+
+          {submitError && !submitted && (
+            <div className="alert alert-danger" role="alert">
+              {submitError}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="card shadow-sm border-0 p-4">
-            <div className="mb-3">
-              <label htmlFor="name" className="form-label fw-semibold">
-                Name <span className="text-danger">*</span>
-              </label>
-              <input
-                type="text"
-                className="form-control form-control-lg"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                placeholder="Your name"
-              />
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="email" className="form-label fw-semibold">
-                Email <span className="text-danger">*</span>
-              </label>
-              <input
-                type="email"
-                className="form-control form-control-lg"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                placeholder="you@example.com"
-              />
-            </div>
-
             <div className="mb-4">
               <label htmlFor="message" className="form-label fw-semibold">
                 Issue Description <span className="text-danger">*</span>
@@ -99,8 +91,9 @@ function Report() {
               type="submit"
               className="btn btn-primary btn-lg w-100 py-3"
               style={{ fontSize: '1rem' }}
+              disabled={isSubmitting}
             >
-              Submit Report
+              {isSubmitting ? 'Submitting...' : 'Submit Report'}
             </button>
           </form>
 
