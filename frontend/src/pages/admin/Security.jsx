@@ -1,16 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import DataTable from '../../components/DataTable';
 import { useKeys } from '../../hooks/useData';
+import apiClient from '../../api/client';
 
 function Security() {
-  const { keys = [], updateKey, createKey, loading = false } = useKeys();
+  const { keys = [], updateKey, createKey, loading = false, refetch } = useKeys();
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showRotateModal, setShowRotateModal] = useState(false);
   const [selectedKey, setSelectedKey] = useState(null);
   const [rotationReason, setRotationReason] = useState('');
+  const [keyName, setKeyName] = useState('');
+  const [algorithm, setAlgorithm] = useState('ecdsa_p256');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [operationError, setOperationError] = useState('');
+  const [isOperating, setIsOperating] = useState(false);
 
   // Filter keys
   const filteredKeys = useMemo(() => {
@@ -21,8 +25,8 @@ function Security() {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(key =>
-        (key.keyId || '').toLowerCase().includes(term) ||
-        (key.algorithm || '').toLowerCase().includes(term)
+        (key.name || '').toLowerCase().includes(term) ||
+        (key.fingerprint || '').toLowerCase().includes(term)
       );
     }
     
@@ -37,25 +41,44 @@ function Security() {
     { label: 'Active Keys', value: keys.filter(k => (k.status || '').toLowerCase() === 'active').length, color: 'success' },
     { label: 'Rotated Keys', value: keys.filter(k => (k.status || '').toLowerCase() === 'rotated').length, color: 'info' },
     { label: 'Revoked Keys', value: keys.filter(k => (k.status || '').toLowerCase() === 'revoked').length, color: 'warning' },
-    { label: 'Compliance Rotation Due', value: keys.filter(k => (k.status || '').toLowerCase() === 'expired').length, color: 'danger' }
+    { label: 'Total Keys', value: keys.length, color: 'secondary' }
   ];
 
   const columns = [
-    { key: 'keyId', label: 'Key ID', sortable: true },
-    { key: 'algorithm', label: 'Algorithm', sortable: true },
-    { key: 'created', label: 'Created', sortable: true },
-    { key: 'expires', label: 'Expires', sortable: true },
+    { 
+      key: 'name', 
+      label: 'Key Name', 
+      sortable: true,
+      render: (value) => <span className="fw-semibold">{value || 'Unnamed'}</span>
+    },
+    { 
+      key: 'algorithm', 
+      label: 'Algorithm', 
+      sortable: true,
+      render: (value) => <span className="badge bg-info">{value === 'ecdsa_p256' ? 'ECDSA P-256' : value || 'Unknown'}</span>
+    },
     {
       key: 'status',
       label: 'Status',
       sortable: true,
       render: (value) => (
-        <span className={`badge bg-${value === 'active' ? 'success' : value === 'revoked' ? 'warning' : 'danger'}`}>
-          {value || 'Unknown'}
+        <span className={`badge bg-${value === 'active' ? 'success' : value === 'revoked' ? 'danger' : value === 'rotated' ? 'warning' : 'secondary'}`}>
+          {value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Unknown'}
         </span>
       )
     },
-    { key: 'lastUsed', label: 'Last Used', sortable: true }
+    { 
+      key: 'fingerprint', 
+      label: 'Fingerprint', 
+      sortable: true,
+      render: (value) => <code className="text-monospace small">{value ? value.substring(0, 12) + '...' : 'N/A'}</code>
+    },
+    { 
+      key: 'created_at', 
+      label: 'Created', 
+      sortable: true,
+      render: (value) => <span>{value ? new Date(value).toLocaleDateString() : 'N/A'}</span>
+    }
   ];
 
   const handleRotateClick = (key) => {
@@ -65,66 +88,91 @@ function Security() {
   };
 
   const handleRevokeKey = async (key) => {
-    if (!updateKey || !key) return;
-
+    if (!key) return;
+    
+    setIsOperating(true);
     setOperationError('');
-
+    
     try {
-      await updateKey(key.id, {
-        ...key,
-        status: 'revoked',
-        lastUsed: 'Revoked now'
-      });
+      await apiClient.post(`/v1/security-keys/${key.id}/revoke/`);
+      await refetch();
     } catch (error) {
-      setOperationError(error?.message || 'Failed to revoke key.');
+      setOperationError(error?.response?.data?.message || 'Failed to revoke key.');
+    } finally {
+      setIsOperating(false);
     }
   };
 
   const handleRotateKey = async () => {
-    if (!selectedKey || !updateKey) return;
+    if (!selectedKey) return;
 
+    setIsOperating(true);
     setOperationError('');
 
     try {
-      await updateKey(selectedKey.id, {
-        ...selectedKey,
-        status: 'active',
-        created: new Date().toISOString().split('T')[0],
-        expires: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-        lastUsed: 'Now'
+      await apiClient.post(`/v1/security-keys/${selectedKey.id}/rotate/`, {
+        rotation_reason: rotationReason || 'Manual rotation via admin panel'
       });
-
       setShowRotateModal(false);
       setSelectedKey(null);
       setRotationReason('');
+      await refetch();
     } catch (error) {
-      setOperationError(error?.message || 'Failed to rotate key.');
+      setOperationError(error?.response?.data?.message || 'Failed to rotate key.');
+    } finally {
+      setIsOperating(false);
+    }
+  };
+
+  const handleGenerateKey = async () => {
+    if (!keyName.trim()) {
+      setOperationError('Key name is required.');
+      return;
+    }
+
+    setIsOperating(true);
+    setOperationError('');
+
+    try {
+      await apiClient.post('/v1/security-keys/', {
+        name: keyName,
+        algorithm: algorithm,
+        key_type: 'signing'
+      });
+      setShowGenerateModal(false);
+      setKeyName('');
+      setAlgorithm('ecdsa_p256');
+      await refetch();
+    } catch (error) {
+      setOperationError(error?.response?.data?.message || 'Failed to generate key.');
+    } finally {
+      setIsOperating(false);
     }
   };
 
   const actions = (row) => {
-    // Only show rotate button for active keys
     const isActive = (row.status || '').toLowerCase() === 'active';
     const isRevoked = (row.status || '').toLowerCase() === 'revoked';
-    const isExpired = (row.status || '').toLowerCase() === 'expired';
-    const canRevoke = !isRevoked && !isExpired;
+    const canOperate = !isRevoked;
     
     return (
       <div className="btn-group" role="group">
-        {isActive && (
+        {isActive && canOperate && (
           <button
             className="btn btn-sm btn-outline-primary"
             onClick={() => handleRotateClick(row)}
             title="Rotate this key"
+            disabled={isOperating}
           >
             <i className="bi bi-arrow-repeat"></i> Rotate
           </button>
         )}
-        {canRevoke && (
+        {canOperate && (
           <button
             className="btn btn-sm"
             onClick={() => handleRevokeKey(row)}
             title="Revoke this key"
+            disabled={isOperating}
             style={{ 
               border: '1.5px solid #dc3545', 
               color: '#dc3545',
@@ -158,6 +206,7 @@ function Security() {
         <button
           className="btn btn-primary"
           onClick={() => setShowGenerateModal(true)}
+          disabled={isOperating}
         >
           <i className="bi bi-plus"></i> Generate New Key
         </button>
@@ -196,7 +245,7 @@ function Security() {
                 <input
                   type="text"
                   className="form-control border-start-0"
-                  placeholder="Search by key ID or algorithm..."
+                  placeholder="Search by name or fingerprint..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{ borderRadius: '0 6px 6px 0' }}
@@ -211,8 +260,8 @@ function Security() {
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
+                <option value="rotated">Rotated</option>
                 <option value="revoked">Revoked</option>
-                <option value="expired">Expired</option>
               </select>
             </div>
           </div>
@@ -245,28 +294,41 @@ function Security() {
           <div className="modal-dialog modal-dialog-centered" style={{ position: 'relative', zIndex: 1051 }}>
             <div className="modal-content" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
               <div className="modal-header" style={{ position: 'sticky', top: 0, zIndex: 1052 }}>
-                <h5 className="modal-title">Generate New Key Pair</h5>
+                <h5 className="modal-title">Generate New ECDSA Key Pair</h5>
                 <button
                   type="button"
                   className="btn-close"
                   onClick={() => setShowGenerateModal(false)}
+                  disabled={isOperating}
                 ></button>
               </div>
               <div className="modal-body">
-                <form>
+                <div className="alert alert-info">
+                  <strong>Database-Driven Key Management:</strong> New keys are generated and stored securely in the database with full lifecycle tracking and rotation history.
+                </div>
+                <form onSubmit={(e) => { e.preventDefault(); handleGenerateKey(); }}>
+                  <div className="mb-3">
+                    <label className="form-label">Key Name</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="e.g., Primary Signing Key"
+                      value={keyName}
+                      onChange={(e) => setKeyName(e.target.value)}
+                      disabled={isOperating}
+                      required
+                    />
+                  </div>
                   <div className="mb-3">
                     <label className="form-label">Algorithm</label>
-                    <select className="form-select">
-                      <option>ECDSA P-256 (secp256r1)</option>
-                      <option>ECDSA secp256k1</option>
+                    <select 
+                      className="form-select"
+                      value={algorithm}
+                      onChange={(e) => setAlgorithm(e.target.value)}
+                      disabled={isOperating}
+                    >
+                      <option value="ecdsa_p256">ECDSA P-256 (secp256r1)</option>
                     </select>
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Key Expiration Policy (days)</label>
-                    <input type="number" className="form-control" defaultValue="365" />
-                  </div>
-                  <div className="alert alert-info mb-0">
-                    Role-based key usage and enterprise HSM integration policies apply to all generated signing keys.
                   </div>
                 </form>
               </div>
@@ -274,30 +336,29 @@ function Security() {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setShowGenerateModal(false)}
+                  onClick={() => {
+                    setShowGenerateModal(false);
+                    setKeyName('');
+                    setAlgorithm('ecdsa_p256');
+                  }}
+                  disabled={isOperating}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={async () => {
-                    setOperationError('');
-                    try {
-                      if (createKey) {
-                        await createKey({
-                          algorithm: 'ECDSA P-256 (secp256r1)',
-                          expires_in_days: 365,
-                        });
-                      }
-                      setShowGenerateModal(false);
-                    } catch (error) {
-                      setOperationError(error?.message || 'Failed to generate key.');
-                      setShowGenerateModal(false);
-                    }
-                  }}
+                  disabled={isOperating}
+                  onClick={handleGenerateKey}
                 >
-                  Generate
+                  {isOperating ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Generating...
+                    </>
+                  ) : (
+                    'Generate Key'
+                  )}
                 </button>
               </div>
             </div>
@@ -320,16 +381,17 @@ function Security() {
                     setSelectedKey(null);
                     setRotationReason('');
                   }}
+                  disabled={isOperating}
                 ></button>
               </div>
               <div className="modal-body">
                 <form>
                   <div className="mb-3">
-                    <label className="form-label">Key ID</label>
+                    <label className="form-label">Key Fingerprint</label>
                     <input
                       type="text"
                       className="form-control"
-                      value={selectedKey.keyId}
+                      value={selectedKey.fingerprint || selectedKey.id}
                       disabled
                       readOnly
                     />
@@ -339,7 +401,7 @@ function Security() {
                     <input
                       type="text"
                       className="form-control"
-                      value={selectedKey.algorithm}
+                      value={selectedKey.algorithm === 'ecdsa_p256' ? 'ECDSA P-256' : selectedKey.algorithm}
                       disabled
                       readOnly
                     />
@@ -351,11 +413,17 @@ function Security() {
                       rows="3"
                       value={rotationReason}
                       onChange={(e) => setRotationReason(e.target.value)}
-                      placeholder="Enter compliance, security, or lifecycle reason for rotation"
+                      placeholder="e.g., Compliance requirement, security best practice, scheduled maintenance"
                     />
                   </div>
                   <div className="alert alert-info">
-                    <strong>Rotation Policy:</strong> A replacement key pair will be generated and the current key will be marked as rotated under enterprise lifecycle controls.
+                    <strong>What happens during rotation:</strong>
+                    <ul className="mb-0 mt-2">
+                      <li>A new ECDSA key pair will be generated</li>
+                      <li>The current key will be marked as rotated</li>
+                      <li>All new signatures will use the new key</li>
+                      <li>Old signatures remain valid for verification</li>
+                    </ul>
                   </div>
                 </form>
               </div>
@@ -368,6 +436,7 @@ function Security() {
                     setSelectedKey(null);
                     setRotationReason('');
                   }}
+                  disabled={isOperating}
                 >
                   Cancel
                 </button>
@@ -375,8 +444,19 @@ function Security() {
                   type="button"
                   className="btn btn-primary"
                   onClick={handleRotateKey}
+                  disabled={isOperating}
                 >
-                  Rotate Key
+                  {isOperating ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      Rotating...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-arrow-repeat me-2"></i>
+                      Confirm Rotation
+                    </>
+                  )}
                 </button>
               </div>
             </div>

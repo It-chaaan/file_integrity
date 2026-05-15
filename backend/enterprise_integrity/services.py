@@ -68,11 +68,36 @@ def compute_hash_and_signature(file_bytes: bytes) -> Tuple[str, str, str, str]:
 
 
 def get_signing_private_key() -> EllipticCurvePrivateKey:
+    """
+    Load the signing private key from the database or .env.
+    
+    Priority:
+    1. Database (active ECDSA signing key)
+    2. .env (PARITY_ECDSA_PRIVATE_KEY_PEM for backward compatibility)
+    """
     global _PRIVATE_KEY_CACHE
 
     if _PRIVATE_KEY_CACHE is not None:
         return _PRIVATE_KEY_CACHE
 
+    # Try to load from database first
+    try:
+        from security_keys.models import SecurityKey
+        active_key = SecurityKey.objects.filter(
+            algorithm=SecurityKey.ALGORITHM_ECDSA,
+            key_type="signing",
+            status=SecurityKey.STATUS_ACTIVE
+        ).first()
+        
+        if active_key and active_key.private_key:
+            key_bytes = active_key.private_key.encode("utf-8")
+            key = serialization.load_pem_private_key(key_bytes, password=None)
+            _PRIVATE_KEY_CACHE = key
+            return key
+    except Exception:
+        pass
+
+    # Fallback to .env for backward compatibility
     pem_value = os.getenv("PARITY_ECDSA_PRIVATE_KEY_PEM", "").strip()
     if "\\n" in pem_value:
         pem_value = pem_value.replace("\\n", "\n")
@@ -83,20 +108,43 @@ def get_signing_private_key() -> EllipticCurvePrivateKey:
         _PRIVATE_KEY_CACHE = key
         return key
 
-    private_key, _ = generate_key_pair()
-    _PRIVATE_KEY_CACHE = private_key
-    return private_key
+    raise RuntimeError(
+        "No active ECDSA signing key is configured. Create one in Security or set PARITY_ECDSA_PRIVATE_KEY_PEM."
+    )
 
 
 def get_verification_public_key_pem() -> str:
+    """
+    Get the public key for verification from database or .env.
+    
+    Priority:
+    1. Database (active ECDSA signing key's public part)
+    2. .env (PARITY_ECDSA_PUBLIC_KEY_PEM for backward compatibility)
+    """
+    # Try to load from database first
+    try:
+        from security_keys.models import SecurityKey
+        active_key = SecurityKey.objects.filter(
+            algorithm=SecurityKey.ALGORITHM_ECDSA,
+            key_type="signing",
+            status=SecurityKey.STATUS_ACTIVE
+        ).first()
+        
+        if active_key and active_key.public_key:
+            return active_key.public_key
+    except Exception:
+        pass
+
+    # Fallback to .env for backward compatibility
     pem_value = os.getenv("PARITY_ECDSA_PUBLIC_KEY_PEM", "").strip()
     if "\\n" in pem_value:
         pem_value = pem_value.replace("\\n", "\n")
     if pem_value:
         return pem_value
 
-    private_key = get_signing_private_key()
-    return serialize_public_key_to_pem(private_key.public_key())
+    raise RuntimeError(
+        "No active ECDSA verification key is configured. Create one in Security or set PARITY_ECDSA_PUBLIC_KEY_PEM."
+    )
 
 
 def format_short_hash(sha256_hash: str) -> str:
