@@ -62,6 +62,8 @@ class Ticket(models.Model):
     ticket_number = models.CharField(max_length=32, unique=True, db_index=True)
     title = models.CharField(max_length=255)
     description = models.TextField()
+    requester_name = models.CharField(max_length=255, blank=True, default="")
+    requester_email = models.EmailField(blank=True, default="")
     category = models.CharField(max_length=32, choices=CATEGORY_CHOICES)
     priority = models.CharField(max_length=16, choices=PRIORITY_CHOICES, default=PRIORITY_MEDIUM)
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_OPEN, db_index=True)

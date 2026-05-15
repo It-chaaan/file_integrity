@@ -1,14 +1,17 @@
 from django.db.models import Count, Q
+from django.core.mail import send_mail
+from django.conf import settings
 from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.decorators import action
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.viewsets import ModelViewSet
 
 from common.permissions import IsStaffOrAdmin, IsStaffOrAdminOrClient
 from common.responses import success_response, error_response
 from common.pagination import StandardResultsSetPagination
 from common.audit import log_audit_event
+from accounts.models import User
 from .models import Ticket, TicketAttachment, TicketComment, TicketCommentAttachment
 from .serializers import TicketCommentSerializer, TicketSerializer
 
@@ -17,7 +20,7 @@ class TicketViewSet(ModelViewSet):
     queryset = Ticket.objects.all().order_by("-created_at")
     serializer_class = TicketSerializer
     permission_classes = [permissions.IsAuthenticated, IsStaffOrAdminOrClient]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
@@ -32,6 +35,8 @@ class TicketViewSet(ModelViewSet):
             "stats",
             "categories",
         }
+        if self.action == "create":
+            return [permissions.AllowAny()]
         if self.action in staff_only_actions:
             return [permissions.IsAuthenticated(), IsStaffOrAdmin()]
         return [permissions.IsAuthenticated(), IsStaffOrAdminOrClient()]
@@ -88,8 +93,10 @@ class TicketViewSet(ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        created_by = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+
         ticket = serializer.save(
-            created_by=request.user,
+            created_by=created_by,
             ticket_number=Ticket.generate_ticket_number(),
         )
 
@@ -98,13 +105,53 @@ class TicketViewSet(ModelViewSet):
 
         log_audit_event(
             request=request,
-            user=request.user,
+            user=created_by,
             action="TICKET_CREATED",
             resource_type="ticket",
             resource_id=ticket.id,
-            details={"ticket_number": ticket.ticket_number},
-            metadata={"ticket_number": ticket.ticket_number},
+            details={
+                "ticket_number": ticket.ticket_number,
+                "requester_name": ticket.requester_name,
+                "requester_email": ticket.requester_email,
+            },
+            metadata={
+                "ticket_number": ticket.ticket_number,
+                "requester_name": ticket.requester_name,
+                "requester_email": ticket.requester_email,
+            },
         )
+
+        recipients = list(
+            User.objects.filter(
+                is_active=True,
+                role__in={User.ROLE_SUPER_ADMIN, User.ROLE_ADMIN, User.ROLE_STAFF},
+            )
+            .exclude(email="")
+            .values_list("email", flat=True)
+            .distinct()
+        )
+        if recipients:
+            reporter_label = ticket.requester_name or ticket.requester_email or "Anonymous reporter"
+            subject = f"New ticket received: {ticket.ticket_number}"
+            body = "\n".join(
+                [
+                    f"Ticket: {ticket.ticket_number}",
+                    f"Title: {ticket.title}",
+                    f"Category: {ticket.category}",
+                    f"Priority: {ticket.priority}",
+                    f"Reporter: {reporter_label}",
+                    f"Email: {ticket.requester_email or 'N/A'}",
+                    "",
+                    ticket.description,
+                ]
+            )
+            send_mail(
+                subject=subject,
+                message=body,
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None) or "no-reply@example.com",
+                recipient_list=recipients,
+                fail_silently=True,
+            )
 
         return success_response(self.get_serializer(ticket).data, message="Ticket created", status_code=status.HTTP_201_CREATED)
 
@@ -182,9 +229,14 @@ class TicketViewSet(ModelViewSet):
         )
         return success_response(self.get_serializer(ticket).data, message="Ticket assigned")
 
-    @action(detail=True, methods=["post"], url_path="comments")
-    def add_comment(self, request, pk=None):
+    @action(detail=True, methods=["get", "post"], url_path="comments")
+    def comments(self, request, pk=None):
         ticket = self.get_object()
+
+        if request.method.lower() == "get":
+            data = TicketCommentSerializer(ticket.comments.all().order_by("-created_at"), many=True).data
+            return success_response(data)
+
         comment_text = request.data.get("comment", "")
         if not comment_text:
             return error_response("Comment is required", errors={"comment": "Comment is required"}, status_code=400)
@@ -205,12 +257,6 @@ class TicketViewSet(ModelViewSet):
         )
 
         return success_response(TicketCommentSerializer(comment).data, message="Comment added", status_code=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=["get"], url_path="comments")
-    def list_comments(self, request, pk=None):
-        ticket = self.get_object()
-        data = TicketCommentSerializer(ticket.comments.all().order_by("-created_at"), many=True).data
-        return success_response(data)
 
     @action(detail=True, methods=["post"], url_path="close")
     def close(self, request, pk=None):

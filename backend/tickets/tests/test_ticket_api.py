@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core import mail
 from rest_framework.test import APITestCase
 
 
@@ -29,6 +30,7 @@ class TicketApiTests(APITestCase):
         response = self.client.post(
             f"/api/v1/tickets/{ticket_id}/comments/",
             {"comment": "Investigating", "attachments": [attachment]},
+            format="multipart",
         )
         self.assertEqual(response.status_code, 201)
 
@@ -103,8 +105,44 @@ class TicketApiTests(APITestCase):
         response = self.client.patch(f"/api/v1/tickets/{ticket_id}/assign/", {"assigned_to": client_user.id}, format="json")
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.patch(f"/api/v1/tickets/{ticket_id}/status/", {"status": "invalid"}, format="json")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        response = self.client.post(
+            "/api/v1/tickets/",
+            {"title": "Client issue", "description": "Need help", "category": "technical", "priority": "high"},
+            format="json",
+        )
+        own_ticket_id = response.data["data"]["id"]
+
+        response = self.client.patch(f"/api/v1/tickets/{own_ticket_id}/status/", {"status": "invalid"}, format="json")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(f"/api/v1/tickets/{own_ticket_id}/comments/", {"comment": ""}, format="json")
         self.assertEqual(response.status_code, 400)
 
-        response = self.client.post(f"/api/v1/tickets/{ticket_id}/comments/", {"comment": ""}, format="json")
-        self.assertEqual(response.status_code, 400)
+    def test_public_ticket_submission_notifies_staff(self):
+        User = get_user_model()
+        User.objects.create_user(
+            username="adminnotify",
+            email="adminnotify@example.com",
+            password="AdminPass123!",
+            role=User.ROLE_ADMIN,
+        )
+
+        self.client.credentials()
+        response = self.client.post(
+            "/api/v1/tickets/",
+            {
+                "title": "Public incident",
+                "description": "Something went wrong",
+                "category": "general",
+                "priority": "medium",
+                "requester_name": "Visitor",
+                "requester_email": "visitor@example.com",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["data"]["requester_email"], "visitor@example.com")
+        self.assertTrue(mail.outbox)
+        self.assertIn("New ticket received", mail.outbox[0].subject)

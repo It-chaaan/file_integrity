@@ -41,7 +41,7 @@ const StaffLayout = () => {
   };
 
   const normalizedRole = String(currentUser?.role || '').toLowerCase();
-  const isStaffPortalRole = ['super_admin', 'admin', 'staff', 'verifier'].includes(normalizedRole);
+  const isStaffPortalRole = ['super_admin', 'admin', 'staff', 'verifier', 'client'].includes(normalizedRole);
 
   const displayName = currentUser
     ? [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ') || currentUser.username
@@ -117,7 +117,7 @@ const StaffLayout = () => {
       {/* Sidebar - Responsive */}
       <Sidebar
         user={user}
-        role="staff"
+        role={normalizedRole === 'super_admin' ? 'admin' : (normalizedRole || 'staff')}
         onLogout={handleLogout}
         isOpen={sidebarOpen}
         onToggle={toggleSidebar}

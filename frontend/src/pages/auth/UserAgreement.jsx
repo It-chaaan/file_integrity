@@ -68,7 +68,7 @@ function UserAgreement() {
         const userRole = currentUser?.role?.toLowerCase();
         if (userRole === 'admin' || userRole === 'super_admin') {
           navigate('/admin/dashboard', { replace: true });
-        } else if (userRole === 'staff') {
+        } else if (userRole === 'staff' || userRole === 'client') {
           navigate('/staff/dashboard', { replace: true });
         } else if (userRole === 'verifier') {
           navigate('/staff/verify', { replace: true });
@@ -82,7 +82,7 @@ function UserAgreement() {
         const userRole = currentUser?.role?.toLowerCase();
         if (userRole === 'admin' || userRole === 'super_admin') {
           navigate('/admin/dashboard', { replace: true });
-        } else if (userRole === 'staff') {
+        } else if (userRole === 'staff' || userRole === 'client') {
           navigate('/staff/dashboard', { replace: true });
         } else if (userRole === 'verifier') {
           navigate('/staff/verify', { replace: true });

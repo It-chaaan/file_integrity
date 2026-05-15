@@ -22,7 +22,8 @@ Roles: `super_admin`, `admin`, `staff`, `verifier`, `client`
 - All endpoints require admin or super_admin
 
 ## Tickets
-- Create/list/retrieve/comments: client, verifier, staff, admin, super_admin
+- Create: public and authenticated users
+- List/retrieve/comments: client, verifier, staff, admin, super_admin
 - Update/status/assign/close/reopen/stats/categories: staff, admin, super_admin
 - Client ticket access is scoped to own tickets
 

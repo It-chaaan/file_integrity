@@ -37,6 +37,8 @@ class TicketSerializer(serializers.ModelSerializer):
             "ticket_number",
             "title",
             "description",
+            "requester_name",
+            "requester_email",
             "category",
             "priority",
             "status",

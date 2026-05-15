@@ -138,7 +138,7 @@ function Login() {
         const userRole = String(session?.user?.role || '').toLowerCase();
         if (userRole === 'admin' || userRole === 'super_admin') {
           navigate('/admin/dashboard');
-        } else if (userRole === 'staff') {
+        } else if (userRole === 'staff' || userRole === 'client') {
           navigate('/staff/dashboard');
         } else if (userRole === 'verifier') {
           navigate('/staff/verify');

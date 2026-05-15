@@ -7,7 +7,6 @@ function Tickets() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
-  const [priorityFilter, setPriorityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [actionType, setActionType] = useState('resolve');
@@ -48,10 +47,6 @@ function Tickets() {
     }
     let result = [...tickets];
     
-    if (priorityFilter !== 'all') {
-      result = result.filter(t => t.priority === priorityFilter);
-    }
-    
     if (statusFilter !== 'all') {
       result = result.filter(t => t.status === statusFilter);
     }
@@ -65,7 +60,7 @@ function Tickets() {
     }
     
     return result;
-  }, [tickets, priorityFilter, statusFilter, searchTerm]);
+  }, [tickets, statusFilter, searchTerm]);
 
   const columns = [
     {
@@ -100,16 +95,13 @@ function Tickets() {
       )
     },
     {
-      key: 'priority',
-      label: 'Priority',
+      key: 'requester_email',
+      label: 'Reporter',
       sortable: true,
       filterable: true,
-      render: (value) => (
-        <span 
-          className={`badge bg-${getPriorityBadge(value)}`}
-          style={{ fontSize: '12px', fontWeight: '500', padding: '6px 12px', textTransform: 'capitalize' }}
-        >
-          {value}
+      render: (_, row) => (
+        <span style={{ fontSize: '14px', color: '#374151' }}>
+          {row.requester_name || row.requester_email || row.created_by?.email || 'Anonymous'}
         </span>
       )
     },
@@ -243,19 +235,6 @@ function Tickets() {
                   style={{ borderRadius: '0 6px 6px 0' }}
                 />
               </div>
-            </div>
-            <div className="col-md-3">
-              <select 
-                className="form-select"
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-              >
-                <option value="all">All Priorities</option>
-                <option value="urgent">Urgent</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
             </div>
             <div className="col-md-3">
               <select 

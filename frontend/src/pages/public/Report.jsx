@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createTicket } from '../../api/adapter';
 
 const reportOptions = [
   { id: 'contract-tampering', label: 'Contract Tampering' },
@@ -10,22 +11,57 @@ const reportOptions = [
   { id: 'integrity-mismatch', label: 'Data Integrity Mismatch' }
 ];
 
+const reportCategoryMap = {
+  'contract-tampering': 'verification',
+  'financial-alteration': 'billing',
+  'compliance-breach': 'verification',
+  'unauthorized-access': 'abuse',
+  'vendor-fraud': 'billing',
+  'insider-threat': 'abuse',
+  'integrity-mismatch': 'verification',
+};
+
 const Report = () => {
   const [reportType, setReportType] = useState(reportOptions[0].id);
   const [formData, setFormData] = useState({
-    email: '',
     subject: '',
     description: ''
   });
+  const [evidenceFile, setEvidenceFile] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [ticketNumber, setTicketNumber] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setFormData({ email: '', subject: '', description: '' });
-    }, 3000);
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    try {
+      const payload = {
+        title: formData.subject.trim(),
+        description: `Report Type: ${reportOptions.find((option) => option.id === reportType)?.label || reportType}\n\n${formData.description.trim()}`,
+        category: reportCategoryMap[reportType] || 'general',
+        priority: 'medium'
+      };
+
+      if (evidenceFile) {
+        payload.attachments = [evidenceFile];
+      }
+
+      const response = await createTicket(payload);
+      const createdTicket = response?.data || response;
+
+      setTicketNumber(createdTicket?.ticket_number || '');
+      setSubmitted(true);
+      setFormData({ subject: '', description: '' });
+      setEvidenceFile(null);
+    } catch (error) {
+      setSubmitError(error?.message || 'We could not submit the incident right now.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -54,9 +90,17 @@ const Report = () => {
                   <p className="mb-0">
                     Your incident has been logged for enterprise security and compliance review.
                   </p>
+                  {ticketNumber && (
+                    <p className="mb-0 mt-2 fw-semibold">Reference: {ticketNumber}</p>
+                  )}
                 </div>
               ) : (
                 <form onSubmit={handleSubmit}>
+                  {submitError && (
+                    <div className="alert alert-danger" role="alert">
+                      {submitError}
+                    </div>
+                  )}
                   <div className="mb-4">
                     <label className="form-label">Report Type *</label>
                     <div className="report-options">
@@ -76,19 +120,6 @@ const Report = () => {
                         </label>
                       ))}
                     </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Your Email Address *</label>
-                    <input
-                      type="email"
-                      className="form-control"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="you@email.com"
-                      required
-                    />
                   </div>
 
                   <div className="mb-3">
@@ -120,17 +151,24 @@ const Report = () => {
                   <div className="mb-4">
                     <label className="form-label">Attach Evidence (Optional)</label>
                     <label className="report-upload">
-                      <input type="file" className="d-none" />
+                      <input
+                        type="file"
+                        className="d-none"
+                        onChange={(event) => setEvidenceFile(event.target.files?.[0] || null)}
+                      />
                       <div>
                         <i className="bi bi-cloud-arrow-up"></i>
                         <p className="mb-1">Drag files here or click to browse</p>
                         <span>Supported: PDF, JPG, PNG (max 10MB)</span>
                       </div>
                     </label>
+                    {evidenceFile && (
+                      <div className="small text-muted mt-2">Selected file: {evidenceFile.name}</div>
+                    )}
                   </div>
 
-                  <button type="submit" className="btn btn-dark w-100 py-3">
-                    Submit Incident
+                  <button type="submit" className="btn btn-dark w-100 py-3" disabled={isSubmitting}>
+                    {isSubmitting ? 'Submitting...' : 'Submit Incident'}
                   </button>
                 </form>
               )}
