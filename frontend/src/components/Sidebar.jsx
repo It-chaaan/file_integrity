@@ -10,8 +10,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
  * @param {() => void} [props.onLogout] - Logout handler.
  * @param {boolean} [props.isOpen] - Whether sidebar is visible.
  * @param {() => void} [props.onToggle] - Toggle handler (used for mobile overlay).
+ * @param {Object} [props.currentUser] - Full current user object with role.
  */
-const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
+const Sidebar = ({ user, role, onLogout, isOpen, onToggle, currentUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 576);
@@ -63,7 +64,10 @@ const Sidebar = ({ user, role, onLogout, isOpen, onToggle }) => {
   const adminMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'bi-grid-fill', section: 'GENERAL', path: '/admin/dashboard' },
     { id: 'users', label: 'Users', icon: 'bi-people', section: 'ADMINISTRATION', path: '/admin/users' },
-    { id: 'security', label: 'Security', icon: 'bi-lock', section: 'ADMINISTRATION', path: '/admin/security' },
+    ...(currentUser?.role === 'super_admin' 
+      ? [{ id: 'security', label: 'Security', icon: 'bi-lock', section: 'ADMINISTRATION', path: '/admin/security' }]
+      : []
+    ),
     { id: 'audit-logs', label: 'Audit Logs', icon: 'bi-clipboard-check', section: 'ADMINISTRATION', path: '/admin/audit-logs' },
     { id: 'tickets', label: 'Tickets', icon: 'bi-exclamation-circle', section: 'ADMINISTRATION', path: '/admin/tickets' }
   ];

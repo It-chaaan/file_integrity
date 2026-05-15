@@ -116,6 +116,15 @@ const AdminLayout = () => {
       navigate(normalizedRole === 'staff' || normalizedRole === 'verifier' ? '/staff/dashboard' : '/', { replace: true });
     }
   }, [currentUser, isAdminRole, isReady, navigate, normalizedRole]);
+
+  // Redirect non-super_admin users away from security page
+  React.useEffect(() => {
+    if (!isReady || !currentUser) return;
+    const isSuperAdmin = normalizedRole === 'super_admin';
+    if (!isSuperAdmin && window.location.pathname === '/admin/security') {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [currentUser, isReady, navigate, normalizedRole]);
   
   // ============================================================================
   // USER DATA PREPARATION
@@ -260,6 +269,7 @@ const AdminLayout = () => {
       {/* ================================================================ */}
       <Sidebar
         user={user}
+        currentUser={currentUser}
         role={isAdminRole ? 'admin' : normalizedRole || 'admin'}
         onLogout={handleLogout}
         isOpen={sidebarOpen}
