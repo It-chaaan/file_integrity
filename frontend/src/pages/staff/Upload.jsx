@@ -91,19 +91,6 @@ function Upload() {
     []
   );
 
-  const selectedDocumentDepartment = DOCUMENT_TYPE_TO_DEPARTMENT[formData.type] || '';
-
-  const selectedDepartment = formData.department || selectedDocumentDepartment;
-
-  const documentTypeGroups = useMemo(() => {
-    if (!selectedDepartment) {
-      return DOCUMENT_CATEGORY_MAP;
-    }
-
-    const selectedGroup = DOCUMENT_CATEGORY_MAP.find((group) => group.department === selectedDepartment);
-    return selectedGroup ? [selectedGroup] : DOCUMENT_CATEGORY_MAP;
-  }, [selectedDepartment]);
-
   const handleDepartmentChange = (e) => {
     const department = e.target.value;
     const typeBelongsToDepartment = DOCUMENT_TYPE_TO_DEPARTMENT[formData.type] === department;
@@ -292,7 +279,7 @@ function Upload() {
                   disabled={uploading}
                 >
                   <option value="">Select document type</option>
-                  {documentTypeGroups.map((group) => (
+                  {DOCUMENT_CATEGORY_MAP.map((group) => (
                     <optgroup key={group.department} label={group.department}>
                       {group.types.map((type) => (
                         <option key={type} value={type}>{type}</option>
