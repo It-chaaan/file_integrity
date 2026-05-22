@@ -1,0 +1,5 @@
+id,username,email,role,is_staff,is_superuser,is_active,created_at
+1,username,superadmin@example.com,super_admin,True,True,True,2026-05-15T21:18:13.537472+08:00
+2,james123,jamesnelson@email.mo,staff,False,False,True,2026-05-15T21:22:12.878307+08:00
+3,admin123,admin123@example.com,admin,True,True,True,2026-05-15T23:01:38.645592+08:00
+4,staff123,staff123@example.com,staff,True,False,True,2026-05-15T23:01:39.395911+08:00

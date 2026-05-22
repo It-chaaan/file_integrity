@@ -371,7 +371,7 @@ VITE_ENV=development                      # development | staging | production
 
 # Optional
 VITE_API_TIMEOUT=30000                    # Request timeout (ms)
-VITE_MAX_FILE_SIZE=5242880                # Max file size (5MB)
+VITE_MAX_FILE_SIZE=104857600              # Max file size (100MB)
 VITE_DEBUG=true                           # Enable debug logs
 VITE_HTTPS_ONLY=false                     # Enforce HTTPS
 ```

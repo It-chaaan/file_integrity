@@ -12,7 +12,7 @@ function Verify() {
   const [error, setError] = useState('');
 
   const allowedTypes = ['pdf', 'doc', 'docx', 'txt'];
-  const maxSizeMB = 5;
+  const maxSizeMB = 110;
 
   const steps = ['Select File', 'Hash', 'Complete'];
 
@@ -39,6 +39,11 @@ function Verify() {
     setIsVerifying(true);
 
     try {
+      // For large files (> 50MB), show a message that it may take longer
+      if (file.size > 50 * 1024 * 1024) {
+        console.log('Verifying large file:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(2), 'MB');
+      }
+      
       const response = await verifyDocument(file, referenceNumber.trim());
       setVerificationResult({
         filename: response?.fileName || file.name,
@@ -51,9 +56,12 @@ function Verify() {
         signature: response?.signature,
         isAuthentic: Boolean(response?.isAuthentic),
         status: response?.status,
+        timing: response?.timing || null,
+        performance: response?.performance || null,
       });
     } catch (verifyError) {
-      setError(verifyError?.message || 'Verification failed.');
+      console.error('Verification error:', verifyError);
+      setError(verifyError?.message || 'Verification failed. Please try again.');
     } finally {
       setIsVerifying(false);
       setCurrentStep(3);
@@ -112,7 +120,7 @@ function Verify() {
                   Select File
                 </label>
                 <p className="text-muted small mt-3 mb-0">
-                  Supported formats: PDF, DOC, DOCX, TXT • Max size: 5MB
+                  Supported formats: PDF, DOC, DOCX, TXT • Max size: 110MB
                 </p>
                 {selectedFile && (
                   <p className="text-muted small mt-2 mb-0">
@@ -134,6 +142,12 @@ function Verify() {
               </div>
               <h5>Computing Hash...</h5>
               <p className="text-muted">Please wait while we validate enterprise cryptographic proof</p>
+              {selectedFile && selectedFile.size > 50 * 1024 * 1024 && (
+                <p className="text-warning small mt-2">
+                  <i className="bi bi-info-circle me-1"></i>
+                  Large file detected ({(selectedFile.size / (1024 * 1024)).toFixed(1)}MB). This may take a few moments...
+                </p>
+              )}
             </div>
           )}
 
@@ -196,6 +210,148 @@ function Verify() {
                         {verificationResult.signature}
                       </div>
                     </div>
+
+                    {/* Verification Timing Information */}
+                    {verificationResult.timing && (
+                      <div className="card bg-light border-0 mb-4">
+                        <div className="card-body p-3">
+                          <h6 className="small fw-semibold mb-2">
+                            <i className="bi bi-stopwatch me-1"></i>
+                            Processing Time (Verification)
+                          </h6>
+                          <div className="row g-2 small">
+                            <div className="col-6 col-md-3">
+                              <span className="text-muted">Hashing:</span>
+                              <span className="fw-semibold ms-1">{verificationResult.timing.hashing_ms} ms</span>
+                            </div>
+                            <div className="col-6 col-md-3">
+                              <span className="text-muted">Document Lookup:</span>
+                              <span className="fw-semibold ms-1">{verificationResult.timing.document_lookup_ms} ms</span>
+                            </div>
+                            <div className="col-6 col-md-3">
+                              <span className="text-muted">Signature Verification:</span>
+                              <span className="fw-semibold ms-1">{verificationResult.timing.verification_ms} ms</span>
+                            </div>
+                            <div className="col-6 col-md-3">
+                              <span className="text-muted">Total:</span>
+                              <span className="fw-semibold text-primary ms-1">{verificationResult.timing.total_ms} ms</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Performance Metrics (CPU & RAM) */}
+                    {verificationResult.performance && (
+                      <div className="card bg-light border-0 mb-4">
+                        <div className="card-body p-3">
+                          <h6 className="small fw-semibold mb-2">
+                            <i className="bi bi-speedometer2 me-1"></i>
+                            Performance Metrics
+                          </h6>
+                          
+                          {/* Hashing Performance */}
+                          {verificationResult.performance.hashing && (
+                            <div className="mb-3 pb-3 border-bottom">
+                              <p className="small fw-semibold mb-2 text-muted">Hashing</p>
+                              <div className="row g-2 small">
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">RAM: </span>
+                                  <span className="fw-semibold">{verificationResult.performance.hashing.memory_before_mb}</span>
+                                  <span className="text-muted"> → </span>
+                                  <span className="fw-semibold">{verificationResult.performance.hashing.memory_after_mb} MB</span>
+                                </div>
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">Delta: </span>
+                                  <span className={`fw-semibold ${verificationResult.performance.hashing.memory_delta_mb > 0 ? 'text-warning' : 'text-success'}`}>
+                                    {verificationResult.performance.hashing.memory_delta_mb > 0 ? '+' : ''}{verificationResult.performance.hashing.memory_delta_mb} MB
+                                  </span>
+                                </div>
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">CPU: </span>
+                                  <span className="fw-semibold">{verificationResult.performance.hashing.cpu_percent}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Lookup Performance */}
+                          {verificationResult.performance.lookup && (
+                            <div className="mb-3 pb-3 border-bottom">
+                              <p className="small fw-semibold mb-2 text-muted">Database Lookup</p>
+                              <div className="row g-2 small">
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">RAM: </span>
+                                  <span className="fw-semibold">{verificationResult.performance.lookup.memory_before_mb}</span>
+                                  <span className="text-muted"> → </span>
+                                  <span className="fw-semibold">{verificationResult.performance.lookup.memory_after_mb} MB</span>
+                                </div>
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">Delta: </span>
+                                  <span className={`fw-semibold ${verificationResult.performance.lookup.memory_delta_mb > 0 ? 'text-warning' : 'text-success'}`}>
+                                    {verificationResult.performance.lookup.memory_delta_mb > 0 ? '+' : ''}{verificationResult.performance.lookup.memory_delta_mb} MB
+                                  </span>
+                                </div>
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">CPU: </span>
+                                  <span className="fw-semibold">{verificationResult.performance.lookup.cpu_percent}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Verification Performance */}
+                          {verificationResult.performance.verification && (
+                            <div className="mb-3 pb-3 border-bottom">
+                              <p className="small fw-semibold mb-2 text-muted">Signature Verification</p>
+                              <div className="row g-2 small">
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">RAM: </span>
+                                  <span className="fw-semibold">{verificationResult.performance.verification.memory_before_mb}</span>
+                                  <span className="text-muted"> → </span>
+                                  <span className="fw-semibold">{verificationResult.performance.verification.memory_after_mb} MB</span>
+                                </div>
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">Delta: </span>
+                                  <span className={`fw-semibold ${verificationResult.performance.verification.memory_delta_mb > 0 ? 'text-warning' : 'text-success'}`}>
+                                    {verificationResult.performance.verification.memory_delta_mb > 0 ? '+' : ''}{verificationResult.performance.verification.memory_delta_mb} MB
+                                  </span>
+                                </div>
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">CPU: </span>
+                                  <span className="fw-semibold">{verificationResult.performance.verification.cpu_percent}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Total Performance */}
+                          {verificationResult.performance.total && (
+                            <div className="pt-2 mt-2 border-top">
+                              <p className="small fw-semibold mb-2 text-muted">Overall</p>
+                              <div className="row g-2 small">
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">Peak RAM: </span>
+                                  <span className="fw-semibold">{verificationResult.performance.total.memory_before_mb}</span>
+                                  <span className="text-muted"> → </span>
+                                  <span className="fw-semibold">{verificationResult.performance.total.memory_after_mb} MB</span>
+                                </div>
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">Peak Delta: </span>
+                                  <span className={`fw-bold ${verificationResult.performance.total.memory_delta_mb > 0 ? 'text-warning' : 'text-success'}`}>
+                                    {verificationResult.performance.total.memory_delta_mb > 0 ? '+' : ''}{verificationResult.performance.total.memory_delta_mb} MB
+                                  </span>
+                                </div>
+                                <div className="col-6 col-md-4">
+                                  <span className="text-muted">Peak CPU: </span>
+                                  <span className="fw-semibold text-danger">{verificationResult.performance.total.cpu_percent}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     <button onClick={resetVerification} className="btn btn-primary">
                       Verify Another Document

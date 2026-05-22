@@ -110,10 +110,19 @@ CORS_ALLOWED_ORIGINS = _get_env_list("DJANGO_CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = _get_env_bool("DJANGO_CORS_ALLOW_CREDENTIALS", True)
 CSRF_TRUSTED_ORIGINS = _get_env_list("DJANGO_CSRF_TRUSTED_ORIGINS") or CORS_ALLOWED_ORIGINS
 
-# Enforce zero-retention in memory-only uploads.
-FILE_UPLOAD_HANDLERS = ["django.core.files.uploadhandler.MemoryFileUploadHandler"]
-FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", str(12 * 1024 * 1024)))
-DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", str(12 * 1024 * 1024)))
+# File upload handlers: use temporary files for large uploads
+# TemporaryFileUploadHandler: for files > 2.5MB, stores to temp disk
+# MemoryFileUploadHandler: for small files, keeps in memory
+FILE_UPLOAD_HANDLERS = [
+    "django.core.files.uploadhandler.TemporaryFileUploadHandler",
+    "django.core.files.uploadhandler.MemoryFileUploadHandler",
+]
+# 120MB max file size (105MB + 15MB overhead)
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", str(120 * 1024 * 1024)))
+# 120MB max for form data
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", str(120 * 1024 * 1024)))
+# 2.5MB threshold before using temporary file storage
+FILE_UPLOAD_TEMP_DIR = os.getenv("DJANGO_FILE_UPLOAD_TEMP_DIR", None)
 
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",

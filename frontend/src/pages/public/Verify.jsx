@@ -11,7 +11,7 @@ function Verify() {
   const [error, setError] = useState('');
 
   const allowedTypes = ['pdf', 'doc', 'docx', 'txt'];
-  const maxSizeMB = 5;
+  const maxSizeMB = 105;
 
   const handleFileChange = (e) => {
     const selected = e.target.files?.[0];

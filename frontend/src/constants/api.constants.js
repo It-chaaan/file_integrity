@@ -326,7 +326,7 @@ export const LOG_ACTION_LABELS = {
 // ============================================
 
 export const FILE_CONFIG = {
-  MAX_SIZE: parseInt(import.meta.env.VITE_MAX_FILE_SIZE || '10485760', 10), // 10MB default
+  MAX_SIZE: parseInt(import.meta.env.VITE_MAX_FILE_SIZE || '104857600', 10), // 100MB default
   ALLOWED_TYPES: (import.meta.env.VITE_ALLOWED_FILE_TYPES || '.pdf,.doc,.docx,.txt,.jpg,.png').split(','),
   UPLOAD_CHUNK_SIZE: 1024 * 1024, // 1MB chunks for large file uploads
 };

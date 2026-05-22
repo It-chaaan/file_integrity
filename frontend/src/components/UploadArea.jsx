@@ -17,7 +17,7 @@ const UploadArea = ({
   file, 
   onFileChange, 
   acceptedTypes = ['pdf', 'doc', 'docx', 'txt'], 
-  maxSizeMB = 5,
+  maxSizeMB = 100,
   disabled = false,
   error = '',
   onValidationError = null
