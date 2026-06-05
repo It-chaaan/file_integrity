@@ -2,8 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   changePassword,
+  disable2FA,
+  enable2FA,
   updateUserProfile,
   getUserProfile,
+  verify2FA,
 } from '../api/auth.api';
 import {
   uploadProfilePhoto,
@@ -13,10 +16,13 @@ import {
 import { getCurrentUser as getStoredUser, refreshCurrentUser } from '../services/auth';
 
 const defaultProfile = {
-  name: '',
+  first_name: '',
+  last_name: '',
   email: '',
   department: '',
   role: '',
+  phone: '',
+  two_factor_enabled: false,
 };
 
 function ProfilePage({ initialProfile }) {
@@ -28,8 +34,19 @@ function ProfilePage({ initialProfile }) {
   const [loading, setLoading] = useState(false);
   const [fetchingProfile, setFetchingProfile] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [mfaSetup, setMfaSetup] = useState(null);
+  const [mfaSetupCode, setMfaSetupCode] = useState('');
+  const [mfaDisableCode, setMfaDisableCode] = useState('');
+  const [mfaLoading, setMfaLoading] = useState(false);
 
   const storedUser = useMemo(() => getStoredUser(), []);
+  const roleLabels = {
+    super_admin: 'System Administrator',
+    admin: 'Administrator',
+    staff: 'Staff',
+    verifier: 'Verifier',
+    client: 'Enterprise User',
+  };
 
   const isValidEmail = (value) => {
     if (!value) return false;
@@ -49,10 +66,13 @@ function ProfilePage({ initialProfile }) {
         if (userData) {
           setProfile((prev) => ({
             ...prev,
-            name: userData.name || userData.full_name || prev.name,
+            first_name: userData.first_name || prev.first_name,
+            last_name: userData.last_name || prev.last_name,
             email: userData.email || prev.email,
             department: userData.department || prev.department,
             role: userData.role || prev.role,
+            phone: userData.phone || prev.phone,
+            two_factor_enabled: Boolean(userData.two_factor_enabled),
           }));
 
           refreshCurrentUser();
@@ -92,10 +112,10 @@ function ProfilePage({ initialProfile }) {
 
     try {
       const payload = {
-        name: profile.name,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
         email: profile.email,
-        department: profile.department,
-        role: profile.role,
+        phone: profile.phone,
       };
 
       await updateUserProfile(payload);
@@ -201,7 +221,82 @@ function ProfilePage({ initialProfile }) {
     }
   };
 
-  const initials = (profile.name || storedUser?.name || 'User')
+  const handleGenerateMfaSetup = async () => {
+    setMfaLoading(true);
+    setErrors((prev) => ({ ...prev, general: '' }));
+    setSuccessMessage('');
+
+    try {
+      const setup = await enable2FA();
+      setMfaSetup(setup);
+      setMfaSetupCode('');
+      setSuccessMessage('Authenticator setup generated. Scan the secret in your app, then verify with a code.');
+    } catch (error) {
+      const message = error?.response?.data?.detail || error.message || 'Failed to generate MFA setup';
+      setErrors((prev) => ({ ...prev, general: message }));
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleVerifyMfaSetup = async (e) => {
+    e.preventDefault();
+    if (mfaSetupCode.trim().length !== 6) {
+      setErrors((prev) => ({ ...prev, general: 'Enter a valid 6-digit authenticator code.' }));
+      return;
+    }
+
+    setMfaLoading(true);
+    setErrors((prev) => ({ ...prev, general: '' }));
+    setSuccessMessage('');
+
+    try {
+      await verify2FA(mfaSetupCode.trim());
+      const userData = await getUserProfile();
+      setProfile((prev) => ({ ...prev, two_factor_enabled: Boolean(userData?.two_factor_enabled) }));
+      refreshCurrentUser();
+      setMfaSetup(null);
+      setMfaSetupCode('');
+      setSuccessMessage('Multi-factor authentication is now enabled.');
+    } catch (error) {
+      const message = error?.response?.data?.detail || error.message || 'Failed to verify authenticator code';
+      setErrors((prev) => ({ ...prev, general: message }));
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleDisableMfa = async (e) => {
+    e.preventDefault();
+    if (mfaDisableCode.trim().length !== 6) {
+      setErrors((prev) => ({ ...prev, general: 'Enter your current 6-digit authenticator code to disable MFA.' }));
+      return;
+    }
+
+    setMfaLoading(true);
+    setErrors((prev) => ({ ...prev, general: '' }));
+    setSuccessMessage('');
+
+    try {
+      await disable2FA(mfaDisableCode.trim());
+      const userData = await getUserProfile();
+      setProfile((prev) => ({ ...prev, two_factor_enabled: Boolean(userData?.two_factor_enabled) }));
+      refreshCurrentUser();
+      setMfaDisableCode('');
+      setMfaSetup(null);
+      setSuccessMessage('Multi-factor authentication has been disabled.');
+    } catch (error) {
+      const message = error?.response?.data?.detail || error.message || 'Failed to disable MFA';
+      setErrors((prev) => ({ ...prev, general: message }));
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const displayName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || storedUser?.full_name || storedUser?.username || 'User';
+  const displayRole = roleLabels[profile.role] || profile.role || 'Role';
+
+  const initials = displayName
     .split(' ')
     .filter(Boolean)
     .map((n) => n[0])
@@ -268,8 +363,8 @@ function ProfilePage({ initialProfile }) {
             </div>
             <div className="d-flex flex-column gap-2" style={{ minWidth: '220px' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '1.15rem', color: '#0b275a' }}>{profile.name || 'Your name'}</div>
-                <div className="text-muted" style={{ fontSize: '0.95rem' }}>{profile.role || 'Role'}</div>
+                <div style={{ fontWeight: 700, fontSize: '1.15rem', color: '#0b275a' }}>{displayName}</div>
+                <div className="text-muted" style={{ fontSize: '0.95rem' }}>{displayRole}</div>
               </div>
 
               {PROFILE_PHOTO_ENABLED ? (
@@ -290,16 +385,28 @@ function ProfilePage({ initialProfile }) {
 
           <form onSubmit={handleSaveProfile} className="row g-4 mb-2">
             <div className="col-md-6">
-              <label className="form-label" htmlFor="profile-name">Full Name</label>
+              <label className="form-label" htmlFor="profile-first-name">First Name</label>
               <input
                 type="text"
                 className="form-control"
-                id="profile-name"
-                name="name"
-                value={profile.name}
+                id="profile-first-name"
+                name="first_name"
+                value={profile.first_name}
                 onChange={handleProfileChange}
                 disabled={isBusy}
                 required
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="profile-last-name">Last Name</label>
+              <input
+                type="text"
+                className="form-control"
+                id="profile-last-name"
+                name="last_name"
+                value={profile.last_name}
+                onChange={handleProfileChange}
+                disabled={isBusy}
               />
             </div>
             <div className="col-md-6">
@@ -317,27 +424,35 @@ function ProfilePage({ initialProfile }) {
               {errors.email && <div className="invalid-feedback">{errors.email}</div>}
             </div>
             <div className="col-md-6">
-              <label className="form-label" htmlFor="profile-department">Department</label>
+              <label className="form-label" htmlFor="profile-phone">Phone</label>
               <input
                 type="text"
                 className="form-control"
-                id="profile-department"
-                name="department"
-                value={profile.department}
+                id="profile-phone"
+                name="phone"
+                value={profile.phone}
                 onChange={handleProfileChange}
                 disabled={isBusy}
               />
             </div>
             <div className="col-md-6">
-              <label className="form-label" htmlFor="profile-role">Role</label>
+              <label className="form-label">Department</label>
               <input
                 type="text"
                 className="form-control"
-                id="profile-role"
-                name="role"
-                value={profile.role}
-                onChange={handleProfileChange}
-                disabled={isBusy}
+                value={profile.department || 'Assigned by system administrator'}
+                disabled
+                readOnly
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Role</label>
+              <input
+                type="text"
+                className="form-control"
+                value={displayRole || 'Assigned by system administrator'}
+                disabled
+                readOnly
               />
             </div>
 
@@ -354,6 +469,80 @@ function ProfilePage({ initialProfile }) {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <div className="card border-0 shadow-sm mt-4" style={{ margin: '1.5rem auto 0' }}>
+        <div className="card-body p-4">
+          <h5 className="mb-3" style={{ color: '#0b275a' }}>Multi-Factor Authentication</h5>
+          <p className="text-muted mb-3" style={{ fontSize: '0.95rem' }}>
+            Protect your account with a time-based authenticator app.
+          </p>
+
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+            <div>
+              <div className="fw-semibold" style={{ color: '#0b275a' }}>
+                Status: {profile.two_factor_enabled ? 'Enabled' : 'Disabled'}
+              </div>
+              <div className="text-muted" style={{ fontSize: '0.9rem' }}>
+                {profile.two_factor_enabled
+                  ? 'A 6-digit authenticator code is required when you sign in.'
+                  : 'Enable MFA to require an authenticator code after your password.'}
+              </div>
+            </div>
+
+            {!profile.two_factor_enabled && (
+              <button type="button" className="btn btn-outline-primary" onClick={handleGenerateMfaSetup} disabled={mfaLoading}>
+                {mfaLoading ? 'Preparing...' : 'Set Up MFA'}
+              </button>
+            )}
+          </div>
+
+          {!profile.two_factor_enabled && mfaSetup && (
+            <form onSubmit={handleVerifyMfaSetup} className="border rounded-3 p-3 mb-3" style={{ background: '#f8fbff' }}>
+              <div className="mb-2 fw-semibold" style={{ color: '#0b275a' }}>Authenticator Setup</div>
+              <div className="mb-2" style={{ fontSize: '0.95rem' }}>
+                <div><strong>Secret:</strong> <code>{mfaSetup.secret}</code></div>
+              </div>
+              <label className="form-label" htmlFor="mfa-setup-code">Enter the 6-digit code from your authenticator app</label>
+              <div className="d-flex gap-2 flex-wrap">
+                <input
+                  type="text"
+                  className="form-control"
+                  id="mfa-setup-code"
+                  value={mfaSetupCode}
+                  onChange={(e) => setMfaSetupCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  disabled={mfaLoading}
+                  placeholder="123456"
+                  style={{ maxWidth: '200px' }}
+                />
+                <button type="submit" className="btn btn-primary" disabled={mfaLoading}>
+                  {mfaLoading ? 'Verifying...' : 'Enable MFA'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {profile.two_factor_enabled && (
+            <form onSubmit={handleDisableMfa} className="border rounded-3 p-3" style={{ background: '#fffaf8' }}>
+              <label className="form-label" htmlFor="mfa-disable-code">Enter your current 6-digit code to disable MFA</label>
+              <div className="d-flex gap-2 flex-wrap">
+                <input
+                  type="text"
+                  className="form-control"
+                  id="mfa-disable-code"
+                  value={mfaDisableCode}
+                  onChange={(e) => setMfaDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  disabled={mfaLoading}
+                  placeholder="123456"
+                  style={{ maxWidth: '200px' }}
+                />
+                <button type="submit" className="btn btn-outline-danger" disabled={mfaLoading}>
+                  {mfaLoading ? 'Disabling...' : 'Disable MFA'}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
 
@@ -423,9 +612,12 @@ export default ProfilePage;
 
 ProfilePage.propTypes = {
   initialProfile: PropTypes.shape({
-    name: PropTypes.string,
+    first_name: PropTypes.string,
+    last_name: PropTypes.string,
     email: PropTypes.string,
     department: PropTypes.string,
     role: PropTypes.string,
+    phone: PropTypes.string,
+    two_factor_enabled: PropTypes.bool,
   }),
 };

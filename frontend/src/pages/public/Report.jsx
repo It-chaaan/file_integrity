@@ -11,19 +11,10 @@ const reportOptions = [
   { id: 'integrity-mismatch', label: 'Data Integrity Mismatch' }
 ];
 
-const reportCategoryMap = {
-  'contract-tampering': 'verification',
-  'financial-alteration': 'billing',
-  'compliance-breach': 'verification',
-  'unauthorized-access': 'abuse',
-  'vendor-fraud': 'billing',
-  'insider-threat': 'abuse',
-  'integrity-mismatch': 'verification',
-};
-
 const Report = () => {
   const [reportType, setReportType] = useState(reportOptions[0].id);
   const [formData, setFormData] = useState({
+    category: 'verification',
     subject: '',
     description: ''
   });
@@ -42,7 +33,7 @@ const Report = () => {
       const payload = {
         title: formData.subject.trim(),
         description: `Report Type: ${reportOptions.find((option) => option.id === reportType)?.label || reportType}\n\n${formData.description.trim()}`,
-        category: reportCategoryMap[reportType] || 'general',
+        category: formData.category,
         priority: 'medium'
       };
 
@@ -55,7 +46,7 @@ const Report = () => {
 
       setTicketNumber(createdTicket?.ticket_number || '');
       setSubmitted(true);
-      setFormData({ subject: '', description: '' });
+      setFormData({ category: 'verification', subject: '', description: '' });
       setEvidenceFile(null);
     } catch (error) {
       setSubmitError(error?.message || 'We could not submit the incident right now.');
@@ -120,6 +111,24 @@ const Report = () => {
                         </label>
                       ))}
                     </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="form-label">Category *</label>
+                    <select
+                      className="form-select"
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="verification">Verification</option>
+                      <option value="billing">Billing</option>
+                      <option value="abuse">Abuse</option>
+                      <option value="account">Account</option>
+                      <option value="technical">Technical</option>
+                      <option value="general">General</option>
+                    </select>
                   </div>
 
                   <div className="mb-3">

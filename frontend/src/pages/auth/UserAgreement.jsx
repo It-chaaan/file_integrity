@@ -48,7 +48,7 @@ function UserAgreement() {
       // Store agreement acceptance in localStorage
       localStorage.setItem('userAgreementAccepted', JSON.stringify({
         userId: currentUser?.id,
-        userName: currentUser?.name,
+        userName: [currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(' ') || currentUser?.full_name || currentUser?.username,
         acceptedAt: new Date().toISOString()
       }));
 
@@ -145,7 +145,7 @@ function UserAgreement() {
                   <div className="d-flex gap-3">
                     <i className="bi bi-info-circle-fill flex-shrink-0" style={{ color: '#1E40AF', fontSize: '20px' }}></i>
                     <div>
-                      <h6 className="mb-1 fw-semibold" style={{ color: '#1E40AF' }}>Welcome, {currentUser?.name || 'User'}!</h6>
+                      <h6 className="mb-1 fw-semibold" style={{ color: '#1E40AF' }}>Welcome, {[currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(' ') || currentUser?.full_name || currentUser?.username || 'User'}!</h6>
                       <p className="mb-0" style={{ fontSize: '14px', color: '#1E40AF' }}>
                         Please read and accept the Enterprise System Usage Agreement to continue using PARITY.
                       </p>

@@ -50,10 +50,10 @@ export const login = async (username, password) => {
     { resource: 'session', action: 'login' }
   );
 
-  const { access, refresh } = response.data;
+  const { access, refresh, requires_two_factor: requiresTwoFactor } = response.data;
 
   // Store tokens automatically
-  if (access && refresh) {
+  if (!requiresTwoFactor && access && refresh) {
     setAuthTokens(access, refresh);
   }
 
@@ -104,9 +104,9 @@ export const refreshToken = async (refreshToken) => {
  * @param {string} code - 6-digit 2FA code from authenticator app.
  * @returns {Promise<Object>} Verification result with tokens.
  */
-export const verify2FA = async (code) => {
+export const verify2FA = async (code, pendingToken = null) => {
   const response = await withErrorContext(
-    () => apiClient.post('/v1/auth/verify-2fa/', { code }),
+    () => apiClient.post('/v1/auth/verify-2fa/', pendingToken ? { code, pending_token: pendingToken } : { code }),
     'auth.verify2FA',
     { resource: 'session', action: 'verify2FA' }
   );

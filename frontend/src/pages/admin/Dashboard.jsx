@@ -95,21 +95,21 @@ function Dashboard() {
 
   const getTicketPriority = (priority) => {
     const map = {
-      urgent: { label: 'URGENT', className: 'bg-danger-subtle text-danger' },
-      high: { label: 'HIGH', className: 'bg-danger-subtle text-danger' },
-      medium: { label: 'MEDIUM', className: 'bg-warning-subtle text-warning' },
-      low: { label: 'LOW', className: 'bg-info-subtle text-info' }
+      urgent: { label: 'Urgent', className: 'bg-danger-subtle text-danger' },
+      high: { label: 'High', className: 'bg-danger-subtle text-danger' },
+      medium: { label: 'Medium', className: 'bg-warning-subtle text-warning' },
+      low: { label: 'Low', className: 'bg-info-subtle text-info' }
     };
     return map[(priority || '').toLowerCase()] || map.medium;
   };
 
   const getTicketStatus = (status) => {
     const map = {
-      open: { label: 'OPEN', className: 'bg-primary-subtle text-primary' },
-      in_progress: { label: 'IN-PROGRESS', className: 'bg-warning-subtle text-warning' },
-      waiting_response: { label: 'WAITING', className: 'bg-info-subtle text-info' },
-      resolved: { label: 'RESOLVED', className: 'bg-success-subtle text-success' },
-      closed: { label: 'RESOLVED', className: 'bg-success-subtle text-success' }
+      open: { label: 'Open', className: 'bg-primary-subtle text-primary' },
+      in_progress: { label: 'In Progress', className: 'bg-warning-subtle text-warning' },
+      waiting_response: { label: 'Waiting Response', className: 'bg-info-subtle text-info' },
+      resolved: { label: 'Resolved', className: 'bg-success-subtle text-success' },
+      closed: { label: 'Closed', className: 'bg-success-subtle text-success' }
     };
     return map[(status || '').toLowerCase()] || map.open;
   };

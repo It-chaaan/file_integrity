@@ -146,3 +146,67 @@ class TicketApiTests(APITestCase):
         self.assertEqual(response.data["data"]["requester_email"], "visitor@example.com")
         self.assertTrue(mail.outbox)
         self.assertIn("New ticket received", mail.outbox[0].subject)
+
+    def test_staff_reply_can_set_waiting_response(self):
+        response = self.client.post(
+            "/api/v1/tickets/",
+            {"title": "Need details", "description": "Investigate", "category": "technical", "priority": "medium"},
+            format="json",
+        )
+        ticket_id = response.data["data"]["id"]
+
+        response = self.client.post(
+            f"/api/v1/tickets/{ticket_id}/comments/",
+            {"comment": "Please share the exact error message.", "status": "waiting_response"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.get(f"/api/v1/tickets/{ticket_id}/")
+        self.assertEqual(response.data["data"]["status"], "waiting_response")
+
+    def test_client_reply_moves_waiting_response_back_to_in_progress(self):
+        User = get_user_model()
+        staff_user = self.user
+        client_user = User.objects.create_user(
+            username="ticketclient",
+            email="ticketclient@example.com",
+            password="ClientPass123!",
+            role=User.ROLE_CLIENT,
+        )
+
+        self.client.credentials()
+        response = self.client.post("/api/v1/auth/login/", {"username": "ticketclient", "password": "ClientPass123!"}, format="json")
+        token = response.data["data"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        response = self.client.post(
+            "/api/v1/tickets/",
+            {"title": "Client issue", "description": "Original problem", "category": "technical", "priority": "high"},
+            format="json",
+        )
+        ticket_id = response.data["data"]["id"]
+
+        self.client.credentials()
+        response = self.client.post("/api/v1/auth/login/", {"username": "staff", "password": "StaffPass123!"}, format="json")
+        staff_token = response.data["data"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {staff_token}")
+        response = self.client.post(
+            f"/api/v1/tickets/{ticket_id}/comments/",
+            {"comment": "Can you provide a screenshot?", "status": "waiting_response"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+
+        self.client.credentials()
+        response = self.client.post("/api/v1/auth/login/", {"username": "ticketclient", "password": "ClientPass123!"}, format="json")
+        token = response.data["data"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        response = self.client.post(
+            f"/api/v1/tickets/{ticket_id}/comments/",
+            {"comment": "Here are the details you requested."},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.get(f"/api/v1/tickets/{ticket_id}/")
+        self.assertEqual(response.data["data"]["status"], "in_progress")

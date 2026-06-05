@@ -122,13 +122,13 @@ export const uploadDocument = async (uploadData, onUploadProgress = null, constr
 };
 
 /**
- * Verify a document's integrity by reference number and hash
- * Uploads a file to compare with the stored hash/signature for the reference number
+ * Verify a document's integrity by reference number
+ * Uploads a file to compare with the stored registry proof for the reference number
  * 
  * @param {File} file - File object to verify
  * @param {string} referenceNumber - Document reference number
  * @param {Object} constraints - Optional validation constraints (maxSize, minSize, allowedTypes)
- * @returns {Promise<Object>} Verification result with match status, hash, and original document.
+ * @returns {Promise<Object>} Verification result with public-safe or authenticated detail fields.
  */
 export const verifyDocument = async (file, referenceNumber, constraints = {}) => {
   const validation = validateFile(file, constraints);

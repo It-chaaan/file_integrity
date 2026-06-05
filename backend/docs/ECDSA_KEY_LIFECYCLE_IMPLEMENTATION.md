@@ -1,7 +1,7 @@
 # ECDSA Key Lifecycle Management - Implementation Summary
 
 ## Overview
-Moved ECDSA key management from environment variables (.env) to the admin Security interface ("Enterprise Key Lifecycle Management") with full key rotation, revocation, and lifecycle tracking capabilities.
+Moved ECDSA key management from environment variables (.env) to the admin Security interface ("Enterprise Key Lifecycle Management") with key rotation, revocation, lifecycle tracking, and application-level encryption for stored private keys.
 
 ## Backend Changes
 
@@ -31,7 +31,8 @@ Moved ECDSA key management from environment variables (.env) to the admin Securi
 Updated `get_signing_private_key()` and `get_verification_public_key_pem()`:
 - **Priority 1**: Database (active ECDSA signing keys) - NEW
 - **Priority 2**: Environment variables (backward compatibility)
-- **Priority 3**: In-memory generated keys (development fallback)
+- **Database private keys are stored encrypted at rest** using `PARITY_KEY_ENCRYPTION_SECRET`
+- **Expired/revoked keys are excluded** from new signing operations
 
 This allows seamless migration from .env to database-managed keys without breaking existing deployments.
 
@@ -86,6 +87,7 @@ This allows seamless migration from .env to database-managed keys without breaki
 ### Security Benefits
 - No hardcoded keys in .env (unless migrating)
 - Centralized key management in database
+- Application-level encryption for stored ECDSA private keys
 - Full rotation history and audit trail
 - Role-based access (admin-only)
 - Old signatures remain verifiable after rotation

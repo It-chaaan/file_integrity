@@ -6,11 +6,11 @@ from typing import Any, Dict, Optional, Tuple
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
+from django.utils import timezone
 
 try:
     from crypto_engine import (
         generate_hash_from_bytes,
-        generate_key_pair,
         get_public_key_fingerprint,
         serialize_public_key_to_pem,
         sign_hash,
@@ -18,7 +18,6 @@ try:
 except ImportError:
     from backend.crypto_engine import (
         generate_hash_from_bytes,
-        generate_key_pair,
         get_public_key_fingerprint,
         serialize_public_key_to_pem,
         sign_hash,
@@ -26,6 +25,13 @@ except ImportError:
 
 
 _PRIVATE_KEY_CACHE: Optional[EllipticCurvePrivateKey] = None
+_PRIVATE_KEY_CACHE_SOURCE_ID: Optional[int] = None
+
+
+def reset_signing_private_key_cache() -> None:
+    global _PRIVATE_KEY_CACHE, _PRIVATE_KEY_CACHE_SOURCE_ID
+    _PRIVATE_KEY_CACHE = None
+    _PRIVATE_KEY_CACHE_SOURCE_ID = None
 
 
 def parse_metadata_value(raw_value: Any) -> Dict[str, Any]:
@@ -57,17 +63,21 @@ def build_reference_number(now: Optional[datetime] = None) -> str:
 
 def compute_hash_and_signature(file_bytes: bytes) -> Tuple[str, str, str, str]:
     sha256_hash = generate_hash_from_bytes(file_bytes)
-    private_key = get_signing_private_key()
+    private_key, security_key = get_signing_private_key()
     public_key = private_key.public_key()
 
     signature = sign_hash(private_key, sha256_hash)
     public_key_pem = serialize_public_key_to_pem(public_key)
     fingerprint = get_public_key_fingerprint(public_key)
 
+    if security_key is not None:
+        security_key.last_used = timezone.now()
+        security_key.save(update_fields=["last_used"])
+
     return sha256_hash, signature, public_key_pem, fingerprint
 
 
-def get_signing_private_key() -> EllipticCurvePrivateKey:
+def get_signing_private_key() -> Tuple[EllipticCurvePrivateKey, Optional[Any]]:
     """
     Load the signing private key from the database or .env.
     
@@ -75,27 +85,46 @@ def get_signing_private_key() -> EllipticCurvePrivateKey:
     1. Database (active ECDSA signing key)
     2. .env (PARITY_ECDSA_PRIVATE_KEY_PEM for backward compatibility)
     """
-    global _PRIVATE_KEY_CACHE
+    global _PRIVATE_KEY_CACHE, _PRIVATE_KEY_CACHE_SOURCE_ID
 
     if _PRIVATE_KEY_CACHE is not None:
-        return _PRIVATE_KEY_CACHE
+        if _PRIVATE_KEY_CACHE_SOURCE_ID is not None:
+            try:
+                from security_keys.models import SecurityKey
+                security_key = SecurityKey.objects.filter(pk=_PRIVATE_KEY_CACHE_SOURCE_ID).first()
+                return _PRIVATE_KEY_CACHE, security_key
+            except Exception:
+                reset_signing_private_key_cache()
+        return _PRIVATE_KEY_CACHE, None
 
     # Try to load from database first
     try:
         from security_keys.models import SecurityKey
+        from security_keys.crypto import decrypt_private_key
         active_key = SecurityKey.objects.filter(
             algorithm=SecurityKey.ALGORITHM_ECDSA,
             key_type="signing",
             status=SecurityKey.STATUS_ACTIVE
+        ).filter(
+            expires_at__isnull=True
+        ).first() or SecurityKey.objects.filter(
+            algorithm=SecurityKey.ALGORITHM_ECDSA,
+            key_type="signing",
+            status=SecurityKey.STATUS_ACTIVE,
+            expires_at__gt=timezone.now(),
         ).first()
         
         if active_key and active_key.private_key:
-            key_bytes = active_key.private_key.encode("utf-8")
+            decrypted_private_key = decrypt_private_key(active_key.private_key)
+            if "BEGIN PRIVATE KEY" not in decrypted_private_key:
+                raise RuntimeError("Stored signing key is malformed.")
+            key_bytes = decrypted_private_key.encode("utf-8")
             key = serialization.load_pem_private_key(key_bytes, password=None)
             _PRIVATE_KEY_CACHE = key
-            return key
+            _PRIVATE_KEY_CACHE_SOURCE_ID = active_key.id
+            return key, active_key
     except Exception:
-        pass
+        reset_signing_private_key_cache()
 
     # Fallback to .env for backward compatibility
     pem_value = os.getenv("PARITY_ECDSA_PRIVATE_KEY_PEM", "").strip()
@@ -106,7 +135,8 @@ def get_signing_private_key() -> EllipticCurvePrivateKey:
         key_bytes = pem_value.encode("utf-8")
         key = serialization.load_pem_private_key(key_bytes, password=None)
         _PRIVATE_KEY_CACHE = key
-        return key
+        _PRIVATE_KEY_CACHE_SOURCE_ID = None
+        return key, None
 
     raise RuntimeError(
         "No active ECDSA signing key is configured. Create one in Security or set PARITY_ECDSA_PRIVATE_KEY_PEM."
@@ -128,6 +158,13 @@ def get_verification_public_key_pem() -> str:
             algorithm=SecurityKey.ALGORITHM_ECDSA,
             key_type="signing",
             status=SecurityKey.STATUS_ACTIVE
+        ).filter(
+            expires_at__isnull=True
+        ).first() or SecurityKey.objects.filter(
+            algorithm=SecurityKey.ALGORITHM_ECDSA,
+            key_type="signing",
+            status=SecurityKey.STATUS_ACTIVE,
+            expires_at__gt=timezone.now(),
         ).first()
         
         if active_key and active_key.public_key:

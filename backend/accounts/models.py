@@ -38,7 +38,7 @@ class User(AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)
 
     two_factor_enabled = models.BooleanField(default=False)
-    two_factor_secret = models.CharField(max_length=64, blank=True, default="")
+    two_factor_secret = models.CharField(max_length=512, blank=True, default="")
 
     class Meta:
         ordering = ["-created_at"]

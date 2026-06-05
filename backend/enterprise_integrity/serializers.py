@@ -75,6 +75,23 @@ class DocumentResponseSerializer(serializers.ModelSerializer):
     hash = serializers.CharField(source="document_hash", read_only=True)
 
 
+class PublicDocumentLookupSerializer(serializers.ModelSerializer):
+    documentId = serializers.CharField(source="reference_number", read_only=True)
+    referenceNumber = serializers.CharField(source="reference_number", read_only=True)
+    documentType = serializers.CharField(source="document_type", read_only=True)
+    verificationDate = serializers.DateTimeField(source="verified_at", read_only=True)
+
+    class Meta:
+        model = DocumentRecord
+        fields = [
+            "documentId",
+            "referenceNumber",
+            "documentType",
+            "verificationDate",
+            "status",
+        ]
+
+
 class VerificationAttemptSerializer(serializers.ModelSerializer):
     reference_number = serializers.CharField(source="document.reference_number", read_only=True)
 

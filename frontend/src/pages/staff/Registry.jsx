@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import DataTable from '../../components/DataTable';
 import { useDocuments } from '../../hooks/useData';
 import { formatFileSize } from '../../services/utils';
@@ -10,26 +10,42 @@ function Registry() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Filter documents
+  const formatUploadedBy = (doc) => {
+    const metadata = doc?.metadata || {};
+    const name = doc?.uploaded_by || metadata.uploaded_by || '—';
+    const roleLabels = {
+      super_admin: 'System Administrator',
+      admin: 'Administrator',
+      staff: 'Staff',
+      verifier: 'Verifier',
+      client: 'Enterprise User',
+    };
+    const role = roleLabels[metadata.uploaded_by_role] || metadata.uploaded_by_role;
+    const department = metadata.uploaded_by_department || doc?.department;
+    const extra = [role, department].filter(Boolean).join(' • ');
+    return extra ? `${name} (${extra})` : name;
+  };
+
   const filteredDocuments = useMemo(() => {
     if (!documents || !Array.isArray(documents)) return [];
-    
+
     let result = [...documents];
-    
+
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(doc =>
+      result = result.filter((doc) =>
         (doc.reference_number || '').toLowerCase().includes(term) ||
         (doc.file_name || '').toLowerCase().includes(term) ||
         (doc.document_type || '').toLowerCase().includes(term) ||
-        (doc.department || '').toLowerCase().includes(term)
+        (doc.department || '').toLowerCase().includes(term) ||
+        formatUploadedBy(doc).toLowerCase().includes(term)
       );
     }
-    
+
     if (statusFilter !== 'all') {
-      result = result.filter(doc => doc.status === statusFilter);
+      result = result.filter((doc) => doc.status === statusFilter);
     }
-    
+
     return result;
   }, [documents, searchTerm, statusFilter]);
 
@@ -39,7 +55,7 @@ function Registry() {
       label: 'Reference Number',
       sortable: true,
       filterable: true,
-      render: (value, row) => (
+      render: (value) => (
         <span className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
           {value}
         </span>
@@ -69,15 +85,7 @@ function Registry() {
       sortable: true,
       filterable: true,
       render: (value) => (
-        <span style={{ fontSize: '14px', color: '#8B4513' }}>{value}</span>
-      )
-    },
-    {
-      key: 'file_size',
-      label: 'Size',
-      sortable: true,
-      render: (value) => (
-        <span style={{ fontSize: '14px', color: '#1F2937' }}>{formatFileSize(value)}</span>
+        <span style={{ fontSize: '14px', color: '#8B4513' }}>{value || '—'}</span>
       )
     },
     {
@@ -105,8 +113,8 @@ function Registry() {
         };
         const config = statusConfig[value] || statusConfig.pending;
         return (
-          <span 
-            className={`badge bg-${config.bg}`} 
+          <span
+            className={`badge bg-${config.bg}`}
             style={{ fontSize: '12px', fontWeight: '500', padding: '6px 12px' }}
           >
             {config.text}
@@ -117,19 +125,17 @@ function Registry() {
   ];
 
   const actions = (doc) => (
-    <>
-      <button
-        className="btn btn-sm text-white"
-        style={{ backgroundColor: '#0D1526' }}
-        onClick={() => {
-          setSelectedDoc(doc);
-          setShowDetailsModal(true);
-        }}
-      >
-        <i className="bi bi-eye me-1"></i>
-        View Details
-      </button>
-    </>
+    <button
+      className="btn btn-sm text-white"
+      style={{ backgroundColor: '#0D1526' }}
+      onClick={() => {
+        setSelectedDoc(doc);
+        setShowDetailsModal(true);
+      }}
+    >
+      <i className="bi bi-eye me-1"></i>
+      View Details
+    </button>
   );
 
   const handleCloseDetails = () => {
@@ -139,17 +145,15 @@ function Registry() {
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-4">
-          <h2 className="mb-2" style={{ fontSize: '28px', fontWeight: '700', color: '#0D1526' }}>
-            Enterprise Document Registry
-          </h2>
-          <p className="text-muted" style={{ fontSize: '14px' }}>
-            Browse and manage enterprise documents and cryptographic records
-          </p>
+        <h2 className="mb-2" style={{ fontSize: '28px', fontWeight: '700', color: '#0D1526' }}>
+          Enterprise Document Registry
+        </h2>
+        <p className="text-muted" style={{ fontSize: '14px' }}>
+          Browse and manage enterprise documents and cryptographic records
+        </p>
       </div>
 
-      {/* Filter Bar */}
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-body">
           <div className="row g-3 align-items-end">
@@ -161,7 +165,7 @@ function Registry() {
                 <input
                   type="text"
                   className="form-control border-start-0"
-                    placeholder="Search by document ID, name, type, or department..."
+                  placeholder="Search by document ID, name, type, department, or uploader..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{ borderRadius: '0 6px 6px 0' }}
@@ -169,7 +173,7 @@ function Registry() {
               </div>
             </div>
             <div className="col-md-4">
-              <select 
+              <select
                 className="form-select"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -185,7 +189,6 @@ function Registry() {
         </div>
       </div>
 
-      {/* DataTable with search, filter, sort, pagination */}
       <div className="card border-0 shadow-sm">
         <div className="card-body">
           {loading ? (
@@ -195,7 +198,7 @@ function Registry() {
               </div>
               <p className="text-muted mt-2">Loading documents...</p>
             </div>
-          ) : filteredDocuments && filteredDocuments.length > 0 ? (
+          ) : filteredDocuments.length > 0 ? (
             <DataTable
               columns={columns}
               data={filteredDocuments}
@@ -212,7 +215,6 @@ function Registry() {
         </div>
       </div>
 
-      {/* Document Details Modal */}
       {showDetailsModal && selectedDoc && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-lg modal-dialog-centered">
@@ -253,10 +255,10 @@ function Registry() {
                     </p>
                   </div>
                   <div className="col-md-6">
-                      <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
-                        Document Type
-                      </label>
-                      <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.document_type || '—'}</p>
+                    <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
+                      Document Type
+                    </label>
+                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.document_type || '—'}</p>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
@@ -265,10 +267,10 @@ function Registry() {
                     <p style={{ fontSize: '14px', color: '#1F2937' }}>{formatFileSize(selectedDoc.file_size)}</p>
                   </div>
                   <div className="col-md-6">
-                      <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
-                        Department
-                      </label>
-                      <p style={{ fontSize: '14px', color: '#8B4513' }}>{selectedDoc.department}</p>
+                    <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
+                      Department
+                    </label>
+                    <p style={{ fontSize: '14px', color: '#8B4513' }}>{selectedDoc.department || '—'}</p>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
@@ -282,10 +284,10 @@ function Registry() {
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                       SHA-256 Hash
                     </label>
-                    <div 
+                    <div
                       className="p-3 rounded"
-                      style={{ 
-                        backgroundColor: '#F9FAFB', 
+                      style={{
+                        backgroundColor: '#F9FAFB',
                         border: '1px solid #E5E7EB',
                         fontFamily: 'monospace',
                         fontSize: '13px',
@@ -300,14 +302,14 @@ function Registry() {
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                       Uploaded By
                     </label>
-                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{selectedDoc.uploaded_by}</p>
+                    <p style={{ fontSize: '14px', color: '#1F2937' }}>{formatUploadedBy(selectedDoc)}</p>
                   </div>
                 </div>
               </div>
               <div className="modal-footer border-top-0" style={{ backgroundColor: '#F9FAFB' }}>
-                <button 
-                  type="button" 
-                  className="btn text-white" 
+                <button
+                  type="button"
+                  className="btn text-white"
                   style={{ backgroundColor: '#0D1526' }}
                   onClick={handleCloseDetails}
                 >

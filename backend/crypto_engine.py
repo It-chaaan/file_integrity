@@ -8,6 +8,8 @@ Security Standards Implemented:
 
 import hashlib
 import base64
+import time
+import tracemalloc
 from pathlib import Path
 from typing import Tuple, Union
 
@@ -395,6 +397,37 @@ def deserialize_public_key_from_pem(pem_string: str) -> EllipticCurvePublicKey:
     )
 
 
+def _measure_operation(operation):
+    tracemalloc.start()
+    wall_start = time.perf_counter()
+    cpu_start = time.process_time()
+    result = operation()
+    wall_elapsed_ms = (time.perf_counter() - wall_start) * 1000
+    cpu_elapsed_ms = (time.process_time() - cpu_start) * 1000
+    _, peak_bytes = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
+    cpu_usage_pct = (cpu_elapsed_ms / wall_elapsed_ms * 100) if wall_elapsed_ms else 0.0
+    return result, {
+        "wall_ms": wall_elapsed_ms,
+        "cpu_ms": cpu_elapsed_ms,
+        "cpu_usage_pct": cpu_usage_pct,
+        "peak_kib": peak_bytes / 1024,
+    }
+
+
+def _create_test_file(file_path: Union[str, Path], size_bytes: int) -> None:
+    file_path = Path(file_path)
+    chunk = b"0" * (1024 * 1024)
+    remaining_bytes = size_bytes
+
+    with open(file_path, "wb") as file:
+        while remaining_bytes > 0:
+            write_size = min(len(chunk), remaining_bytes)
+            file.write(chunk[:write_size])
+            remaining_bytes -= write_size
+
+
 # =============================================================================
 # MAIN - DEMONSTRATION / TESTING
 # =============================================================================
@@ -411,6 +444,8 @@ if __name__ == "__main__":
     print("CRYPTOGRAPHIC ENGINE DEMONSTRATION")
     print("Legal Document Integrity Verification System")
     print("=" * 60)
+
+    perf_results = {}
     
     # Create a test document
     print("\n[1] Creating test document...")
@@ -423,8 +458,38 @@ if __name__ == "__main__":
     
     # Generate hash
     print("\n[2] Generating document hash (SHA-256)...")
-    document_hash = generate_file_hash(test_file)
+    document_hash, perf_results["hashing"] = _measure_operation(lambda: generate_file_hash(test_file))
     print(f"    Hash: {document_hash}")
+    print(
+        f"    Hashing performance: {perf_results['hashing']['wall_ms']:.3f} ms | "
+        f"CPU time {perf_results['hashing']['cpu_ms']:.3f} ms ({perf_results['hashing']['cpu_usage_pct']:.1f}%) | "
+        f"RAM peak {perf_results['hashing']['peak_kib']:.1f} KiB"
+    )
+
+    # File size benchmark
+    print("\n[2b] Hashing file-size benchmark (1 MB, 10 MB, 50 MB, 100 MB)...")
+    file_size_benchmarks = []
+    with tempfile.TemporaryDirectory() as benchmark_dir:
+        for size_mb in (1, 10, 50, 100):
+            benchmark_file = os.path.join(benchmark_dir, f"benchmark_{size_mb}mb.bin")
+            _create_test_file(benchmark_file, size_mb * 1024 * 1024)
+            benchmark_hash, benchmark_metrics = _measure_operation(
+                lambda path=benchmark_file: generate_file_hash(path)
+            )
+            file_size_benchmarks.append(
+                {
+                    "size_mb": size_mb,
+                    "hash": benchmark_hash,
+                    "metrics": benchmark_metrics,
+                }
+            )
+
+    for benchmark in file_size_benchmarks:
+        print(
+            f"    {benchmark['size_mb']:>3} MB: {benchmark['metrics']['wall_ms']:.3f} ms | "
+            f"CPU time {benchmark['metrics']['cpu_ms']:.3f} ms ({benchmark['metrics']['cpu_usage_pct']:.1f}%) | "
+            f"RAM peak {benchmark['metrics']['peak_kib']:.1f} KiB"
+        )
     
     # Generate key pair
     print("\n[3] Generating ECDSA key pair (SECP256R1/NIST P-256)...")
@@ -434,13 +499,26 @@ if __name__ == "__main__":
     
     # Sign the hash
     print("\n[4] Signing document hash...")
-    signature = sign_hash(private_key, document_hash)
+    signature, perf_results["signature_generation"] = _measure_operation(
+        lambda: sign_hash(private_key, document_hash)
+    )
     print(f"    Signature: {signature[:50]}...")
+    print(
+        f"    Signature generation performance: {perf_results['signature_generation']['wall_ms']:.3f} ms | "
+        f"CPU time {perf_results['signature_generation']['cpu_ms']:.3f} ms ({perf_results['signature_generation']['cpu_usage_pct']:.1f}%) | "
+        f"RAM peak {perf_results['signature_generation']['peak_kib']:.1f} KiB"
+    )
     
     # Verify the signature
     print("\n[5] Verifying signature...")
-    is_valid = verify_signature(public_key, signature, document_hash)
+    is_valid, perf_results["verification"] = _measure_operation(
+        lambda: verify_signature(public_key, signature, document_hash)
+    )
     print(f"    Verification Result: {'✓ VALID' if is_valid else '✗ INVALID'}")
+    print(
+        f"    Verification performance: {perf_results['verification']['wall_ms']:.3f} ms | "
+        f"CPU time {perf_results['verification']['cpu_ms']:.3f} ms ({perf_results['verification']['cpu_usage_pct']:.1f}%)"
+    )
     
     # Demonstrate tampering detection
     print("\n[6] Simulating document tampering...")
@@ -459,10 +537,26 @@ if __name__ == "__main__":
         save_public_key(public_key, pub_path)
         print(f"    Saved private key (encrypted): {priv_path}")
         print(f"    Saved public key: {pub_path}")
+
+        serialized_public_pem, perf_results["serialization"] = _measure_operation(
+            lambda: serialize_public_key_to_pem(public_key)
+        )
+        print(
+            f"    Serialization performance: {perf_results['serialization']['wall_ms']:.3f} ms | "
+            f"CPU time {perf_results['serialization']['cpu_ms']:.3f} ms ({perf_results['serialization']['cpu_usage_pct']:.1f}%)"
+        )
         
         # Load keys
-        loaded_private = load_private_key(priv_path, password=b"thesis_demo_password")
-        loaded_public = load_public_key(pub_path)
+        (loaded_private, loaded_public), perf_results["key_loading"] = _measure_operation(
+            lambda: (
+                load_private_key(priv_path, password=b"thesis_demo_password"),
+                load_public_key(pub_path),
+            )
+        )
+        print(
+            f"    Key loading performance: {perf_results['key_loading']['wall_ms']:.3f} ms | "
+            f"CPU time {perf_results['key_loading']['cpu_ms']:.3f} ms ({perf_results['key_loading']['cpu_usage_pct']:.1f}%)"
+        )
         
         # Verify loaded keys work
         new_signature = sign_hash(loaded_private, document_hash)
@@ -471,7 +565,25 @@ if __name__ == "__main__":
     
     # Cleanup
     os.unlink(test_file)
+
+    benchmark_total_ms = sum(
+        perf_results[name]["wall_ms"]
+        for name in ("hashing", "signature_generation", "verification", "serialization", "key_loading")
+    )
+    benchmark_total_cpu_ms = sum(
+        perf_results[name]["cpu_ms"]
+        for name in ("hashing", "signature_generation", "verification", "serialization", "key_loading")
+    )
+    benchmark_total_cpu_usage = (
+        benchmark_total_cpu_ms / benchmark_total_ms * 100 if benchmark_total_ms else 0.0
+    )
     
     print("\n" + "=" * 60)
+    print("PERFORMANCE SUMMARY")
+    print(f"    Total: {benchmark_total_ms:.3f} ms | CPU time {benchmark_total_cpu_ms:.3f} ms ({benchmark_total_cpu_usage:.1f}%)")
+    print(f"    Hashing RAM peak: {perf_results['hashing']['peak_kib']:.1f} KiB")
+    print(f"    Signature generation RAM peak: {perf_results['signature_generation']['peak_kib']:.1f} KiB")
+    print(f"    Serialized public key length: {len(serialized_public_pem)} bytes")
+    print("    File-size hash benchmark results are reported above for 1 MB, 10 MB, 50 MB, and 100 MB files.")
     print("DEMONSTRATION COMPLETE")
     print("=" * 60)
