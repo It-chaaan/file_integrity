@@ -6,13 +6,10 @@ from common.permissions import IsSuperAdmin
 from common.responses import success_response, error_response
 from common.pagination import StandardResultsSetPagination
 from common.audit import log_audit_event
-
-try:
-    from crypto_engine import generate_key_pair, serialize_public_key_to_pem, get_public_key_fingerprint
-except ImportError:
-    from backend.crypto_engine import generate_key_pair, serialize_public_key_to_pem, get_public_key_fingerprint
+from enterprise_integrity.services import reset_signing_private_key_cache
 
 from .models import SecurityKey
+from .key_material import build_encrypted_ecdsa_key_pair
 from .serializers import SecurityKeySerializer
 
 
@@ -32,7 +29,11 @@ class SecurityKeyViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance = serializer.save(created_by=request.user)
+        try:
+            instance = serializer.save(created_by=request.user)
+        except RuntimeError as exc:
+            return error_response(str(exc), status_code=status.HTTP_400_BAD_REQUEST)
+        reset_signing_private_key_cache()
         log_audit_event(
             request=request,
             user=request.user,
@@ -52,6 +53,7 @@ class SecurityKeyViewSet(ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        reset_signing_private_key_cache()
         log_audit_event(
             request=request,
             user=request.user,
@@ -66,6 +68,7 @@ class SecurityKeyViewSet(ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.delete()
+        reset_signing_private_key_cache()
         log_audit_event(
             request=request,
             user=request.user,
@@ -83,18 +86,11 @@ class SecurityKeyViewSet(ModelViewSet):
         old_key = self.get_object()
         rotation_reason = request.data.get("rotation_reason", "Manual rotation")
 
+        if old_key.status != SecurityKey.STATUS_ACTIVE:
+            return error_response("Only active keys can be rotated.", status_code=status.HTTP_400_BAD_REQUEST)
+
         try:
-            # Generate new key pair
-            private_key, public_key = generate_key_pair()
-            public_key_pem = serialize_public_key_to_pem(public_key)
-            
-            # Serialize private key for storage
-            from cryptography.hazmat.primitives import serialization
-            private_key_pem = private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
-            ).decode("utf-8")
+            public_key_pem, encrypted_private_key = build_encrypted_ecdsa_key_pair()
 
             # Mark old key as rotated
             old_key.status = SecurityKey.STATUS_ROTATED
@@ -106,13 +102,14 @@ class SecurityKeyViewSet(ModelViewSet):
                 algorithm=old_key.algorithm,
                 key_type=old_key.key_type,
                 public_key=public_key_pem,
-                private_key=private_key_pem,
+                private_key=encrypted_private_key,
                 status=SecurityKey.STATUS_ACTIVE,
                 created_by=request.user,
                 rotated_by=request.user,
                 rotated_from=old_key,
                 rotation_reason=rotation_reason,
             )
+            reset_signing_private_key_cache()
 
             log_audit_event(
                 request=request,
@@ -146,8 +143,11 @@ class SecurityKeyViewSet(ModelViewSet):
     def revoke(self, request, pk=None):
         """Revoke a key."""
         key = self.get_object()
+        if key.status == SecurityKey.STATUS_REVOKED:
+            return success_response(self.get_serializer(key).data, message="Key already revoked")
         key.status = SecurityKey.STATUS_REVOKED
         key.save()
+        reset_signing_private_key_cache()
 
         log_audit_event(
             request=request,

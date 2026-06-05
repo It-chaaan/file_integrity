@@ -13,6 +13,11 @@ from drf_spectacular.utils import extend_schema
 from common.responses import error_response, success_response
 from common.audit import log_audit_event
 from enterprise_integrity.models import AuditLog
+from .crypto import (
+    decrypt_mfa_secret,
+    encrypt_mfa_secret,
+    get_mfa_encryption_configuration_error,
+)
 from .serializers import (
     AuthTokenSerializer,
     ChangePasswordSerializer,
@@ -27,6 +32,40 @@ from .serializers import (
 )
 
 User = get_user_model()
+TWO_FACTOR_LOGIN_SALT = "two-factor-login"
+TWO_FACTOR_LOGIN_MAX_AGE_SECONDS = 600
+
+
+def build_two_factor_login_challenge(user):
+    pending_token = signing.dumps(
+        {
+            "uid": user.pk,
+            "username": user.username,
+            "purpose": "login",
+        },
+        salt=TWO_FACTOR_LOGIN_SALT,
+    )
+    return {
+        "requires_two_factor": True,
+        "pending_token": pending_token,
+        "expires_in": TWO_FACTOR_LOGIN_MAX_AGE_SECONDS,
+        "user": UserSerializer(user).data,
+    }
+
+
+def issue_auth_tokens_for_user(user):
+    refresh = AuthTokenSerializer.get_token(user)
+    access = refresh.access_token
+    return {
+        "refresh": str(refresh),
+        "access": str(access),
+        "user": UserSerializer(user).data,
+        "requires_two_factor": False,
+    }
+
+
+def get_user_two_factor_secret(user):
+    return decrypt_mfa_secret(getattr(user, "two_factor_secret", ""))
 
 
 class LoginView(TokenObtainPairView):
@@ -51,9 +90,22 @@ class LoginView(TokenObtainPairView):
             return error_response("Invalid credentials.", errors=serializer.errors, status_code=401)
 
         user = serializer.user
+        if user.two_factor_enabled and get_user_two_factor_secret(user):
+            log_audit_event(
+                request=request,
+                user=user,
+                action="AUTH_LOGIN_CHALLENGE_ISSUED",
+                resource_type="auth",
+                resource_id=user.id,
+                details={"username": user.username},
+            )
+            return success_response(
+                build_two_factor_login_challenge(user),
+                message="Two-factor authentication required",
+            )
+
         user.last_activity = timezone.now()
         user.save(update_fields=["last_activity"])
-
         AuditLog.objects.create(
             user=user,
             action="AUTH_LOGIN_SUCCESS",
@@ -217,11 +269,39 @@ class EnableTwoFactorView(APIView):
 
     @extend_schema(request=None, responses={200: TwoFactorSetupSerializer})
     def post(self, request):
-        if request.user.two_factor_enabled and request.user.two_factor_secret:
+        existing_secret = get_user_two_factor_secret(request.user)
+        if request.user.two_factor_enabled and existing_secret:
             return success_response({"detail": "2FA already enabled."}, message="2FA already enabled")
 
+        configuration_error = get_mfa_encryption_configuration_error()
+        if configuration_error:
+            log_audit_event(
+                request=request,
+                user=request.user,
+                action="TWO_FACTOR_SETUP_FAILED",
+                resource_type="auth",
+                resource_id=request.user.id,
+                details={"reason": "missing_encryption_secret"},
+                status=AuditLog.STATUS_FAILED,
+                severity=AuditLog.SEVERITY_WARNING,
+            )
+            return error_response(configuration_error, status_code=400)
+
         secret = pyotp.random_base32()
-        request.user.two_factor_secret = secret
+        try:
+            request.user.two_factor_secret = encrypt_mfa_secret(secret)
+        except RuntimeError as exc:
+            log_audit_event(
+                request=request,
+                user=request.user,
+                action="TWO_FACTOR_SETUP_FAILED",
+                resource_type="auth",
+                resource_id=request.user.id,
+                details={"reason": "encryption_error"},
+                status=AuditLog.STATUS_FAILED,
+                severity=AuditLog.SEVERITY_WARNING,
+            )
+            return error_response(str(exc), status_code=400)
         request.user.save(update_fields=["two_factor_secret"])
 
         totp = pyotp.TOTP(secret)
@@ -239,7 +319,7 @@ class EnableTwoFactorView(APIView):
 
 
 class VerifyTwoFactorView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     throttle_scope = "auth_sensitive"
 
     @extend_schema(request=TwoFactorVerifySerializer, responses={200: DetailResponseSerializer})
@@ -247,44 +327,109 @@ class VerifyTwoFactorView(APIView):
         serializer = TwoFactorVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        if not request.user.two_factor_secret:
+        acting_user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+        pending_token = serializer.validated_data.get("pending_token")
+
+        if acting_user:
+            user = acting_user
+            failure_action = "TWO_FACTOR_VERIFY_FAILED"
+            success_action = "TWO_FACTOR_ENABLED"
+            missing_message = "2FA not configured."
+            invalid_message = "Invalid 2FA code."
+        else:
+            if not pending_token:
+                return error_response("Pending MFA token is required.", status_code=400)
+
+            try:
+                payload = signing.loads(
+                    pending_token,
+                    salt=TWO_FACTOR_LOGIN_SALT,
+                    max_age=TWO_FACTOR_LOGIN_MAX_AGE_SECONDS,
+                )
+            except signing.BadSignature:
+                log_audit_event(
+                    request=request,
+                    user=None,
+                    action="AUTH_TWO_FACTOR_FAILED",
+                    resource_type="auth",
+                    resource_id="",
+                    details={"reason": "invalid_or_expired_pending_token"},
+                    status=AuditLog.STATUS_FAILED,
+                    severity=AuditLog.SEVERITY_WARNING,
+                )
+                return error_response("Your MFA session has expired. Please sign in again.", status_code=401)
+
+            user = User.objects.filter(pk=payload.get("uid"), username=payload.get("username")).first()
+            if not user or not user.two_factor_enabled or not get_user_two_factor_secret(user):
+                log_audit_event(
+                    request=request,
+                    user=None,
+                    action="AUTH_TWO_FACTOR_FAILED",
+                    resource_type="auth",
+                    resource_id=str(payload.get("uid", "")),
+                    details={"reason": "user_not_available_for_mfa"},
+                    status=AuditLog.STATUS_FAILED,
+                    severity=AuditLog.SEVERITY_WARNING,
+                )
+                return error_response("MFA is not available for this account. Please sign in again.", status_code=401)
+
+            failure_action = "AUTH_TWO_FACTOR_FAILED"
+            success_action = "AUTH_LOGIN_SUCCESS"
+            missing_message = "MFA is not configured for this account."
+            invalid_message = "Invalid authentication code."
+
+        decrypted_secret = get_user_two_factor_secret(user)
+        if not decrypted_secret:
             log_audit_event(
                 request=request,
-                user=request.user,
-                action="TWO_FACTOR_VERIFY_FAILED",
+                user=acting_user or user,
+                action=failure_action,
                 resource_type="auth",
-                resource_id=request.user.id,
+                resource_id=user.id,
                 details={"reason": "not_configured"},
                 status=AuditLog.STATUS_FAILED,
                 severity=AuditLog.SEVERITY_WARNING,
             )
-            return error_response("2FA not configured.", status_code=400)
+            return error_response(missing_message, status_code=400)
 
-        totp = pyotp.TOTP(request.user.two_factor_secret)
+        totp = pyotp.TOTP(decrypted_secret)
         if not totp.verify(serializer.validated_data["code"], valid_window=1):
             log_audit_event(
                 request=request,
-                user=request.user,
-                action="TWO_FACTOR_VERIFY_FAILED",
+                user=acting_user or user,
+                action=failure_action,
                 resource_type="auth",
-                resource_id=request.user.id,
+                resource_id=user.id,
                 details={"reason": "invalid_code"},
                 status=AuditLog.STATUS_FAILED,
                 severity=AuditLog.SEVERITY_WARNING,
             )
-            return error_response("Invalid 2FA code.", status_code=400)
+            return error_response(invalid_message, status_code=400)
 
-        request.user.two_factor_enabled = True
-        request.user.save(update_fields=["two_factor_enabled"])
+        if acting_user:
+            user.two_factor_enabled = True
+            user.save(update_fields=["two_factor_enabled"])
+            log_audit_event(
+                request=request,
+                user=user,
+                action=success_action,
+                resource_type="auth",
+                resource_id=user.id,
+                details={"username": user.username},
+            )
+            return success_response({"detail": "2FA verified."}, message="2FA verified")
+
+        user.last_activity = timezone.now()
+        user.save(update_fields=["last_activity"])
         log_audit_event(
             request=request,
-            user=request.user,
-            action="TWO_FACTOR_ENABLED",
+            user=user,
+            action=success_action,
             resource_type="auth",
-            resource_id=request.user.id,
-            details={"username": request.user.username},
+            resource_id=user.id,
+            details={"username": user.username, "mfa": True},
         )
-        return success_response({"detail": "2FA verified."}, message="2FA verified")
+        return success_response(issue_auth_tokens_for_user(user), message="Login successful")
 
 
 class DisableTwoFactorView(APIView):
@@ -296,7 +441,8 @@ class DisableTwoFactorView(APIView):
         serializer = TwoFactorVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        if not request.user.two_factor_secret:
+        decrypted_secret = get_user_two_factor_secret(request.user)
+        if not decrypted_secret:
             log_audit_event(
                 request=request,
                 user=request.user,
@@ -309,7 +455,7 @@ class DisableTwoFactorView(APIView):
             )
             return error_response("2FA not configured.", status_code=400)
 
-        totp = pyotp.TOTP(request.user.two_factor_secret)
+        totp = pyotp.TOTP(decrypted_secret)
         if not totp.verify(serializer.validated_data["code"], valid_window=1):
             log_audit_event(
                 request=request,

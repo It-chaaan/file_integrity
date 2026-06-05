@@ -129,10 +129,8 @@ function Login() {
       // Success - clear failed attempts
       setFailedAttempts(0);
       localStorage.removeItem('login_attempts');
-      
-      // Navigate based on 2FA setting
-      const REQUIRE_2FA = import.meta.env.VITE_ENABLE_2FA === 'true';
-      if (REQUIRE_2FA) {
+
+      if (session?.requires_two_factor) {
         navigate('/two-factor');
       } else {
         const userRole = String(session?.user?.role || '').toLowerCase();

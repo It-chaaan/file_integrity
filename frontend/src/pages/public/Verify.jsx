@@ -47,11 +47,12 @@ function Verify() {
       const response = await verifyDocument(file, referenceNumber.trim());
       setResult({
         isValid: Boolean(response?.isAuthentic),
+        found: Boolean(response?.found),
         referenceNumber: response?.referenceNumber || referenceNumber,
         fileName: response?.fileName || file?.name,
         hash: response?.hash,
-        signature: response?.signature,
-        verifiedDate: response?.uploadDate || response?.verified_at || new Date().toLocaleString(),
+        verifiedDate: response?.verificationDate || response?.uploadDate || response?.verified_at || new Date().toLocaleString(),
+        documentType: response?.documentType || '—',
         status: response?.status,
       });
     } catch (verifyError) {
@@ -106,7 +107,9 @@ function Verify() {
                     <p className="mb-0">
                       {result.isValid 
                         ? 'Document integrity is valid and cryptographic signature checks passed' 
-                        : 'Document integrity or signature validation failed'}
+                        : result.found
+                          ? 'A registry record was found, but the uploaded file did not pass integrity verification'
+                          : 'No matching registry record was found for the supplied reference number'}
                     </p>
                   </div>
                 </div>
@@ -122,6 +125,10 @@ function Verify() {
                       <label className="small text-muted">Reference Number</label>
                       <p className="mb-0">{result.referenceNumber}</p>
                     </div>
+                    <div className="col-md-6">
+                      <label className="small text-muted">Document Type</label>
+                      <p className="mb-0">{result.documentType}</p>
+                    </div>
                     <div className="col-12">
                       <label className="small text-muted">Verification Date</label>
                       <p className="mb-0">{result.verifiedDate}</p>
@@ -129,19 +136,14 @@ function Verify() {
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <h6 className="text-muted mb-2">SHA-256 Hash</h6>
-                  <div className="p-3 bg-light rounded">
-                    <code className="small text-break">{result.hash}</code>
+                {result.hash && (
+                  <div className="mb-4">
+                    <h6 className="text-muted mb-2">Computed SHA-256 Hash</h6>
+                    <div className="p-3 bg-light rounded">
+                      <code className="small text-break">{result.hash}</code>
+                    </div>
                   </div>
-                </div>
-
-                <div className="mb-4">
-                  <h6 className="text-muted mb-2">Digital Signature</h6>
-                  <div className="p-3 bg-light rounded">
-                    <code className="small text-break">{result.signature}</code>
-                  </div>
-                </div>
+                )}
 
                 <button onClick={resetForm} className="btn btn-primary">
                   Verify Another Document

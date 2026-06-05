@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useDocuments } from '../../hooks/useData';
 import { getCurrentUser } from '../../services/auth';
 import { shortHash, formatFileSize, validateFileType, validateFileSize } from '../../services/utils';
@@ -70,6 +70,7 @@ const DOCUMENT_TYPE_TO_DEPARTMENT = DOCUMENT_CATEGORY_MAP.reduce((accumulator, g
 function Upload() {
   const { createDocument } = useDocuments();
   const currentUser = getCurrentUser();
+  const uploaderDisplayName = [currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(' ') || currentUser?.full_name || currentUser?.username || 'Unknown';
   
   const [file, setFile] = useState(null);
   const [formData, setFormData] = useState({
@@ -85,22 +86,6 @@ function Upload() {
   const [error, setError] = useState('');
 
   const stepLabels = ['Select File', 'Enter Metadata', 'Hash & Sign', 'Complete'];
-
-  const departmentNames = useMemo(
-    () => DOCUMENT_CATEGORY_MAP.map((group) => group.department),
-    []
-  );
-
-  const handleDepartmentChange = (e) => {
-    const department = e.target.value;
-    const typeBelongsToDepartment = DOCUMENT_TYPE_TO_DEPARTMENT[formData.type] === department;
-
-    setFormData((prev) => ({
-      ...prev,
-      department,
-      type: typeBelongsToDepartment ? prev.type : '',
-    }));
-  };
 
   const handleDocumentTypeChange = (e) => {
     const type = e.target.value;
@@ -178,7 +163,9 @@ function Upload() {
         document_type: docType,
         metadata: {
           department: formData.department,
-          uploaded_by: currentUser?.name || currentUser?.username || 'Unknown',
+          uploaded_by: uploaderDisplayName,
+          uploaded_by_role: currentUser?.role || '',
+          uploaded_by_department: currentUser?.department || formData.department || '',
           original_name: file.name,
           original_size: file.size,
         },
@@ -290,19 +277,14 @@ function Upload() {
               </div>
 
               <div className="col-md-6">
-                <label className="form-label fw-semibold">Department *</label>
-                <select
-                  className="form-select"
-                  value={formData.department}
-                  onChange={handleDepartmentChange}
-                  required
-                  disabled={uploading}
-                >
-                  <option value="">Select department</option>
-                  {departmentNames.map((dept) => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
+                <label className="form-label fw-semibold">Department</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.department || 'Automatically assigned from document type'}
+                  disabled
+                  readOnly
+                />
               </div>
             </div>
 

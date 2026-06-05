@@ -1,6 +1,8 @@
 import * as adapter from '../api/adapter';
+import { clearAuthTokens } from '../api/client';
 
 const USER_STORAGE_KEY = import.meta.env.VITE_USER_STORAGE_KEY || 'parity_current_user';
+const PENDING_TWO_FACTOR_KEY = import.meta.env.VITE_PENDING_TWO_FACTOR_KEY || 'parity_pending_two_factor';
 
 const saveUser = (user) => {
   if (!user) return;
@@ -9,6 +11,39 @@ const saveUser = (user) => {
 
 const clearUser = () => {
   localStorage.removeItem(USER_STORAGE_KEY);
+};
+
+const savePendingTwoFactorChallenge = (challenge) => {
+  if (!challenge) return;
+  sessionStorage.setItem(PENDING_TWO_FACTOR_KEY, JSON.stringify({
+    pending_token: challenge.pending_token,
+    expires_in: challenge.expires_in,
+    created_at: Date.now(),
+    user: challenge.user || null,
+  }));
+};
+
+const clearPendingTwoFactorChallenge = () => {
+  sessionStorage.removeItem(PENDING_TWO_FACTOR_KEY);
+};
+
+const readPendingTwoFactorChallenge = () => {
+  const raw = sessionStorage.getItem(PENDING_TWO_FACTOR_KEY);
+  if (!raw) return null;
+
+  try {
+    const pending = JSON.parse(raw);
+    const createdAt = Number(pending?.created_at || 0);
+    const expiresIn = Number(pending?.expires_in || 0);
+    if (!createdAt || !expiresIn || Date.now() > createdAt + (expiresIn * 1000)) {
+      clearPendingTwoFactorChallenge();
+      return null;
+    }
+    return pending;
+  } catch {
+    clearPendingTwoFactorChallenge();
+    return null;
+  }
 };
 
 const readUser = () => {
@@ -30,7 +65,9 @@ const readUser = () => {
 export const initAuth = () => {
   adapter.initializeApp();
 
-  if (!adapter.isAuthenticated()) {
+  if (adapter.isAuthenticated()) {
+    clearPendingTwoFactorChallenge();
+  } else {
     clearUser();
   }
 };
@@ -43,6 +80,15 @@ export const initAuth = () => {
  */
 export const login = async (username, password) => {
   const loginResponse = await adapter.login(username, password);
+
+  if (loginResponse?.requires_two_factor) {
+    clearAuthTokens();
+    clearUser();
+    savePendingTwoFactorChallenge(loginResponse);
+    return loginResponse;
+  }
+
+  clearPendingTwoFactorChallenge();
 
   const responseUser = loginResponse?.user || null;
   if (responseUser) {
@@ -69,8 +115,11 @@ export const login = async (username, password) => {
  * @returns {Promise<Object>} Verification result
  */
 export const verify2FA = async (code) => {
-  const verification = await adapter.verify2FA(code);
+  const pendingChallenge = readPendingTwoFactorChallenge();
+  const verification = await adapter.verify2FA(code, pendingChallenge?.pending_token || null);
   const responseUser = verification?.user || null;
+
+  clearPendingTwoFactorChallenge();
 
   if (responseUser) {
     saveUser(responseUser);
@@ -99,6 +148,7 @@ export const logout = async () => {
     return await adapter.logout();
   } finally {
     clearUser();
+    clearPendingTwoFactorChallenge();
   }
 };
 
@@ -132,7 +182,18 @@ export const refreshCurrentUser = async () => {
  */
 export const getCurrentSession = () => {
   if (!adapter.isAuthenticated()) {
-    return null;
+    const pendingChallenge = readPendingTwoFactorChallenge();
+    if (!pendingChallenge) {
+      return null;
+    }
+
+    return {
+      verified: false,
+      requires_two_factor: true,
+      user: pendingChallenge.user || null,
+      expires_in: pendingChallenge.expires_in,
+      created_at: pendingChallenge.created_at,
+    };
   }
 
   return {
@@ -140,6 +201,8 @@ export const getCurrentSession = () => {
     user: readUser(),
   };
 };
+
+export const getPendingTwoFactorChallenge = () => readPendingTwoFactorChallenge();
 
 /**
  * Check if user is authenticated
@@ -186,6 +249,7 @@ export default {
   getCurrentUser,
   refreshCurrentUser,
   getCurrentSession,
+  getPendingTwoFactorChallenge,
   isAuthenticated,
   hasRole,
   changePassword,

@@ -38,8 +38,8 @@ export const login = async (username, password) => {
  * @param {string} code - 6-digit code
  * @returns {Promise<Object>} Verification result
  */
-export const verify2FA = async (code) => {
-  return await realAuthAPI.verify2FA(code);
+export const verify2FA = async (code, pendingToken = null) => {
+  return await realAuthAPI.verify2FA(code, pendingToken);
 };
 
 /**

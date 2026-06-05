@@ -8,6 +8,31 @@ import PropTypes from 'prop-types';
  * @param {string} [props.priority] - Priority label (overrides status coloring when present).
  */
 const StatusBadge = ({ status, priority }) => {
+  const formatLabel = () => {
+    if (priority) {
+      const priorityLabels = {
+        urgent: 'Urgent',
+        high: 'High',
+        medium: 'Medium',
+        low: 'Low',
+      };
+      return priorityLabels[(priority || '').toLowerCase()] || priority;
+    }
+
+    const statusLabels = {
+      verified: 'Verified',
+      failed: 'Failed',
+      pending: 'Pending',
+      expired: 'Expired',
+      open: 'Open',
+      in_progress: 'In Progress',
+      waiting_response: 'Waiting Response',
+      resolved: 'Resolved',
+      closed: 'Closed',
+    };
+    return statusLabels[(status || '').toLowerCase()] || status;
+  };
+
   const getColor = () => {
     if (priority) {
       const normalizedPriority = priority.toLowerCase();
@@ -30,7 +55,7 @@ const StatusBadge = ({ status, priority }) => {
 
   return (
     <span className={`badge bg-${getColor()}`}>
-      {status || priority}
+      {formatLabel()}
     </span>
   );
 };

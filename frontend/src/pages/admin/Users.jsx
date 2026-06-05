@@ -2,9 +2,11 @@ import React, { useState, useMemo } from 'react';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import { useUsers } from '../../hooks/useData';
+import { getCurrentUser } from '../../services/auth';
 
 function Users() {
   const { users, loading, updateUser, createUser, deleteUser } = useUsers();
+  const currentUser = getCurrentUser();
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -28,6 +30,28 @@ function Users() {
     staff: 'Staff',
     verifier: 'Verifier',
     client: 'Enterprise User',
+  };
+
+  const currentActorRole = currentUser?.role || '';
+  const isSuperAdminActor = currentActorRole === 'super_admin';
+  const editableRoleOptions = isSuperAdminActor
+    ? [
+        { value: 'super_admin', label: 'System Administrator' },
+        { value: 'admin', label: 'Administrator' },
+        { value: 'staff', label: 'Staff' },
+        { value: 'verifier', label: 'Verifier' },
+        { value: 'client', label: 'Enterprise User' },
+      ]
+    : [
+        { value: 'staff', label: 'Staff' },
+        { value: 'verifier', label: 'Verifier' },
+        { value: 'client', label: 'Enterprise User' },
+      ];
+
+  const canManageUser = (user) => {
+    if (!user) return true;
+    if (isSuperAdminActor) return true;
+    return user.role !== 'super_admin' && user.role !== 'admin';
   };
 
   // Filter users
@@ -133,7 +157,9 @@ function Users() {
     <div className="d-flex gap-2 align-items-center" style={{ flexWrap: 'nowrap' }}>
       <button
         className="btn btn-sm btn-dark"
+        disabled={!canManageUser(user)}
         onClick={() => {
+          if (!canManageUser(user)) return;
           setSelectedUser(user);
           setFormData({
             username: user.username || '',
@@ -154,7 +180,9 @@ function Users() {
       </button>
       <button
         className="btn btn-sm btn-outline-danger"
+        disabled={!canManageUser(user)}
         onClick={() => {
+          if (!canManageUser(user)) return;
           setDeleteTarget(user);
           setShowDeleteModal(true);
         }}
@@ -429,11 +457,9 @@ function Users() {
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       required
                     >
-                      <option value="super_admin">System Administrator</option>
-                      <option value="admin">Administrator</option>
-                      <option value="staff">Staff</option>
-                      <option value="verifier">Verifier</option>
-                      <option value="client">Enterprise User</option>
+                      {editableRoleOptions.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

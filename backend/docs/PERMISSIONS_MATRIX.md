@@ -12,8 +12,9 @@ Roles: `super_admin`, `admin`, `staff`, `verifier`, `client`
 - Super-admin accounts can only be modified by super_admin
 
 ## Documents
-- Verify, batch-verify, search-by-hash: public
-- Create: client, verifier, staff, admin, super_admin
+- Verify, batch-verify: public
+- Search-by-hash: authenticated document roles only
+- Create: client, staff, admin, super_admin
 - Update/delete: staff, admin, super_admin
 - List/search/stats/types/verifications/download: verifier, staff, admin, super_admin
 - Client document access is scoped to own uploads

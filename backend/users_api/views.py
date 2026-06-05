@@ -24,6 +24,24 @@ class UserViewSet(ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuper]
     pagination_class = StandardResultsSetPagination
 
+    @staticmethod
+    def _allowed_roles_for_actor(actor):
+        if getattr(actor, "role", "") == User.ROLE_SUPER_ADMIN:
+            return {choice[0] for choice in User.ROLE_CHOICES}
+        if getattr(actor, "role", "") == User.ROLE_ADMIN:
+            return {User.ROLE_STAFF, User.ROLE_VERIFIER, User.ROLE_CLIENT}
+        return set()
+
+    def _validate_role_assignment(self, actor, requested_role):
+        allowed_roles = self._allowed_roles_for_actor(actor)
+        if requested_role not in allowed_roles:
+            return error_response(
+                "Forbidden",
+                errors={"role": "You are not allowed to assign this role."},
+                status_code=403,
+            )
+        return None
+
     def get_serializer_class(self):
         if self.action == "create":
             return UserCreateSerializer
@@ -69,6 +87,10 @@ class UserViewSet(ModelViewSet):
         if not serializer.is_valid():
             logger.warning("User create validation failed", extra={"errors": serializer.errors})
             return error_response("Validation error", errors=serializer.errors, status_code=400)
+        requested_role = serializer.validated_data.get("role", User.ROLE_CLIENT)
+        role_error = self._validate_role_assignment(request.user, requested_role)
+        if role_error:
+            return role_error
         user = serializer.save()
         log_audit_event(
             request=request,
@@ -85,8 +107,15 @@ class UserViewSet(ModelViewSet):
         instance = self.get_object()
         if instance.role == "super_admin" and request.user.role != "super_admin":
             return error_response("Forbidden", errors={"detail": "Cannot modify super_admin accounts."}, status_code=403)
+        if request.user.role == User.ROLE_ADMIN and instance.role == User.ROLE_ADMIN:
+            return error_response("Forbidden", errors={"detail": "Administrators cannot modify peer administrator accounts."}, status_code=403)
         serializer = UserListSerializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+        requested_role = serializer.validated_data.get("role")
+        if requested_role is not None:
+            role_error = self._validate_role_assignment(request.user, requested_role)
+            if role_error:
+                return role_error
         serializer.save()
         log_audit_event(
             request=request,
@@ -157,9 +186,14 @@ class UserViewSet(ModelViewSet):
         user = self.get_object()
         if user.role == "super_admin" and request.user.role != "super_admin":
             return error_response("Forbidden", errors={"detail": "Cannot modify super_admin roles."}, status_code=403)
+        if request.user.role == User.ROLE_ADMIN and user.role == User.ROLE_ADMIN:
+            return error_response("Forbidden", errors={"detail": "Administrators cannot modify peer administrator roles."}, status_code=403)
         role = request.data.get("role")
         if role not in dict(user.ROLE_CHOICES):
             return error_response("Invalid role", errors={"role": "Invalid role"}, status_code=400)
+        role_error = self._validate_role_assignment(request.user, role)
+        if role_error:
+            return role_error
         user.role = role
         user.save(update_fields=["role"])
         log_audit_event(

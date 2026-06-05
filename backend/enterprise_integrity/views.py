@@ -30,6 +30,7 @@ from .models import AuditLog, DocumentRecord, VerificationAttempt
 from .serializers import (
     AuditLogSerializer,
     DocumentResponseSerializer,
+    PublicDocumentLookupSerializer,
     DocumentUpdateSerializer,
     DocumentUploadSerializer,
     VerificationAttemptSerializer,
@@ -58,8 +59,10 @@ class DocumentViewSet(ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
-        if self.action in {"verify_document", "batch_verify", "search_by_hash"}:
+        if self.action in {"verify_document", "batch_verify"}:
             return [permissions.AllowAny()]
+        if self.action == "search_by_hash":
+            return [permissions.IsAuthenticated(), IsStaffOrAdminOrVerifierOrClient()]
         if self.action == "create":
             return [permissions.IsAuthenticated(), IsStaffOrAdminOrClient()]
         if self.action in {"partial_update", "destroy"}:
@@ -256,7 +259,6 @@ class DocumentViewSet(ModelViewSet):
         response_payload = {
             "filename": uploaded_file.name,
             "fileName": uploaded_file.name,
-            "hash": sha256_hash,
             "found": found,
             "isAuthentic": is_authentic,
             "status": verify_status,
@@ -269,12 +271,19 @@ class DocumentViewSet(ModelViewSet):
                     "documentId": document.reference_number,
                     "referenceNumber": document.reference_number,
                     "documentType": document.document_type,
-                    "fileSize": document.file_size,
-                    "uploadDate": document.verified_at,
-                    "uploadedBy": document.uploaded_by,
-                    "signature": document.signature,
+                    "verificationDate": document.verified_at,
                 }
             )
+            if getattr(request, "user", None) and request.user.is_authenticated:
+                response_payload.update(
+                    {
+                        "hash": sha256_hash,
+                        "fileSize": document.file_size,
+                        "uploadDate": document.verified_at,
+                        "uploadedBy": document.uploaded_by,
+                        "signature": document.signature,
+                    }
+                )
 
         return success_response(response_payload)
 
@@ -359,7 +368,7 @@ class DocumentViewSet(ModelViewSet):
         if not document:
             return success_response({"found": False})
 
-        payload = DocumentResponseSerializer(document).data
+        payload = PublicDocumentLookupSerializer(document).data
         payload["found"] = True
         return success_response(payload)
 

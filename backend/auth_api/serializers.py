@@ -16,15 +16,18 @@ def get_user_role(user):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(write_only=True, required=False, allow_blank=False)
     role = serializers.SerializerMethodField()
     role_label = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
     profile_photo_url = serializers.SerializerMethodField()
+    two_factor_enabled = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
         fields = [
             "id",
+            "name",
             "username",
             "email",
             "first_name",
@@ -36,6 +39,7 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "profile_photo",
             "profile_photo_url",
+            "two_factor_enabled",
             "is_active",
             "last_activity",
             "created_at",
@@ -74,6 +78,24 @@ class UserSerializer(serializers.ModelSerializer):
             return None
         url = obj.profile_photo.url
         return request.build_absolute_uri(url) if request else url
+
+    def update(self, instance, validated_data):
+        raw_name = validated_data.pop("name", None)
+        if raw_name is not None:
+            normalized_name = " ".join(str(raw_name).split())
+            if normalized_name:
+                parts = normalized_name.split(" ", 1)
+                validated_data["first_name"] = parts[0]
+                validated_data["last_name"] = parts[1] if len(parts) > 1 else ""
+
+        request = self.context.get("request")
+        if request and getattr(request, "user", None) == instance:
+            validated_data.pop("department", None)
+            validated_data.pop("role", None)
+            validated_data.pop("is_staff", None)
+            validated_data.pop("is_superuser", None)
+            validated_data.pop("is_active", None)
+        return super().update(instance, validated_data)
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -142,6 +164,7 @@ class ProfilePhotoSerializer(serializers.ModelSerializer):
 
 class TwoFactorVerifySerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6)
+    pending_token = serializers.CharField(required=False, allow_blank=False)
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -167,3 +190,10 @@ class DetailResponseSerializer(serializers.Serializer):
 class TwoFactorSetupSerializer(serializers.Serializer):
     secret = serializers.CharField()
     otpauth_url = serializers.CharField()
+
+
+class TwoFactorChallengeSerializer(serializers.Serializer):
+    requires_two_factor = serializers.BooleanField()
+    pending_token = serializers.CharField()
+    expires_in = serializers.IntegerField()
+    user = UserSerializer()

@@ -23,6 +23,14 @@ class TicketViewSet(ModelViewSet):
     parser_classes = [JSONParser, MultiPartParser, FormParser]
     pagination_class = StandardResultsSetPagination
 
+    @staticmethod
+    def _is_staff_like(user):
+        return bool(user and getattr(user, "role", "") in {User.ROLE_STAFF, User.ROLE_ADMIN, User.ROLE_SUPER_ADMIN})
+
+    @staticmethod
+    def _is_client_like(user):
+        return bool(user and getattr(user, "role", "") == User.ROLE_CLIENT)
+
     def get_permissions(self):
         staff_only_actions = {
             "update",
@@ -246,14 +254,33 @@ class TicketViewSet(ModelViewSet):
         for upload in request.FILES.getlist("attachments"):
             TicketCommentAttachment.objects.create(comment=comment, file=upload)
 
+        requested_status = request.data.get("status", "").strip()
+        updated_status = None
+        if requested_status:
+            if requested_status not in dict(Ticket.STATUS_CHOICES):
+                return error_response("Invalid status", errors={"status": "Invalid status"}, status_code=400)
+            if not self._is_staff_like(request.user):
+                return error_response("Only staff can set ticket status from replies.", status_code=403)
+            updated_status = requested_status
+        elif self._is_client_like(request.user) and ticket.status == Ticket.STATUS_WAITING:
+            updated_status = Ticket.STATUS_IN_PROGRESS
+
+        if updated_status:
+            ticket.status = updated_status
+            if updated_status in (Ticket.STATUS_RESOLVED, Ticket.STATUS_CLOSED):
+                ticket.closed_at = timezone.now()
+            else:
+                ticket.closed_at = None
+            ticket.save(update_fields=["status", "closed_at", "updated_at"])
+
         log_audit_event(
             request=request,
             user=request.user,
             action="TICKET_COMMENT_ADDED",
             resource_type="ticket",
             resource_id=ticket.id,
-            details={"ticket_number": ticket.ticket_number, "comment_id": comment.id},
-            metadata={"ticket_number": ticket.ticket_number, "comment_id": comment.id},
+            details={"ticket_number": ticket.ticket_number, "comment_id": comment.id, "status": updated_status or ticket.status},
+            metadata={"ticket_number": ticket.ticket_number, "comment_id": comment.id, "status": updated_status or ticket.status},
         )
 
         return success_response(TicketCommentSerializer(comment).data, message="Comment added", status_code=status.HTTP_201_CREATED)

@@ -1,20 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../../assets/icons/Logo - Integrity Verification.png';
-import { verify2FA, getCurrentSession } from '../../services/auth';
+import { verify2FA, getCurrentSession, getPendingTwoFactorChallenge } from '../../services/auth';
 
 function TwoFactor() {
   const navigate = useNavigate();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pendingUser, setPendingUser] = useState(null);
 
   useEffect(() => {
-    // Check if user has a session
+    const pendingChallenge = getPendingTwoFactorChallenge();
     const currentSession = getCurrentSession();
-    if (!currentSession) {
-      navigate('/login');
+    if (currentSession?.verified) {
+      navigate('/user-agreement', { replace: true });
+      return;
     }
+    if (!pendingChallenge) {
+      navigate('/login');
+      return;
+    }
+    setPendingUser(pendingChallenge.user || null);
   }, [navigate]);
 
   const handleCodeChange = (index, value) => {
@@ -55,11 +62,6 @@ function TwoFactor() {
     }
   };
 
-  const handleResend = () => {
-    setError('');
-    alert('Verification code resent to your email');
-  };
-
   return (
     <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#F3F4F6', padding: '20px' }}>
       <div className="container">
@@ -78,8 +80,10 @@ function TwoFactor() {
                     <i className="bi bi-arrow-left me-2"></i>Back to Login
                   </Link>
 
-                  <h2 className="fw-bold mb-3" style={{ color: '#0D1526', fontSize: 'clamp(24px, 5vw, 32px)' }}>Two-Factor Authentication</h2>
-                  <p className="text-muted mb-4" style={{ fontSize: '14px' }}>Enter the 6-digit code sent to your email</p>
+                  <h2 className="fw-bold mb-3" style={{ color: '#0D1526', fontSize: 'clamp(24px, 5vw, 32px)' }}>Multi-Factor Authentication</h2>
+                  <p className="text-muted mb-4" style={{ fontSize: '14px' }}>
+                    Enter the 6-digit code from your authenticator app{pendingUser?.username ? ` for ${pendingUser.username}` : ''}.
+                  </p>
 
                   {error && (
                     <div className="alert alert-danger mb-3" style={{ borderRadius: '8px', fontSize: '14px' }}>
@@ -138,22 +142,17 @@ function TwoFactor() {
                     </button>
 
                     <div className="text-center mb-5">
-                      <p className="text-muted mb-1" style={{ fontSize: '14px' }}>Didn't receive a code?</p>
-                      <button 
-                        type="button" 
-                        onClick={handleResend}
-                        className="btn btn-link text-decoration-none p-0 fw-semibold"
-                        style={{ fontSize: '14px', color: '#0D1526' }}
-                      >
-                        Resend
-                      </button>
+                      <p className="text-muted mb-1" style={{ fontSize: '14px' }}>Use the currently rotating code from your authenticator app.</p>
+                      <p className="mb-0" style={{ fontSize: '13px', color: '#6B7280' }}>
+                        If you no longer have access, please contact your system administrator.
+                      </p>
                     </div>
 
                     {/* Security Notice */}
                     <div className="alert mb-0" style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '8px', padding: '16px' }}>
                       <p className="mb-1 fw-semibold" style={{ fontSize: '13px', color: '#1E40AF' }}>Security Notice:</p>
                       <p className="mb-0" style={{ fontSize: '13px', color: '#1E40AF', lineHeight: '1.6' }}>
-                        For your protection, this session will expire in 10 minutes. The verification code is valid for a single use only.
+                        For your protection, this sign-in challenge expires in 10 minutes. Each code is time-based and changes automatically in your authenticator app.
                       </p>
                     </div>
                   </form>

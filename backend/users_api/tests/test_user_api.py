@@ -112,3 +112,48 @@ class UserApiTests(APITestCase):
 
         response = self.client.get("/api/v1/users/")
         self.assertEqual(response.status_code, 403)
+
+    def test_admin_cannot_create_or_promote_admin_or_super_admin(self):
+        response = self.client.post(
+            "/api/v1/users/",
+            {
+                "username": "forbidden-admin",
+                "email": "forbidden-admin@example.com",
+                "password": "AdminPass123!",
+                "role": "admin",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(
+            "/api/v1/users/",
+            {
+                "username": "staff3",
+                "email": "staff3@example.com",
+                "password": "StaffPass123!",
+                "role": "staff",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        user_id = response.data["data"]["id"]
+
+        response = self.client.patch(f"/api/v1/users/{user_id}/role/", {"role": "admin"}, format="json")
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_cannot_modify_super_admin_account(self):
+        User = get_user_model()
+        super_admin = User.objects.create_user(
+            username="superboss",
+            email="superboss@example.com",
+            password="SuperPass123!",
+            role=User.ROLE_SUPER_ADMIN,
+        )
+
+        response = self.client.patch(
+            f"/api/v1/users/{super_admin.id}/",
+            {"department": "Operations"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)

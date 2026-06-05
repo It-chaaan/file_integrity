@@ -218,9 +218,10 @@ export const assignTicket = async (ticketId, staffId) => {
  * @param {string|number} ticketId - Ticket ID.
  * @param {string} comment - Comment text.
  * @param {Array<File>} [attachments] - Optional attachments.
+ * @param {string|null} [statusOverride] - Optional status to set with the reply.
  * @returns {Promise<Object>} Created comment data.
  */
-export const addTicketComment = async (ticketId, comment, attachments = []) => {
+export const addTicketComment = async (ticketId, comment, attachments = [], statusOverride = null) => {
   if (attachments.length > 0) {
     const validation = validateFiles(attachments);
     if (!validation.valid) {
@@ -231,7 +232,8 @@ export const addTicketComment = async (ticketId, comment, attachments = []) => {
       throw new Error(errorMessages.join(' | '));
     }
 
-    const formData = createFormDataFromFiles(attachments, { comment }, 'attachments');
+    const payload = statusOverride ? { comment, status: statusOverride } : { comment };
+    const formData = createFormDataFromFiles(attachments, payload, 'attachments');
     const config = createFormDataConfig();
 
     const response = await withErrorContext(
@@ -244,7 +246,7 @@ export const addTicketComment = async (ticketId, comment, attachments = []) => {
   }
 
   const response = await withErrorContext(
-    () => apiClient.post(`/v1/tickets/${ticketId}/comments/`, { comment }),
+    () => apiClient.post(`/v1/tickets/${ticketId}/comments/`, statusOverride ? { comment, status: statusOverride } : { comment }),
     'tickets.addComment',
     { resource: 'ticket', action: 'addComment', resourceId: ticketId }
   );

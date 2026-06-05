@@ -1,21 +1,44 @@
 import json
+import os
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 
+from security_keys.key_material import build_encrypted_ecdsa_key_pair
+from security_keys.models import SecurityKey
+
 
 class DocumentApiTests(APITestCase):
     def setUp(self):
+        self.previous_key_secret = os.environ.get("PARITY_KEY_ENCRYPTION_SECRET")
+        os.environ["PARITY_KEY_ENCRYPTION_SECRET"] = "test-document-key-secret"
+
+        public_key_pem, encrypted_private_key = build_encrypted_ecdsa_key_pair()
+        SecurityKey.objects.create(
+            name="Primary Signing Key",
+            algorithm=SecurityKey.ALGORITHM_ECDSA,
+            key_type="signing",
+            public_key=public_key_pem,
+            private_key=encrypted_private_key,
+            status=SecurityKey.STATUS_ACTIVE,
+        )
+
         User = get_user_model()
         self.user = User.objects.create_user(
-            username="verifier",
-            email="verifier@example.com",
-            password="VerifyPass123!",
-            role=User.ROLE_VERIFIER,
+            username="clientuser",
+            email="client@example.com",
+            password="ClientPass123!",
+            role=User.ROLE_CLIENT,
         )
-        response = self.client.post("/api/v1/auth/login/", {"username": "verifier", "password": "VerifyPass123!"}, format="json")
+        response = self.client.post("/api/v1/auth/login/", {"username": "clientuser", "password": "ClientPass123!"}, format="json")
         token = response.data["data"]["access"]
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    def tearDown(self):
+        if self.previous_key_secret is None:
+            os.environ.pop("PARITY_KEY_ENCRYPTION_SECRET", None)
+        else:
+            os.environ["PARITY_KEY_ENCRYPTION_SECRET"] = self.previous_key_secret
 
     def test_document_upload_and_verify(self):
         payload = b"hello world"
@@ -33,12 +56,17 @@ class DocumentApiTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         reference_number = response.data["data"]["reference_number"]
 
+        self.client.credentials()
         verify_file = SimpleUploadedFile("doc.txt", payload, content_type="text/plain")
         response = self.client.post(
             "/api/v1/documents/verify/",
             {"file": verify_file, "reference_number": reference_number},
         )
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["data"]["isAuthentic"])
+        self.assertNotIn("signature", response.data["data"])
+        self.assertNotIn("uploadedBy", response.data["data"])
+        self.assertNotIn("hash", response.data["data"])
 
     def test_document_list_filters_and_stats(self):
         payload = b"doc payload"
@@ -89,8 +117,17 @@ class DocumentApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+        self.client.credentials()
+        response = self.client.get(f"/api/v1/documents/search-by-hash/?hash={doc_hash}")
+        self.assertEqual(response.status_code, 401)
+
+        response = self.client.post("/api/v1/auth/login/", {"username": "clientuser", "password": "ClientPass123!"}, format="json")
+        token = response.data["data"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
         response = self.client.get(f"/api/v1/documents/search-by-hash/?hash={doc_hash}")
         self.assertEqual(response.status_code, 200)
+        self.assertNotIn("signature", response.data["data"])
+        self.assertNotIn("document_hash", response.data["data"])
 
     def test_document_update_delete_download_error(self):
         payload = b"delete payload"
@@ -121,13 +158,13 @@ class DocumentApiTests(APITestCase):
         upload = SimpleUploadedFile("doc.txt", payload, content_type="text/plain")
 
         User = get_user_model()
-        staff = User.objects.create_user(
-            username="staffer",
-            email="staffer@example.com",
-            password="StaffPass123!",
-            role=User.ROLE_STAFF,
+        verifier = User.objects.create_user(
+            username="verifier",
+            email="verifier@example.com",
+            password="VerifyPass123!",
+            role=User.ROLE_VERIFIER,
         )
-        response = self.client.post("/api/v1/auth/login/", {"username": "staffer", "password": "StaffPass123!"}, format="json")
+        response = self.client.post("/api/v1/auth/login/", {"username": "verifier", "password": "VerifyPass123!"}, format="json")
         token = response.data["data"]["access"]
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
@@ -140,3 +177,42 @@ class DocumentApiTests(APITestCase):
 
         response = self.client.post("/api/v1/documents/verify/", {})
         self.assertEqual(response.status_code, 400)
+
+    def test_document_verify_tampered_and_wrong_reference(self):
+        payload = b"original payload"
+        upload = SimpleUploadedFile("doc.txt", payload, content_type="text/plain")
+        response = self.client.post(
+            "/api/v1/documents/",
+            {
+                "title": "Original",
+                "document_type": "contract",
+                "file": upload,
+            },
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 201)
+        reference_number = response.data["data"]["reference_number"]
+
+        self.client.credentials()
+
+        tampered = SimpleUploadedFile("doc.txt", b"tampered payload", content_type="text/plain")
+        response = self.client.post(
+            "/api/v1/documents/verify/",
+            {"file": tampered, "reference_number": reference_number},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["data"]["found"])
+        self.assertFalse(response.data["data"]["isAuthentic"])
+        self.assertNotIn("signature", response.data["data"])
+
+        wrong_ref = SimpleUploadedFile("doc.txt", payload, content_type="text/plain")
+        response = self.client.post(
+            "/api/v1/documents/verify/",
+            {"file": wrong_ref, "reference_number": "DOC-2099-AAAAAA"},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["data"]["found"])
+        self.assertFalse(response.data["data"]["isAuthentic"])
+        self.assertNotIn("documentType", response.data["data"])
