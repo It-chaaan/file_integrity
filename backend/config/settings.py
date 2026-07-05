@@ -28,6 +28,7 @@ def _require_env(name: str) -> str:
 
 
 ENVIRONMENT = os.getenv("DJANGO_ENV", "development")
+TRUST_PROXY_HEADERS = _get_env_bool("DJANGO_TRUST_PROXY_HEADERS", True)
 
 SECRET_KEY = _require_env("DJANGO_SECRET_KEY")
 DEBUG = _get_env_bool("DJANGO_DEBUG", False)

@@ -41,11 +41,12 @@ export const register = async (userData) => {
  * Login user and retrieve JWT tokens (tokens stored via client helpers).
  * @param {string} username - Username or email.
  * @param {string} password - User password.
+ * @param {string} [trustedDeviceToken] - Optional trusted-device token.
  * @returns {Promise<Object>} User data and tokens.
  */
-export const login = async (username, password) => {
+export const login = async (username, password, trustedDeviceToken = null) => {
   const response = await withErrorContext(
-    () => apiClient.post('/v1/auth/login/', { username, password }),
+    () => apiClient.post('/v1/auth/login/', trustedDeviceToken ? { username, password, trusted_device_token: trustedDeviceToken } : { username, password }),
     'auth.login',
     { resource: 'session', action: 'login' }
   );
@@ -102,11 +103,13 @@ export const refreshToken = async (refreshToken) => {
 /**
  * Verify two-factor authentication code.
  * @param {string} code - 6-digit 2FA code from authenticator app.
+ * @param {string|null} pendingToken - Pending MFA token.
+ * @param {boolean} rememberDevice - Whether to issue a trusted-device token.
  * @returns {Promise<Object>} Verification result with tokens.
  */
-export const verify2FA = async (code, pendingToken = null) => {
+export const verify2FA = async (code, pendingToken = null, rememberDevice = false) => {
   const response = await withErrorContext(
-    () => apiClient.post('/v1/auth/verify-2fa/', pendingToken ? { code, pending_token: pendingToken } : { code }),
+    () => apiClient.post('/v1/auth/verify-2fa/', pendingToken ? { code, pending_token: pendingToken, remember_device: rememberDevice } : { code, remember_device: rememberDevice }),
     'auth.verify2FA',
     { resource: 'session', action: 'verify2FA' }
   );

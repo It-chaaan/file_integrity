@@ -1,4 +1,5 @@
 from enterprise_integrity.models import AuditLog
+from common.client_ip import get_client_ip
 
 
 def log_audit_event(
@@ -18,7 +19,7 @@ def log_audit_event(
     ip_address = ""
     user_agent = ""
     if request is not None:
-        ip_address = request.META.get("REMOTE_ADDR", "")
+        ip_address = get_client_ip(request)
         user_agent = request.META.get("HTTP_USER_AGENT", "")
     AuditLog.objects.create(
         user=user,

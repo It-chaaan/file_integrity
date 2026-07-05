@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
 from django.core.mail import send_mail
 from django.core import signing
+import hashlib
 from django.utils import timezone
 import pyotp
 from rest_framework import generics, permissions, status
@@ -12,6 +13,7 @@ from drf_spectacular.utils import extend_schema
 
 from common.responses import error_response, success_response
 from common.audit import log_audit_event
+from common.client_ip import get_client_ip
 from enterprise_integrity.models import AuditLog
 from .crypto import (
     decrypt_mfa_secret,
@@ -34,9 +36,82 @@ from .serializers import (
 User = get_user_model()
 TWO_FACTOR_LOGIN_SALT = "two-factor-login"
 TWO_FACTOR_LOGIN_MAX_AGE_SECONDS = 600
+TRUSTED_DEVICE_SALT = "trusted-device-login"
+TRUSTED_DEVICE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
 
-def build_two_factor_login_challenge(user):
+def get_device_label(request):
+    user_agent = (request.META.get("HTTP_USER_AGENT", "") or "").strip()
+    normalized = user_agent.lower()
+
+    if "iphone" in normalized or "ipad" in normalized or "ios" in normalized:
+        platform = "iPhone" if "iphone" in normalized else "iPad" if "ipad" in normalized else "iOS"
+    elif "android" in normalized:
+        platform = "Android"
+    elif "windows" in normalized:
+        platform = "Windows"
+    elif "mac os x" in normalized or "macintosh" in normalized:
+        platform = "macOS"
+    elif "linux" in normalized:
+        platform = "Linux"
+    else:
+        platform = "Unknown device"
+
+    if "edg/" in normalized or "edge/" in normalized:
+        browser = "Edge"
+    elif "chrome/" in normalized and "edg/" not in normalized:
+        browser = "Chrome"
+    elif "firefox/" in normalized:
+        browser = "Firefox"
+    elif "safari/" in normalized and "chrome/" not in normalized:
+        browser = "Safari"
+    else:
+        browser = "Browser"
+
+    return f"{browser} on {platform}".strip()
+
+
+def get_user_agent_hash(request):
+    user_agent = (request.META.get("HTTP_USER_AGENT", "") or "").strip()
+    return hashlib.sha256(user_agent.encode("utf-8")).hexdigest()
+
+
+def build_device_context(request):
+    return {
+        "client_ip": get_client_ip(request),
+        "device_label": get_device_label(request),
+    }
+
+
+def build_trusted_device_token(user, request):
+    payload = {
+        "uid": user.pk,
+        "ua_hash": get_user_agent_hash(request),
+        "device_label": get_device_label(request),
+        "client_ip": get_client_ip(request),
+        "purpose": "trusted_device",
+    }
+    return signing.dumps(payload, salt=TRUSTED_DEVICE_SALT)
+
+
+def validate_trusted_device_token(user, request, token):
+    if not token:
+        return False
+
+    try:
+        payload = signing.loads(token, salt=TRUSTED_DEVICE_SALT, max_age=TRUSTED_DEVICE_MAX_AGE_SECONDS)
+    except signing.BadSignature:
+        return False
+
+    expected_user_agent_hash = get_user_agent_hash(request)
+    return (
+        payload.get("purpose") == "trusted_device"
+        and payload.get("uid") == user.pk
+        and payload.get("ua_hash") == expected_user_agent_hash
+    )
+
+
+def build_pending_two_factor_payload(user):
     pending_token = signing.dumps(
         {
             "uid": user.pk,
@@ -51,6 +126,13 @@ def build_two_factor_login_challenge(user):
         "expires_in": TWO_FACTOR_LOGIN_MAX_AGE_SECONDS,
         "user": UserSerializer(user).data,
     }
+
+
+def build_two_factor_login_challenge(user, request):
+    challenge = build_pending_two_factor_payload(user)
+    challenge.update(build_device_context(request))
+    challenge["trusted_device_available"] = True
+    return challenge
 
 
 def issue_auth_tokens_for_user(user):
@@ -82,7 +164,7 @@ class LoginView(TokenObtainPairView):
                 resource_id=str(request.data.get("username", "")),
                 details={"username": request.data.get("username")},
                 metadata={"username": request.data.get("username")},
-                ip_address=request.META.get("REMOTE_ADDR", ""),
+                ip_address=get_client_ip(request),
                 user_agent=request.META.get("HTTP_USER_AGENT", ""),
                 severity=AuditLog.SEVERITY_WARNING,
                 status=AuditLog.STATUS_FAILED,
@@ -91,16 +173,43 @@ class LoginView(TokenObtainPairView):
 
         user = serializer.user
         if user.two_factor_enabled and get_user_two_factor_secret(user):
+            trusted_device_token = request.data.get("trusted_device_token")
+            if validate_trusted_device_token(user, request, trusted_device_token):
+                user.last_activity = timezone.now()
+                user.save(update_fields=["last_activity"])
+                log_audit_event(
+                    request=request,
+                    user=user,
+                    action="AUTH_LOGIN_SUCCESS",
+                    resource_type="auth",
+                    resource_id=str(user.id),
+                    details={
+                        "username": user.username,
+                        "mfa": True,
+                        "trusted_device": True,
+                        **build_device_context(request),
+                    },
+                    metadata={
+                        "username": user.username,
+                        "mfa": True,
+                        "trusted_device": True,
+                        **build_device_context(request),
+                    },
+                )
+                response_data = issue_auth_tokens_for_user(user)
+                response_data["trusted_device"] = True
+                return success_response(response_data, message="Login successful")
+
             log_audit_event(
                 request=request,
                 user=user,
                 action="AUTH_LOGIN_CHALLENGE_ISSUED",
                 resource_type="auth",
                 resource_id=user.id,
-                details={"username": user.username},
+                details={"username": user.username, **build_device_context(request)},
             )
             return success_response(
-                build_two_factor_login_challenge(user),
+                build_two_factor_login_challenge(user, request),
                 message="Two-factor authentication required",
             )
 
@@ -113,7 +222,7 @@ class LoginView(TokenObtainPairView):
             resource_id=str(user.id),
             details={"username": user.username},
             metadata={"username": user.username},
-            ip_address=request.META.get("REMOTE_ADDR", ""),
+            ip_address=get_client_ip(request),
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
             severity=AuditLog.SEVERITY_INFO,
             status=AuditLog.STATUS_SUCCESS,
@@ -353,8 +462,8 @@ class VerifyTwoFactorView(APIView):
                     action="AUTH_TWO_FACTOR_FAILED",
                     resource_type="auth",
                     resource_id="",
-                    details={"reason": "invalid_or_expired_pending_token"},
-                    status=AuditLog.STATUS_FAILED,
+                    details={"username": user.username, **build_device_context(request)},
+                    metadata={"username": user.username, **build_device_context(request)},
                     severity=AuditLog.SEVERITY_WARNING,
                 )
                 return error_response("Your MFA session has expired. Please sign in again.", status_code=401)
@@ -421,15 +530,23 @@ class VerifyTwoFactorView(APIView):
 
         user.last_activity = timezone.now()
         user.save(update_fields=["last_activity"])
+        trusted_device_token = None
+        if serializer.validated_data.get("remember_device"):
+            trusted_device_token = build_trusted_device_token(user, request)
         log_audit_event(
             request=request,
             user=user,
             action=success_action,
             resource_type="auth",
             resource_id=user.id,
-            details={"username": user.username, "mfa": True},
+            details={"username": user.username, "mfa": True, **build_device_context(request)},
+            metadata={"username": user.username, "mfa": True, **build_device_context(request)},
         )
-        return success_response(issue_auth_tokens_for_user(user), message="Login successful")
+        response_data = issue_auth_tokens_for_user(user)
+        if trusted_device_token:
+            response_data["trusted_device_token"] = trusted_device_token
+            response_data["trusted_device_expires_in"] = TRUSTED_DEVICE_MAX_AGE_SECONDS
+        return success_response(response_data, message="Login successful")
 
 
 class DisableTwoFactorView(APIView):

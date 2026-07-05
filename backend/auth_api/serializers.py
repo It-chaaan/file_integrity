@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from common.client_ip import get_client_ip
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -22,6 +23,8 @@ class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     profile_photo_url = serializers.SerializerMethodField()
     two_factor_enabled = serializers.BooleanField(read_only=True)
+    current_ip = serializers.SerializerMethodField()
+    current_device_label = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -40,6 +43,8 @@ class UserSerializer(serializers.ModelSerializer):
             "profile_photo",
             "profile_photo_url",
             "two_factor_enabled",
+            "current_ip",
+            "current_device_label",
             "is_active",
             "last_activity",
             "created_at",
@@ -78,6 +83,44 @@ class UserSerializer(serializers.ModelSerializer):
             return None
         url = obj.profile_photo.url
         return request.build_absolute_uri(url) if request else url
+
+    def get_current_ip(self, obj):
+        request = self.context.get("request")
+        return get_client_ip(request) if request else ""
+
+    def get_current_device_label(self, obj):
+        request = self.context.get("request")
+        if not request:
+            return ""
+
+        user_agent = (request.META.get("HTTP_USER_AGENT", "") or "").lower()
+        if "iphone" in user_agent:
+            platform = "iPhone"
+        elif "ipad" in user_agent:
+            platform = "iPad"
+        elif "android" in user_agent:
+            platform = "Android"
+        elif "windows" in user_agent:
+            platform = "Windows"
+        elif "mac os x" in user_agent or "macintosh" in user_agent:
+            platform = "macOS"
+        elif "linux" in user_agent:
+            platform = "Linux"
+        else:
+            platform = "Unknown device"
+
+        if "edg/" in user_agent or "edge/" in user_agent:
+            browser = "Edge"
+        elif "chrome/" in user_agent and "edg/" not in user_agent:
+            browser = "Chrome"
+        elif "firefox/" in user_agent:
+            browser = "Firefox"
+        elif "safari/" in user_agent and "chrome/" not in user_agent:
+            browser = "Safari"
+        else:
+            browser = "Browser"
+
+        return f"{browser} on {platform}"
 
     def update(self, instance, validated_data):
         raw_name = validated_data.pop("name", None)
@@ -165,6 +208,7 @@ class ProfilePhotoSerializer(serializers.ModelSerializer):
 class TwoFactorVerifySerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6)
     pending_token = serializers.CharField(required=False, allow_blank=False)
+    remember_device = serializers.BooleanField(required=False, default=False)
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -196,4 +240,6 @@ class TwoFactorChallengeSerializer(serializers.Serializer):
     requires_two_factor = serializers.BooleanField()
     pending_token = serializers.CharField()
     expires_in = serializers.IntegerField()
+    client_ip = serializers.CharField(required=False, allow_blank=True)
+    device_label = serializers.CharField(required=False, allow_blank=True)
     user = UserSerializer()

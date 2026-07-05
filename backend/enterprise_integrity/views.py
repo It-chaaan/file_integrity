@@ -53,6 +53,14 @@ from common.permissions import (
 from common.audit import log_audit_event
 
 
+MASKED_SENSITIVE_VALUE = "*****"
+
+
+def _can_view_sensitive_document_fields(request):
+    user = getattr(request, "user", None)
+    return bool(user and user.is_authenticated and getattr(user, "role", None) == "super_admin")
+
+
 class DocumentViewSet(ModelViewSet):
     queryset = DocumentRecord.objects.all().order_by("-created_at")
     serializer_class = DocumentResponseSerializer
@@ -177,7 +185,7 @@ class DocumentViewSet(ModelViewSet):
             metadata={"reference_number": document.reference_number},
         )
 
-        response_serializer = DocumentResponseSerializer(document)
+        response_serializer = DocumentResponseSerializer(document, context={"request": request})
         return success_response(response_serializer.data, message="Document created", status_code=status.HTTP_201_CREATED)
 
     def partial_update(self, request, *args, **kwargs):
@@ -196,7 +204,7 @@ class DocumentViewSet(ModelViewSet):
 
         document.save()
 
-        response_serializer = DocumentResponseSerializer(document)
+        response_serializer = DocumentResponseSerializer(document, context={"request": request})
         return success_response(response_serializer.data, message="Document updated")
 
     @action(detail=False, methods=["post"], url_path="verify")
@@ -266,6 +274,7 @@ class DocumentViewSet(ModelViewSet):
         }
 
         if document:
+            can_view_sensitive_fields = _can_view_sensitive_document_fields(request)
             response_payload.update(
                 {
                     "documentId": document.reference_number,
@@ -277,11 +286,11 @@ class DocumentViewSet(ModelViewSet):
             if getattr(request, "user", None) and request.user.is_authenticated:
                 response_payload.update(
                     {
-                        "hash": sha256_hash,
+                        "hash": sha256_hash if can_view_sensitive_fields else MASKED_SENSITIVE_VALUE,
                         "fileSize": document.file_size,
                         "uploadDate": document.verified_at,
                         "uploadedBy": document.uploaded_by,
-                        "signature": document.signature,
+                        "signature": document.signature if can_view_sensitive_fields else MASKED_SENSITIVE_VALUE,
                     }
                 )
 
@@ -335,7 +344,7 @@ class DocumentViewSet(ModelViewSet):
             results.append(
                 {
                     "filename": uploaded_file.name,
-                    "hash": sha256_hash,
+                    "hash": sha256_hash if _can_view_sensitive_document_fields(request) else MASKED_SENSITIVE_VALUE,
                     "found": found,
                     "isAuthentic": is_authentic,
                     "status": verify_status,
@@ -400,7 +409,7 @@ class DocumentViewSet(ModelViewSet):
     def verifications(self, request, pk=None):
         document = self.get_object()
         attempts = document.verification_attempts.all().order_by("-checked_at")
-        serializer = VerificationAttemptSerializer(attempts, many=True)
+        serializer = VerificationAttemptSerializer(attempts, many=True, context={"request": request})
         return success_response(serializer.data)
 
     @action(detail=True, methods=["get"], url_path="download")

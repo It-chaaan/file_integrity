@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLogs } from '../../hooks/useData';
 import Pagination from '../../components/Pagination';
+import { formatAuditLogDetails } from '../../services/utils';
 
 function AuditLogs() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,7 +16,7 @@ function AuditLogs() {
     const list = Array.isArray(fetchedLogs) ? fetchedLogs : [];
     return list.map((log) => {
       const details = log.details ?? log.metadata ?? {};
-      const detailsText = typeof details === 'string' ? details : JSON.stringify(details);
+      const detailsText = formatAuditLogDetails(details, { action: log.action });
       return {
         ...log,
         timestamp: log.created_at || log.timestamp || '—',

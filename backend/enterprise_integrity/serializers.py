@@ -5,6 +5,9 @@ from common.validators import validate_document_file
 from .services import parse_metadata_value
 
 
+MASKED_SENSITIVE_VALUE = "*****"
+
+
 class DocumentUploadSerializer(serializers.Serializer):
     file = serializers.FileField(required=True, validators=[validate_document_file])
     title = serializers.CharField(max_length=255)
@@ -74,6 +77,21 @@ class DocumentResponseSerializer(serializers.ModelSerializer):
 
     hash = serializers.CharField(source="document_hash", read_only=True)
 
+    def _can_view_sensitive_fields(self):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        return bool(user and user.is_authenticated and getattr(user, "role", None) == "super_admin")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self._can_view_sensitive_fields():
+            return data
+
+        for field_name in ("document_hash", "hash", "short_hash", "shortHash", "signature"):
+            if field_name in data:
+                data[field_name] = MASKED_SENSITIVE_VALUE
+        return data
+
 
 class PublicDocumentLookupSerializer(serializers.ModelSerializer):
     documentId = serializers.CharField(source="reference_number", read_only=True)
@@ -94,6 +112,20 @@ class PublicDocumentLookupSerializer(serializers.ModelSerializer):
 
 class VerificationAttemptSerializer(serializers.ModelSerializer):
     reference_number = serializers.CharField(source="document.reference_number", read_only=True)
+
+    def _can_view_sensitive_fields(self):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        return bool(user and user.is_authenticated and getattr(user, "role", None) == "super_admin")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self._can_view_sensitive_fields():
+            return data
+
+        if "document_hash" in data:
+            data["document_hash"] = MASKED_SENSITIVE_VALUE
+        return data
 
     class Meta:
         model = VerificationAttempt

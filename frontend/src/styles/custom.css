@@ -258,6 +258,22 @@ body {
   gap: 1rem;
 }
 
+.registry-ref-link {
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.registry-ref-link:hover,
+.registry-ref-link:focus-visible {
+  color: var(--info-color) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.18em;
+}
+
+.registry-ref-link:hover i,
+.registry-ref-link:focus-visible i {
+  transform: translate(1px, -1px);
+}
+
 .step-badge {
   background: rgba(13, 21, 38, 0.08);
   color: var(--navy-blue);

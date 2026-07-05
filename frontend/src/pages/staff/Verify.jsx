@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { validateFileType, validateFileSize } from '../../services/utils';
 import SimpleStepper from '../../components/SimpleStepper';
 import { verifyDocument } from '../../api/documents.api';
 
 function Verify() {
+  const location = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -15,6 +17,19 @@ function Verify() {
   const maxSizeMB = 5;
 
   const steps = ['Select File', 'Hash', 'Complete'];
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const incomingReference = params.get('referenceNumber') || params.get('reference_number') || '';
+
+    if (!incomingReference) return;
+
+    setReferenceNumber(incomingReference);
+    setCurrentStep(1);
+    setSelectedFile(null);
+    setVerificationResult(null);
+    setError('');
+  }, [location.search]);
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
