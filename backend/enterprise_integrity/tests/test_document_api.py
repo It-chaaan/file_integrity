@@ -7,6 +7,8 @@ from rest_framework.test import APITestCase
 from security_keys.key_material import build_encrypted_ecdsa_key_pair
 from security_keys.models import SecurityKey
 
+from enterprise_integrity.models import DocumentRecord
+
 
 class DocumentApiTests(APITestCase):
     def setUp(self):
@@ -54,6 +56,10 @@ class DocumentApiTests(APITestCase):
             format="multipart",
         )
         self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["data"]["document_hash"], "*****")
+        self.assertEqual(response.data["data"]["hash"], "*****")
+        self.assertEqual(response.data["data"]["short_hash"], "*****")
+        self.assertEqual(response.data["data"]["signature"], "*****")
         reference_number = response.data["data"]["reference_number"]
 
         self.client.credentials()
@@ -108,7 +114,8 @@ class DocumentApiTests(APITestCase):
             },
             format="multipart",
         )
-        doc_hash = response.data["data"]["document_hash"]
+        doc_id = response.data["data"]["id"]
+        doc_hash = DocumentRecord.objects.get(id=doc_id).document_hash
 
         response = self.client.post(
             "/api/v1/documents/batch-verify/",
@@ -128,6 +135,40 @@ class DocumentApiTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("signature", response.data["data"])
         self.assertNotIn("document_hash", response.data["data"])
+
+    def test_super_admin_can_see_sensitive_document_fields(self):
+        User = get_user_model()
+        super_admin = User.objects.create_user(
+            username="superadmin",
+            email="superadmin@example.com",
+            password="SuperAdminPass123!",
+            role=User.ROLE_SUPER_ADMIN,
+        )
+        response = self.client.post(
+            "/api/v1/auth/login/",
+            {"username": "superadmin", "password": "SuperAdminPass123!"},
+            format="json",
+        )
+        token = response.data["data"]["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        payload = b"admin payload"
+        upload = SimpleUploadedFile("doc.txt", payload, content_type="text/plain")
+        response = self.client.post(
+            "/api/v1/documents/",
+            {
+                "title": "Admin Sample",
+                "document_type": "contract",
+                "file": upload,
+                "metadata": json.dumps({"department": "Legal"}),
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertNotEqual(response.data["data"]["document_hash"], "*****")
+        self.assertNotEqual(response.data["data"]["short_hash"], "*****")
+        self.assertNotEqual(response.data["data"]["signature"], "*****")
 
     def test_document_update_delete_download_error(self):
         payload = b"delete payload"

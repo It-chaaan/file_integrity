@@ -6,6 +6,96 @@ export const shortHash = (hash) => {
   return `${hash.substring(0, 8)}...${hash.substring(hash.length - 6)}`;
 };
 
+const auditDetailLabelMap = {
+  reference_number: 'Reference Number',
+  referenceNumber: 'Reference Number',
+  found: 'Found',
+  is_authentic: 'Authentic',
+  isAuthentic: 'Authentic',
+  document_type: 'Document Type',
+  documentType: 'Document Type',
+  file_name: 'File Name',
+  fileName: 'File Name',
+  status: 'Status',
+  action: 'Action',
+  resource_type: 'Resource Type',
+  resourceType: 'Resource Type',
+  resource_id: 'Resource ID',
+  resourceId: 'Resource ID',
+  message: 'Message',
+  error: 'Error',
+  count: 'Count',
+};
+
+const formatAuditDetailValue = (value) => {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
+const formatDocumentAuditSummary = (details, action) => {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) return null;
+
+  const referenceNumber = details.reference_number || details.referenceNumber;
+  const found = details.found;
+  const isAuthentic = details.is_authentic ?? details.isAuthentic;
+  const count = details.count;
+
+  switch ((action || '').toUpperCase()) {
+    case 'DOCUMENT_CREATED':
+      return referenceNumber ? `Document created: ${referenceNumber}` : 'Document created';
+    case 'DOCUMENT_VERIFY':
+      if (!referenceNumber) return null;
+      return `Verification for ${referenceNumber}: Found ${formatAuditDetailValue(found)}, Authentic ${formatAuditDetailValue(isAuthentic)}`;
+    case 'DOCUMENT_BATCH_VERIFY':
+      return Number.isFinite(Number(count)) ? `Batch verification completed: ${count} file${Number(count) === 1 ? '' : 's'} processed` : 'Batch verification completed';
+    default:
+      return null;
+  }
+};
+
+/**
+ * Convert audit log details into a readable sentence.
+ * @param {unknown} details
+ * @param {Object} [context]
+ * @param {string} [context.action]
+ * @returns {string}
+ */
+export const formatAuditLogDetails = (details, context = {}) => {
+  if (!details) return '—';
+
+  const actionSummary = formatDocumentAuditSummary(details, context.action);
+  if (actionSummary) return actionSummary;
+
+  if (typeof details === 'string') {
+    try {
+      const parsed = JSON.parse(details);
+      return formatAuditLogDetails(parsed, context);
+    } catch {
+      return details;
+    }
+  }
+
+  if (Array.isArray(details)) {
+    return details.map((item) => formatAuditDetailValue(item)).filter(Boolean).join(' • ') || '—';
+  }
+
+  if (typeof details !== 'object') {
+    return formatAuditDetailValue(details);
+  }
+
+  const entries = Object.entries(details)
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([key, value]) => {
+      const label = auditDetailLabelMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (match) => match.toUpperCase());
+      return `${label}: ${formatAuditDetailValue(value)}`;
+    });
+
+  return entries.length > 0 ? entries.join(' • ') : '—';
+};
+
 
 /**
  * Format a file size in human-readable units.

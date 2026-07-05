@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDocuments } from '../../hooks/useData';
 import { getCurrentUser } from '../../services/auth';
 import { shortHash, formatFileSize, validateFileType, validateFileSize } from '../../services/utils';
@@ -67,6 +67,72 @@ const DOCUMENT_TYPE_TO_DEPARTMENT = DOCUMENT_CATEGORY_MAP.reduce((accumulator, g
   return accumulator;
 }, {});
 
+const normalizeText = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+
+const DOCUMENT_TYPE_KEYWORDS = [
+  { type: 'Purchase Orders (PO)', keywords: ['purchase order', 'purchase orders', 'po ', 'p o '] },
+  { type: 'Vendor Contracts', keywords: ['vendor contract', 'vendor contracts', 'supplier contract'] },
+  { type: 'Invoices', keywords: ['invoice', 'invoices', 'billing statement'] },
+  { type: 'Shipping Manifests', keywords: ['shipping manifest', 'shipping manifests', 'manifest'] },
+  { type: 'Financial Audit Reports', keywords: ['financial audit', 'audit report', 'audit reports'] },
+  { type: 'Tax Filings', keywords: ['tax filing', 'tax filings', 'tax return'] },
+  { type: 'Budget Approvals', keywords: ['budget approval', 'budget approvals', 'budget request', 'budget approval memo'] },
+  { type: 'Loan Agreements', keywords: ['loan agreement', 'loan agreements', 'loan docs'] },
+  { type: 'Employment Contracts', keywords: ['employment contract', 'employment contracts', 'offer letter'] },
+  { type: 'Non-Disclosure Agreements (NDA)', keywords: ['nda', 'non disclosure agreement', 'non-disclosure agreement', 'nondisclosure'] },
+  { type: 'Performance Reviews', keywords: ['performance review', 'performance reviews', 'annual review'] },
+  { type: 'Intellectual Property Agreements', keywords: ['intellectual property', 'ip agreement', 'ip agreements'] },
+  { type: 'Compliance Certificates', keywords: ['compliance certificate', 'compliance certificates', 'certificate of compliance'] },
+  { type: 'Board Resolutions', keywords: ['board resolution', 'board resolutions'] },
+  { type: 'Shareholder Agreements', keywords: ['shareholder agreement', 'shareholder agreements'] },
+  { type: 'Data Processing Agreements (DPA)', keywords: ['data processing agreement', 'data processing agreements', 'dpa'] },
+  { type: 'Inventory Audit Sheets', keywords: ['inventory audit', 'inventory audit sheet', 'inventory sheets'] },
+  { type: 'Insurance Policies', keywords: ['insurance policy', 'insurance policies'] },
+  { type: 'System Audit Logs', keywords: ['system audit log', 'system audit logs', 'audit log'] },
+  { type: 'Security Policies', keywords: ['security policy', 'security policies'] },
+  { type: 'Risk Assessment Reports', keywords: ['risk assessment', 'risk assessment report', 'risk reports'] },
+];
+
+const normalizeDepartment = (department) => {
+  const value = String(department || '').trim();
+  if (!value) return '';
+
+  const lowerValue = normalizeText(value);
+  const match = DOCUMENT_CATEGORY_MAP.find((group) => {
+    const lowerGroup = normalizeText(group.department);
+    return lowerValue === lowerGroup || lowerValue.includes(lowerGroup) || lowerGroup.includes(lowerValue);
+  });
+
+  return match?.department || value;
+};
+
+const inferDocumentType = (searchText, department) => {
+  const normalizedText = normalizeText(searchText);
+  if (!normalizedText) return '';
+
+  const departmentGroup = normalizeDepartment(department);
+  const departmentTypes = departmentGroup
+    ? DOCUMENT_CATEGORY_MAP.find((item) => item.department === departmentGroup)?.types || []
+    : null;
+
+  const candidates = DOCUMENT_TYPE_KEYWORDS.filter((entry) => !departmentTypes || departmentTypes.includes(entry.type));
+
+  for (const candidate of candidates) {
+    for (const keyword of candidate.keywords) {
+      if (normalizedText.includes(normalizeText(keyword))) {
+        return candidate.type;
+      }
+    }
+  }
+
+  return '';
+};
+
 function Upload() {
   const { createDocument } = useDocuments();
   const currentUser = getCurrentUser();
@@ -84,12 +150,39 @@ function Upload() {
   const [verificationResult, setVerificationResult] = useState(null);
   const [status, setStatus] = useState('idle'); // idle | ready | uploading | verifying | complete | error
   const [error, setError] = useState('');
+  const [isTypeManuallySelected, setIsTypeManuallySelected] = useState(false);
 
   const stepLabels = ['Select File', 'Enter Metadata', 'Hash & Sign', 'Complete'];
+  const userDepartment = normalizeDepartment(currentUser?.department);
+  const visibleCategoryGroups = userDepartment
+    ? DOCUMENT_CATEGORY_MAP.filter((group) => group.department === userDepartment)
+    : DOCUMENT_CATEGORY_MAP;
+
+  useEffect(() => {
+    setFormData((prev) => {
+      const searchText = [prev.title, file?.name].filter(Boolean).join(' ');
+      const inferredType = isTypeManuallySelected ? prev.type : inferDocumentType(searchText, userDepartment || prev.department);
+      const nextDepartment = inferredType
+        ? (DOCUMENT_TYPE_TO_DEPARTMENT[inferredType] || userDepartment || prev.department || '')
+        : (userDepartment || prev.department || '');
+
+      if (prev.department === nextDepartment && prev.type === inferredType) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        type: inferredType || prev.type,
+        department: nextDepartment,
+      };
+    });
+  }, [currentUser?.department, file?.name, formData.title, isTypeManuallySelected]);
 
   const handleDocumentTypeChange = (e) => {
     const type = e.target.value;
     const department = DOCUMENT_TYPE_TO_DEPARTMENT[type] || '';
+
+    setIsTypeManuallySelected(Boolean(type));
 
     setFormData((prev) => ({
       ...prev,
@@ -213,6 +306,7 @@ function Upload() {
     setVerificationResult(null);
     setStatus('idle');
     setError('');
+    setIsTypeManuallySelected(false);
   };
 
   return (
@@ -266,7 +360,7 @@ function Upload() {
                   disabled={uploading}
                 >
                   <option value="">Select document type</option>
-                  {DOCUMENT_CATEGORY_MAP.map((group) => (
+                  {visibleCategoryGroups.map((group) => (
                     <optgroup key={group.department} label={group.department}>
                       {group.types.map((type) => (
                         <option key={type} value={type}>{type}</option>
@@ -274,6 +368,11 @@ function Upload() {
                     </optgroup>
                   ))}
                 </select>
+                {userDepartment && visibleCategoryGroups.length === 0 && (
+                  <div className="form-text text-warning mt-1">
+                    No document types are configured for your department.
+                  </div>
+                )}
               </div>
 
               <div className="col-md-6">

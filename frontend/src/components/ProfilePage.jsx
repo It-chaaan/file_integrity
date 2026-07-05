@@ -13,7 +13,7 @@ import {
   removeProfilePhoto,
   PROFILE_PHOTO_ENABLED,
 } from '../api/profile.api';
-import { getCurrentUser as getStoredUser, refreshCurrentUser } from '../services/auth';
+import { getCurrentUser as getStoredUser, refreshCurrentUser, logout, hasTrustedDeviceToken, clearTrustedDeviceToken } from '../services/auth';
 
 const defaultProfile = {
   first_name: '',
@@ -38,6 +38,7 @@ function ProfilePage({ initialProfile }) {
   const [mfaSetupCode, setMfaSetupCode] = useState('');
   const [mfaDisableCode, setMfaDisableCode] = useState('');
   const [mfaLoading, setMfaLoading] = useState(false);
+  const [trustCurrentBrowser, setTrustCurrentBrowser] = useState(false);
 
   const storedUser = useMemo(() => getStoredUser(), []);
   const roleLabels = {
@@ -230,6 +231,7 @@ function ProfilePage({ initialProfile }) {
       const setup = await enable2FA();
       setMfaSetup(setup);
       setMfaSetupCode('');
+      setTrustCurrentBrowser(false);
       setSuccessMessage('Authenticator setup generated. Scan the secret in your app, then verify with a code.');
     } catch (error) {
       const message = error?.response?.data?.detail || error.message || 'Failed to generate MFA setup';
@@ -251,7 +253,7 @@ function ProfilePage({ initialProfile }) {
     setSuccessMessage('');
 
     try {
-      await verify2FA(mfaSetupCode.trim());
+      await verify2FA(mfaSetupCode.trim(), trustCurrentBrowser);
       const userData = await getUserProfile();
       setProfile((prev) => ({ ...prev, two_factor_enabled: Boolean(userData?.two_factor_enabled) }));
       refreshCurrentUser();
@@ -291,6 +293,18 @@ function ProfilePage({ initialProfile }) {
     } finally {
       setMfaLoading(false);
     }
+  };
+
+  const handleSignOutCurrentBrowser = async () => {
+    await logout();
+    window.location.href = '/login';
+  };
+
+  const handleForgetTrustedBrowser = () => {
+    clearTrustedDeviceToken();
+    refreshCurrentUser();
+    setSuccessMessage('Trusted browser cleared for this device.');
+    setTimeout(() => setSuccessMessage(''), 3000);
   };
 
   const displayName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || storedUser?.full_name || storedUser?.username || 'User';
@@ -520,6 +534,19 @@ function ProfilePage({ initialProfile }) {
                   {mfaLoading ? 'Verifying...' : 'Enable MFA'}
                 </button>
               </div>
+              <div className="form-check mt-3">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="trust-current-browser"
+                  checked={trustCurrentBrowser}
+                  onChange={(e) => setTrustCurrentBrowser(e.target.checked)}
+                  disabled={mfaLoading}
+                />
+                <label className="form-check-label" htmlFor="trust-current-browser" style={{ fontSize: '0.95rem' }}>
+                  Trust this browser for 30 days
+                </label>
+              </div>
             </form>
           )}
 
@@ -543,6 +570,48 @@ function ProfilePage({ initialProfile }) {
               </div>
             </form>
           )}
+        </div>
+      </div>
+
+      <div className="card border-0 shadow-sm mt-4" style={{ margin: '1.5rem auto 0' }}>
+        <div className="card-body p-4">
+          <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+            <div>
+              <h5 className="mb-1" style={{ color: '#0b275a' }}>Current Sign-in Session</h5>
+              <p className="text-muted mb-0" style={{ fontSize: '0.95rem' }}>
+                This shows the browser and IP address used for the session you are currently in.
+              </p>
+            </div>
+            <button type="button" className="btn btn-outline-danger" onClick={handleSignOutCurrentBrowser} disabled={isBusy}>
+              Sign Out This Browser
+            </button>
+          </div>
+
+          <div className="row g-3 align-items-center">
+            <div className="col-md-6">
+              <div className="p-3 rounded-3 border" style={{ background: '#f8fbff' }}>
+                <div className="text-muted small mb-1">Device</div>
+                <div className="fw-semibold">{profile.current_device_label || 'Unknown device'}</div>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="p-3 rounded-3 border" style={{ background: '#f8fbff' }}>
+                <div className="text-muted small mb-1">IP Address</div>
+                <div className="fw-semibold">{profile.current_ip || 'Unknown IP'}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mt-3">
+            <div className="text-muted" style={{ fontSize: '0.95rem' }}>
+              Trusted browser: {hasTrustedDeviceToken() ? 'Yes' : 'No'}
+            </div>
+            {hasTrustedDeviceToken() && (
+              <button type="button" className="btn btn-outline-secondary" onClick={handleForgetTrustedBrowser} disabled={isBusy}>
+                Forget Trusted Browser
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

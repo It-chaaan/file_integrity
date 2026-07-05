@@ -3,6 +3,7 @@ import { clearAuthTokens } from '../api/client';
 
 const USER_STORAGE_KEY = import.meta.env.VITE_USER_STORAGE_KEY || 'parity_current_user';
 const PENDING_TWO_FACTOR_KEY = import.meta.env.VITE_PENDING_TWO_FACTOR_KEY || 'parity_pending_two_factor';
+const TRUSTED_DEVICE_KEY = import.meta.env.VITE_TRUSTED_DEVICE_KEY || 'parity_trusted_device_token';
 
 const saveUser = (user) => {
   if (!user) return;
@@ -20,7 +21,23 @@ const savePendingTwoFactorChallenge = (challenge) => {
     expires_in: challenge.expires_in,
     created_at: Date.now(),
     user: challenge.user || null,
+    client_ip: challenge.client_ip || '',
+    device_label: challenge.device_label || '',
+    trusted_device_available: Boolean(challenge.trusted_device_available),
   }));
+};
+
+const saveTrustedDeviceToken = (token) => {
+  if (!token) return;
+  localStorage.setItem(TRUSTED_DEVICE_KEY, token);
+};
+
+const readTrustedDeviceToken = () => localStorage.getItem(TRUSTED_DEVICE_KEY) || '';
+
+export const hasTrustedDeviceToken = () => Boolean(readTrustedDeviceToken());
+
+export const clearTrustedDeviceToken = () => {
+  localStorage.removeItem(TRUSTED_DEVICE_KEY);
 };
 
 const clearPendingTwoFactorChallenge = () => {
@@ -79,7 +96,7 @@ export const initAuth = () => {
  * @returns {Promise<Object>} Session data with user info
  */
 export const login = async (username, password) => {
-  const loginResponse = await adapter.login(username, password);
+  const loginResponse = await adapter.login(username, password, readTrustedDeviceToken() || null);
 
   if (loginResponse?.requires_two_factor) {
     clearAuthTokens();
@@ -112,12 +129,17 @@ export const login = async (username, password) => {
 /**
  * Verify 2FA code
  * @param {string} code - 6-digit verification code
+ * @param {boolean} rememberDevice - Whether to ask the backend for a trusted-device token.
  * @returns {Promise<Object>} Verification result
  */
-export const verify2FA = async (code) => {
+export const verify2FA = async (code, rememberDevice = false) => {
   const pendingChallenge = readPendingTwoFactorChallenge();
-  const verification = await adapter.verify2FA(code, pendingChallenge?.pending_token || null);
+  const verification = await adapter.verify2FA(code, pendingChallenge?.pending_token || null, rememberDevice);
   const responseUser = verification?.user || null;
+
+  if (verification?.trusted_device_token) {
+    saveTrustedDeviceToken(verification.trusted_device_token);
+  }
 
   clearPendingTwoFactorChallenge();
 
@@ -250,6 +272,8 @@ export default {
   refreshCurrentUser,
   getCurrentSession,
   getPendingTwoFactorChallenge,
+  hasTrustedDeviceToken,
+  clearTrustedDeviceToken,
   isAuthenticated,
   hasRole,
   changePassword,

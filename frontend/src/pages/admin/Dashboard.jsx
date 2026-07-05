@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDocuments, useUsers, useTickets, useLogs, useKeys } from '../../hooks/useData';
-import { calculateStats } from '../../services/utils';
+import { calculateStats, formatAuditLogDetails } from '../../services/utils';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -60,11 +60,7 @@ function Dashboard() {
     const list = Array.isArray(stats.recentLogs) ? stats.recentLogs : [];
     return list.slice(0, 4).map((activity) => {
       const details = activity.details ?? activity.metadata ?? null;
-      const detailsText = typeof details === 'string'
-        ? details
-        : details
-          ? JSON.stringify(details)
-          : '';
+      const detailsText = formatAuditLogDetails(details, { action: activity.action });
       return {
         ...activity,
         detailsText,

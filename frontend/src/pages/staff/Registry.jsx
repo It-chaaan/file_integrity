@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DataTable from '../../components/DataTable';
 import { useDocuments } from '../../hooks/useData';
 import { formatFileSize } from '../../services/utils';
 
 function Registry() {
+  const navigate = useNavigate();
   const { documents = [], loading = false } = useDocuments();
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -56,9 +58,17 @@ function Registry() {
       sortable: true,
       filterable: true,
       render: (value) => (
-        <span className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
+        <button
+          type="button"
+          className="btn btn-link p-0 fw-semibold text-decoration-none d-inline-flex align-items-center gap-1 registry-ref-link"
+          style={{ fontSize: '14px', color: '#0D1526' }}
+          title="Open in Verify"
+          aria-label={`Open ${value} in Verify`}
+          onClick={() => navigate(`/staff/verify?referenceNumber=${encodeURIComponent(value)}`)}
+        >
           {value}
-        </span>
+          <i className="bi bi-box-arrow-up-right" aria-hidden="true" style={{ fontSize: '0.82em' }}></i>
+        </button>
       )
     },
     {
@@ -232,9 +242,17 @@ function Registry() {
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
                       Reference Number
                     </label>
-                    <p className="fw-semibold" style={{ fontSize: '14px', color: '#0D1526' }}>
+                    <button
+                      type="button"
+                      className="btn btn-link p-0 fw-semibold text-decoration-none d-inline-flex align-items-center gap-1 registry-ref-link"
+                      style={{ fontSize: '14px', color: '#0D1526' }}
+                      title="Open in Verify"
+                      aria-label={`Open ${selectedDoc.reference_number} in Verify`}
+                      onClick={() => navigate(`/staff/verify?referenceNumber=${encodeURIComponent(selectedDoc.reference_number)}`)}
+                    >
                       {selectedDoc.reference_number}
-                    </p>
+                      <i className="bi bi-box-arrow-up-right" aria-hidden="true" style={{ fontSize: '0.82em' }}></i>
+                    </button>
                   </div>
                   <div className="col-md-6">
                     <label className="form-label text-muted" style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase' }}>
