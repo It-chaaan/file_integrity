@@ -157,3 +157,17 @@ class UserApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_super_admin_account_cannot_be_deleted(self):
+        User = get_user_model()
+        super_admin = User.objects.create_user(
+            username="superboss",
+            email="superboss@example.com",
+            password="SuperPass123!",
+            role=User.ROLE_SUPER_ADMIN,
+            is_staff=True,
+            is_superuser=True,
+        )
+
+        response = self.client.delete(f"/api/v1/users/{super_admin.id}/")
+        self.assertEqual(response.status_code, 403)

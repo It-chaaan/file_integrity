@@ -1,6 +1,7 @@
 import os
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from rest_framework.test import APITestCase
 
 from security_keys.crypto import ENCRYPTED_PREFIX
@@ -9,6 +10,7 @@ from security_keys.models import SecurityKey
 
 class SecurityKeyApiTests(APITestCase):
     def setUp(self):
+        cache.clear()
         self.previous_key_secret = os.environ.get("PARITY_KEY_ENCRYPTION_SECRET")
         os.environ["PARITY_KEY_ENCRYPTION_SECRET"] = "test-security-key-secret"
 
@@ -30,6 +32,7 @@ class SecurityKeyApiTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
     def tearDown(self):
+        cache.clear()
         if self.previous_key_secret is None:
             os.environ.pop("PARITY_KEY_ENCRYPTION_SECRET", None)
         else:
@@ -64,6 +67,13 @@ class SecurityKeyApiTests(APITestCase):
 
         response = self.client.post(
             f"/api/v1/security-keys/{key_id}/rotate/",
+            {},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.post(
+            f"/api/v1/security-keys/{key_id}/rotate/",
             {"rotation_reason": "annual rotation"},
             format="json",
         )
@@ -74,6 +84,21 @@ class SecurityKeyApiTests(APITestCase):
         old_key = SecurityKey.objects.get(pk=key_id)
         self.assertEqual(old_key.status, SecurityKey.STATUS_ROTATED)
         self.assertTrue(rotated_key.private_key.startswith(ENCRYPTED_PREFIX))
+
+    def test_security_key_revoke_requires_reason_and_delete_is_protected(self):
+        response = self.client.post("/api/v1/security-keys/", {"name": "Primary"}, format="json")
+        self.assertEqual(response.status_code, 201)
+        key_id = response.data["data"]["id"]
+
+        response = self.client.post(
+            f"/api/v1/security-keys/{key_id}/revoke/",
+            {},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.delete(f"/api/v1/security-keys/{key_id}/")
+        self.assertEqual(response.status_code, 400)
 
     def test_security_key_permission_denied(self):
         User = get_user_model()

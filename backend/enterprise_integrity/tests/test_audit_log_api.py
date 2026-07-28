@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from rest_framework.test import APITestCase
 
 from enterprise_integrity.models import AuditLog
@@ -6,16 +7,17 @@ from enterprise_integrity.models import AuditLog
 
 class AuditLogApiTests(APITestCase):
     def setUp(self):
+        cache.clear()
         User = get_user_model()
         self.staff = User.objects.create_user(
-            username="staff",
-            email="staff@example.com",
-            password="StaffPass123!",
-            role=User.ROLE_STAFF,
+            username="adminuser",
+            email="admin@example.com",
+            password="AdminPass123!",
+            role=User.ROLE_ADMIN,
         )
         response = self.client.post(
             "/api/v1/auth/login/",
-            {"username": "staff", "password": "StaffPass123!"},
+            {"username": "adminuser", "password": "AdminPass123!"},
             format="json",
         )
         token = response.data["data"]["access"]
@@ -35,6 +37,9 @@ class AuditLogApiTests(APITestCase):
             resource_id="123",
             severity=AuditLog.SEVERITY_INFO,
         )
+
+    def tearDown(self):
+        cache.clear()
 
     def test_audit_log_list_and_filters(self):
         response = self.client.get("/api/v1/audit-logs/?page_size=1")
@@ -90,6 +95,8 @@ class AuditLogApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data["data"]["log_hash"])
+        self.assertIn("previous_hash", response.data["data"])
 
         response = self.client.get("/api/v1/audit-logs/export/")
         self.assertEqual(response.status_code, 200)

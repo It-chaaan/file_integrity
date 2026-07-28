@@ -130,8 +130,8 @@ class UserViewSet(ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.role == "super_admin" and request.user.role != "super_admin":
-            return error_response("Forbidden", errors={"detail": "Cannot delete super_admin accounts."}, status_code=403)
+        if instance.role == "super_admin" or instance.is_superuser:
+            return error_response("Forbidden", errors={"detail": "Super admin accounts cannot be deleted."}, status_code=403)
         username = instance.username
         instance.delete()
         log_audit_event(

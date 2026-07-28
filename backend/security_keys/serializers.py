@@ -66,16 +66,23 @@ class SecurityKeySerializer(serializers.ModelSerializer):
         if expires_at and expires_at <= timezone.now():
             raise serializers.ValidationError({"expires_at": "Expiration must be in the future."})
 
+        algorithm = attrs.get("algorithm", getattr(self.instance, "algorithm", SecurityKey.ALGORITHM_ECDSA))
+        key_type = attrs.get("key_type", getattr(self.instance, "key_type", "signing"))
+        status = attrs.get("status", getattr(self.instance, "status", SecurityKey.STATUS_ACTIVE))
+
+        active_keys = SecurityKey.objects.filter(
+            algorithm=SecurityKey.ALGORITHM_ECDSA,
+            key_type="signing",
+            status=SecurityKey.STATUS_ACTIVE,
+        )
+        if self.instance is not None:
+            active_keys = active_keys.exclude(pk=self.instance.pk)
+
         if (
-            self.instance is None
-            and
-            attrs.get("algorithm", SecurityKey.ALGORITHM_ECDSA) == SecurityKey.ALGORITHM_ECDSA
-            and attrs.get("key_type", "signing") == "signing"
-            and SecurityKey.objects.filter(
-                algorithm=SecurityKey.ALGORITHM_ECDSA,
-                key_type="signing",
-                status=SecurityKey.STATUS_ACTIVE,
-            ).exists()
+            algorithm == SecurityKey.ALGORITHM_ECDSA
+            and key_type == "signing"
+            and status == SecurityKey.STATUS_ACTIVE
+            and active_keys.exists()
         ):
             raise serializers.ValidationError(
                 {"non_field_errors": ["An active ECDSA signing key already exists. Rotate or revoke it before creating another."]}

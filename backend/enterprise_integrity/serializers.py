@@ -42,6 +42,8 @@ class DocumentResponseSerializer(serializers.ModelSerializer):
     uploadDate = serializers.DateTimeField(source="created_at", read_only=True)
     uploadedBy = serializers.CharField(source="uploaded_by", read_only=True)
     shortHash = serializers.CharField(source="short_hash", read_only=True)
+    integrityRegisteredAt = serializers.DateTimeField(source="created_at", read_only=True)
+    verificationTimestamp = serializers.DateTimeField(source="verified_at", read_only=True)
 
     class Meta:
         model = DocumentRecord
@@ -67,10 +69,13 @@ class DocumentResponseSerializer(serializers.ModelSerializer):
             "short_hash",
             "shortHash",
             "signature",
+            "signer_fingerprint",
             "status",
             "metadata",
             "verified_at",
+            "verificationTimestamp",
             "created_at",
+            "integrityRegisteredAt",
             "uploadDate",
             "updated_at",
         ]
@@ -87,7 +92,7 @@ class DocumentResponseSerializer(serializers.ModelSerializer):
         if self._can_view_sensitive_fields():
             return data
 
-        for field_name in ("document_hash", "hash", "short_hash", "shortHash", "signature"):
+        for field_name in ("document_hash", "hash", "signature"):
             if field_name in data:
                 data[field_name] = MASKED_SENSITIVE_VALUE
         return data
@@ -98,6 +103,7 @@ class PublicDocumentLookupSerializer(serializers.ModelSerializer):
     referenceNumber = serializers.CharField(source="reference_number", read_only=True)
     documentType = serializers.CharField(source="document_type", read_only=True)
     verificationDate = serializers.DateTimeField(source="verified_at", read_only=True)
+    integrityRegisteredAt = serializers.DateTimeField(source="created_at", read_only=True)
 
     class Meta:
         model = DocumentRecord
@@ -106,6 +112,8 @@ class PublicDocumentLookupSerializer(serializers.ModelSerializer):
             "referenceNumber",
             "documentType",
             "verificationDate",
+            "integrityRegisteredAt",
+            "signer_fingerprint",
             "status",
         ]
 
@@ -161,5 +169,7 @@ class AuditLogSerializer(serializers.ModelSerializer):
             "ip_address",
             "user_agent",
             "severity",
+            "previous_hash",
+            "log_hash",
             "created_at",
         ]

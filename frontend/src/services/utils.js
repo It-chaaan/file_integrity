@@ -25,6 +25,16 @@ const auditDetailLabelMap = {
   message: 'Message',
   error: 'Error',
   count: 'Count',
+  username: 'Username',
+  email: 'Email',
+  reason: 'Reason',
+  trusted_device: 'Trusted Device',
+  device_label: 'Device',
+  client_ip: 'IP Address',
+  old_key_id: 'Previous Key',
+  new_key_id: 'New Key',
+  rotation_reason: 'Rotation Reason',
+  revocation_reason: 'Revocation Reason',
 };
 
 const formatAuditDetailValue = (value) => {
@@ -54,6 +64,60 @@ const formatDocumentAuditSummary = (details, action) => {
     default:
       return null;
   }
+};
+
+const auditActionLabelMap = {
+  AUTH_LOGIN_SUCCESS: 'Successful Sign In',
+  AUTH_LOGIN_FAILED: 'Failed Sign In',
+  AUTH_LOGIN_CHALLENGE_ISSUED: 'Two-Factor Challenge Sent',
+  AUTH_LOGOUT: 'Signed Out',
+  AUTH_REFRESH: 'Session Refreshed',
+  AUTH_UNAUTHORIZED: 'Unauthorized Access Attempt',
+  AUTH_FORBIDDEN: 'Blocked Access Attempt',
+  DOCUMENT_CREATED: 'Document Registered',
+  DOCUMENT_UPDATED: 'Document Updated',
+  DOCUMENT_ARCHIVED: 'Document Archived',
+  DOCUMENT_VERIFY: 'Document Verification',
+  DOCUMENT_BATCH_VERIFY: 'Batch Verification',
+  DOCUMENT_DUPLICATE_UPLOAD: 'Duplicate Document Detected',
+  SECURITY_KEY_CREATED: 'Signing Key Created',
+  SECURITY_KEY_UPDATED: 'Signing Key Updated',
+  SECURITY_KEY_ROTATED: 'Signing Key Rotated',
+  SECURITY_KEY_REVOKED: 'Signing Key Revoked',
+  USER_CREATED: 'User Account Created',
+  USER_UPDATED: 'User Account Updated',
+  USER_DELETED: 'User Account Deleted',
+  USER_DEACTIVATED: 'User Account Deactivated',
+  USER_ACTIVATED: 'User Account Activated',
+  USER_ROLE_UPDATED: 'User Role Changed',
+  USER_PASSWORD_RESET: 'User Password Reset',
+  PROFILE_UPDATED: 'Profile Updated',
+  PASSWORD_CHANGED: 'Password Changed',
+  PASSWORD_RESET_REQUESTED: 'Password Reset Requested',
+  PASSWORD_RESET_CONFIRMED: 'Password Reset Completed',
+};
+
+export const formatAuditActionLabel = (action) => {
+  if (!action) return 'System Event';
+  return auditActionLabelMap[action] || action
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+};
+
+export const formatAuditSeverityLabel = (severity) => {
+  const normalized = String(severity || '').toLowerCase();
+  if (normalized === 'critical') return 'Critical';
+  if (normalized === 'warning') return 'Needs Attention';
+  if (normalized === 'info') return 'Informational';
+  return severity || 'Informational';
+};
+
+export const formatAuditStatusLabel = (status) => {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'SUCCESS') return 'Completed';
+  if (normalized === 'FAILED') return 'Blocked';
+  return status || 'Completed';
 };
 
 /**
@@ -127,6 +191,26 @@ export const formatDateTime = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+export const formatRelativeDateTime = (dateString) => {
+  if (!dateString) return 'N/A';
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.round(diffMs / 60000);
+  const diffHours = Math.round(diffMs / 3600000);
+  const diffDays = Math.round(diffMs / 86400000);
+
+  if (Math.abs(diffMinutes) < 1) return 'Just now';
+  if (Math.abs(diffMinutes) < 60) return `${Math.abs(diffMinutes)} minute${Math.abs(diffMinutes) === 1 ? '' : 's'} ${diffMinutes >= 0 ? 'ago' : 'from now'}`;
+  if (Math.abs(diffHours) < 24) return `${Math.abs(diffHours)} hour${Math.abs(diffHours) === 1 ? '' : 's'} ${diffHours >= 0 ? 'ago' : 'from now'}`;
+  if (Math.abs(diffDays) < 7) return `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} ${diffDays >= 0 ? 'ago' : 'from now'}`;
+
+  return formatDateTime(dateString);
 };
 
 /**
