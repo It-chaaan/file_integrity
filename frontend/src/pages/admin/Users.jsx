@@ -54,6 +54,11 @@ function Users() {
     return user.role !== 'super_admin' && user.role !== 'admin';
   };
 
+  const canDeleteUser = (user) => {
+    if (!user) return false;
+    return user.role !== 'super_admin';
+  };
+
   // Filter users
   const filteredUsers = useMemo(() => {
     if (!users || !Array.isArray(users)) return [];
@@ -178,19 +183,29 @@ function Users() {
         <i className="bi bi-pencil me-1"></i>
         Edit
       </button>
-      <button
-        className="btn btn-sm btn-outline-danger"
-        disabled={!canManageUser(user)}
-        onClick={() => {
-          if (!canManageUser(user)) return;
-          setDeleteTarget(user);
-          setShowDeleteModal(true);
-        }}
-        style={{ whiteSpace: 'nowrap' }}
-      >
-        <i className="bi bi-trash me-1"></i>
-        Delete
-      </button>
+      {canDeleteUser(user) ? (
+        <button
+          className="btn btn-sm btn-outline-danger"
+          disabled={!canManageUser(user)}
+          onClick={() => {
+            if (!canManageUser(user)) return;
+            setDeleteTarget(user);
+            setShowDeleteModal(true);
+          }}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          <i className="bi bi-trash me-1"></i>
+          Delete
+        </button>
+      ) : (
+        <span
+          className="badge text-bg-light border"
+          title="Super admin accounts are protected and cannot be deleted."
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          Protected
+        </span>
+      )}
     </div>
   );
 
