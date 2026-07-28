@@ -5,6 +5,7 @@ import csv
 import io
 from django.http import StreamingHttpResponse
 from django.utils.dateparse import parse_date
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.viewsets import ModelViewSet
@@ -23,8 +24,11 @@ except ImportError:
 from .constants import (
     DEFAULT_DOCUMENT_TYPES,
     VERIFY_STATUS_NOT_FOUND,
+    VERIFY_STATUS_HASH_MISMATCH,
+    VERIFY_STATUS_KEY_REVOKED,
     VERIFY_STATUS_SIGNATURE_INVALID,
     VERIFY_STATUS_VERIFIED,
+    VERIFY_STATUS_VERIFICATION_ERROR,
 )
 from .models import AuditLog, DocumentRecord, VerificationAttempt
 from .serializers import (
@@ -39,6 +43,7 @@ from .services import (
     build_reference_number,
     compute_hash_and_signature,
     format_short_hash,
+    get_signing_key_status,
     get_verification_public_key_pem,
     parse_metadata_value,
 )
@@ -59,6 +64,21 @@ MASKED_SENSITIVE_VALUE = "*****"
 def _can_view_sensitive_document_fields(request):
     user = getattr(request, "user", None)
     return bool(user and user.is_authenticated and getattr(user, "role", None) == "super_admin")
+
+
+def _build_verification_receipt(document, verify_status, checked_at, *, is_authentic):
+    if document is None:
+        return None
+
+    return {
+        "referenceNumber": document.reference_number,
+        "documentType": document.document_type,
+        "status": verify_status,
+        "isAuthentic": is_authentic,
+        "signerFingerprint": document.signer_fingerprint,
+        "integrityRegisteredAt": document.created_at,
+        "verificationTimestamp": checked_at,
+    }
 
 
 class DocumentViewSet(ModelViewSet):
@@ -152,6 +172,25 @@ class DocumentViewSet(ModelViewSet):
             metadata = {**metadata, "uploaded_by": request.user.username}
         sha256_hash, signature, public_key_pem, fingerprint = compute_hash_and_signature(file_bytes)
 
+        existing_document = DocumentRecord.objects.filter(document_hash=sha256_hash).first()
+        if existing_document:
+            del file_bytes
+            log_audit_event(
+                request=request,
+                user=request.user,
+                action="DOCUMENT_DUPLICATE_UPLOAD",
+                resource_type="document",
+                resource_id=existing_document.id,
+                details={"reference_number": existing_document.reference_number},
+                metadata={"reference_number": existing_document.reference_number},
+                severity=AuditLog.SEVERITY_WARNING,
+            )
+            response_serializer = DocumentResponseSerializer(existing_document, context={"request": request})
+            return success_response(
+                {**response_serializer.data, "duplicate": True},
+                message="Document already registered",
+            )
+
         # Persist only hash/signature metadata via the ORM (no file retention).
         document = DocumentRecord.objects.create(
             reference_number=build_reference_number(),
@@ -203,9 +242,36 @@ class DocumentViewSet(ModelViewSet):
             document.uploaded_by = str(document.metadata.get("uploaded_by", document.uploaded_by))
 
         document.save()
+        log_audit_event(
+            request=request,
+            user=request.user,
+            action="DOCUMENT_UPDATED",
+            resource_type="document",
+            resource_id=document.id,
+            details={"reference_number": document.reference_number},
+            metadata={"reference_number": document.reference_number},
+        )
 
         response_serializer = DocumentResponseSerializer(document, context={"request": request})
         return success_response(response_serializer.data, message="Document updated")
+
+    def destroy(self, request, *args, **kwargs):
+        document = self.get_object()
+        if document.status != "expired":
+            document.status = "expired"
+            document.save(update_fields=["status", "updated_at"])
+
+        log_audit_event(
+            request=request,
+            user=request.user,
+            action="DOCUMENT_ARCHIVED",
+            resource_type="document",
+            resource_id=document.id,
+            details={"reference_number": document.reference_number},
+            metadata={"reference_number": document.reference_number},
+        )
+        response_serializer = DocumentResponseSerializer(document, context={"request": request})
+        return success_response(response_serializer.data, message="Document archived")
 
     @action(detail=False, methods=["post"], url_path="verify")
     def verify_document(self, request):
@@ -230,17 +296,28 @@ class DocumentViewSet(ModelViewSet):
 
         sha256_hash = generate_hash_from_bytes(file_bytes)
         document = DocumentRecord.objects.filter(reference_number=reference_number).first()
+        checked_at = timezone.now()
 
         found = document is not None
         is_authentic = False
         verify_status = VERIFY_STATUS_NOT_FOUND
 
         if document:
-            pem_value = document.signer_public_key_pem or get_verification_public_key_pem()
-            public_key = deserialize_public_key_from_pem(pem_value)
-            hash_matches = sha256_hash == document.document_hash
-            is_authentic = hash_matches and verify_signature(public_key, document.signature, sha256_hash)
-            verify_status = VERIFY_STATUS_VERIFIED if is_authentic else VERIFY_STATUS_SIGNATURE_INVALID
+            key_status = get_signing_key_status(document.signer_fingerprint, document.signer_public_key_pem)
+            if key_status == "revoked":
+                verify_status = VERIFY_STATUS_KEY_REVOKED
+            else:
+                try:
+                    pem_value = document.signer_public_key_pem or get_verification_public_key_pem()
+                    public_key = deserialize_public_key_from_pem(pem_value)
+                    hash_matches = sha256_hash == document.document_hash
+                    if not hash_matches:
+                        verify_status = VERIFY_STATUS_HASH_MISMATCH
+                    else:
+                        is_authentic = verify_signature(public_key, document.signature, sha256_hash)
+                        verify_status = VERIFY_STATUS_VERIFIED if is_authentic else VERIFY_STATUS_SIGNATURE_INVALID
+                except Exception:
+                    verify_status = VERIFY_STATUS_VERIFICATION_ERROR
 
         VerificationAttempt.objects.create(
             document=document,
@@ -250,6 +327,7 @@ class DocumentViewSet(ModelViewSet):
             found=found,
             is_authentic=is_authentic,
             status=verify_status,
+            checked_at=checked_at,
         )
 
         del file_bytes
@@ -262,6 +340,8 @@ class DocumentViewSet(ModelViewSet):
             resource_id=document.id if document else "",
             details={"reference_number": reference_number, "found": found, "is_authentic": is_authentic},
             metadata={"reference_number": reference_number, "found": found, "is_authentic": is_authentic},
+            severity=AuditLog.SEVERITY_WARNING if verify_status != VERIFY_STATUS_VERIFIED else AuditLog.SEVERITY_INFO,
+            status=AuditLog.STATUS_SUCCESS if verify_status == VERIFY_STATUS_VERIFIED else AuditLog.STATUS_FAILED,
         )
 
         response_payload = {
@@ -280,7 +360,10 @@ class DocumentViewSet(ModelViewSet):
                     "documentId": document.reference_number,
                     "referenceNumber": document.reference_number,
                     "documentType": document.document_type,
-                    "verificationDate": document.verified_at,
+                    "verificationDate": checked_at,
+                    "integrityRegisteredAt": document.created_at,
+                    "verificationTimestamp": checked_at,
+                    "signerFingerprint": document.signer_fingerprint,
                 }
             )
             if getattr(request, "user", None) and request.user.is_authenticated:
@@ -293,6 +376,10 @@ class DocumentViewSet(ModelViewSet):
                         "signature": document.signature if can_view_sensitive_fields else MASKED_SENSITIVE_VALUE,
                     }
                 )
+
+        receipt = _build_verification_receipt(document, verify_status, checked_at, is_authentic=is_authentic)
+        if receipt is not None:
+            response_payload["receipt"] = receipt
 
         return success_response(response_payload)
 
@@ -326,10 +413,17 @@ class DocumentViewSet(ModelViewSet):
             is_authentic = False
             verify_status = VERIFY_STATUS_NOT_FOUND
             if document:
-                pem_value = document.signer_public_key_pem or get_verification_public_key_pem()
-                public_key = deserialize_public_key_from_pem(pem_value)
-                is_authentic = verify_signature(public_key, document.signature, sha256_hash)
-                verify_status = VERIFY_STATUS_VERIFIED if is_authentic else VERIFY_STATUS_SIGNATURE_INVALID
+                key_status = get_signing_key_status(document.signer_fingerprint, document.signer_public_key_pem)
+                if key_status == "revoked":
+                    verify_status = VERIFY_STATUS_KEY_REVOKED
+                else:
+                    try:
+                        pem_value = document.signer_public_key_pem or get_verification_public_key_pem()
+                        public_key = deserialize_public_key_from_pem(pem_value)
+                        is_authentic = verify_signature(public_key, document.signature, sha256_hash)
+                        verify_status = VERIFY_STATUS_VERIFIED if is_authentic else VERIFY_STATUS_SIGNATURE_INVALID
+                    except Exception:
+                        verify_status = VERIFY_STATUS_VERIFICATION_ERROR
 
             VerificationAttempt.objects.create(
                 document=document,
@@ -350,6 +444,8 @@ class DocumentViewSet(ModelViewSet):
                     "status": verify_status,
                     "documentId": document.reference_number if document else None,
                     "referenceNumber": document.reference_number if document else None,
+                    "verificationTimestamp": timezone.now(),
+                    "signerFingerprint": document.signer_fingerprint if document else None,
                 }
             )
 
@@ -363,6 +459,7 @@ class DocumentViewSet(ModelViewSet):
             resource_id="batch",
             details={"count": len(results)},
             metadata={"count": len(results)},
+            severity=AuditLog.SEVERITY_INFO,
         )
 
         return success_response({"results": results, "count": len(results)})
@@ -380,6 +477,17 @@ class DocumentViewSet(ModelViewSet):
         payload = PublicDocumentLookupSerializer(document).data
         payload["found"] = True
         return success_response(payload)
+
+    @action(detail=True, methods=["get"], url_path="verification-receipt")
+    def verification_receipt(self, request, pk=None):
+        document = self.get_object()
+        receipt = _build_verification_receipt(
+            document,
+            document.status.upper(),
+            document.verified_at,
+            is_authentic=document.status == "verified",
+        )
+        return success_response(receipt)
 
     @action(detail=False, methods=["get"], url_path="stats")
     def stats(self, request):

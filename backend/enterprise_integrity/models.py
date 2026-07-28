@@ -1,6 +1,9 @@
 import uuid
+import hashlib
+import json
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -105,7 +108,35 @@ class AuditLog(models.Model):
     user_agent = models.TextField(blank=True, default="")
     severity = models.CharField(max_length=16, choices=SEVERITY_CHOICES, default=SEVERITY_INFO)
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_SUCCESS)
+    previous_hash = models.CharField(max_length=64, blank=True, default="")
+    log_hash = models.CharField(max_length=64, unique=True, db_index=True, blank=True, default="")
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValidationError("Audit logs are append-only and cannot be modified.")
+
+        if not self.log_hash:
+            previous_entry = AuditLog.objects.order_by("-id").only("log_hash").first()
+            self.previous_hash = previous_entry.log_hash if previous_entry else ""
+            payload = {
+                "user_id": self.user_id,
+                "action": self.action,
+                "resource_type": self.resource_type,
+                "resource_id": self.resource_id,
+                "status": self.status,
+                "severity": self.severity,
+                "details": self.details,
+                "metadata": self.metadata,
+                "ip_address": self.ip_address,
+                "user_agent": self.user_agent,
+                "created_at": self.created_at.isoformat() if self.created_at else "",
+                "previous_hash": self.previous_hash,
+            }
+            encoded_payload = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+            self.log_hash = hashlib.sha256(encoded_payload).hexdigest()
+
+        super().save(*args, **kwargs)

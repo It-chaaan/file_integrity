@@ -7,6 +7,7 @@ from common.responses import success_response, error_response
 from common.pagination import StandardResultsSetPagination
 from common.audit import log_audit_event
 from enterprise_integrity.services import reset_signing_private_key_cache
+from enterprise_integrity.models import DocumentRecord
 
 from .models import SecurityKey
 from .key_material import build_encrypted_ecdsa_key_pair
@@ -67,6 +68,16 @@ class SecurityKeyViewSet(ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        if instance.status == SecurityKey.STATUS_ACTIVE:
+            return error_response(
+                "Active signing keys cannot be deleted. Revoke or rotate the key instead.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        if DocumentRecord.objects.filter(signer_fingerprint=instance.fingerprint).exists():
+            return error_response(
+                "Keys used to sign registered documents cannot be deleted.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
         instance.delete()
         reset_signing_private_key_cache()
         log_audit_event(
@@ -84,10 +95,12 @@ class SecurityKeyViewSet(ModelViewSet):
     def rotate(self, request, pk=None):
         """Rotate a key by generating a new key pair and marking the old one as rotated."""
         old_key = self.get_object()
-        rotation_reason = request.data.get("rotation_reason", "Manual rotation")
+        rotation_reason = (request.data.get("rotation_reason") or "").strip()
 
         if old_key.status != SecurityKey.STATUS_ACTIVE:
             return error_response("Only active keys can be rotated.", status_code=status.HTTP_400_BAD_REQUEST)
+        if not rotation_reason:
+            return error_response("rotation_reason is required.", status_code=status.HTTP_400_BAD_REQUEST)
 
         try:
             public_key_pem, encrypted_private_key = build_encrypted_ecdsa_key_pair()
@@ -143,9 +156,13 @@ class SecurityKeyViewSet(ModelViewSet):
     def revoke(self, request, pk=None):
         """Revoke a key."""
         key = self.get_object()
+        revocation_reason = (request.data.get("revocation_reason") or "").strip()
+        if not revocation_reason:
+            return error_response("revocation_reason is required.", status_code=status.HTTP_400_BAD_REQUEST)
         if key.status == SecurityKey.STATUS_REVOKED:
             return success_response(self.get_serializer(key).data, message="Key already revoked")
         key.status = SecurityKey.STATUS_REVOKED
+        key.rotation_reason = f"Revoked: {revocation_reason}"
         key.save()
         reset_signing_private_key_cache()
 
@@ -155,8 +172,8 @@ class SecurityKeyViewSet(ModelViewSet):
             action="SECURITY_KEY_REVOKED",
             resource_type="security_key",
             resource_id=key.id,
-            details={"name": key.name, "fingerprint": key.fingerprint},
-            metadata={"name": key.name, "fingerprint": key.fingerprint},
+            details={"name": key.name, "fingerprint": key.fingerprint, "revocation_reason": revocation_reason},
+            metadata={"name": key.name, "fingerprint": key.fingerprint, "revocation_reason": revocation_reason},
         )
 
         return success_response(self.get_serializer(key).data, message="Key revoked")

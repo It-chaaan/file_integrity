@@ -92,10 +92,18 @@ def get_signing_private_key() -> Tuple[EllipticCurvePrivateKey, Optional[Any]]:
             try:
                 from security_keys.models import SecurityKey
                 security_key = SecurityKey.objects.filter(pk=_PRIVATE_KEY_CACHE_SOURCE_ID).first()
-                return _PRIVATE_KEY_CACHE, security_key
+                if security_key is None:
+                    reset_signing_private_key_cache()
+                else:
+                    cached_fingerprint = get_public_key_fingerprint(_PRIVATE_KEY_CACHE.public_key())
+                    if security_key.fingerprint != cached_fingerprint:
+                        reset_signing_private_key_cache()
+                    else:
+                        return _PRIVATE_KEY_CACHE, security_key
             except Exception:
                 reset_signing_private_key_cache()
-        return _PRIVATE_KEY_CACHE, None
+        elif _PRIVATE_KEY_CACHE is not None:
+            return _PRIVATE_KEY_CACHE, None
 
     # Try to load from database first
     try:
@@ -182,6 +190,23 @@ def get_verification_public_key_pem() -> str:
     raise RuntimeError(
         "No active ECDSA verification key is configured. Create one in Security or set PARITY_ECDSA_PUBLIC_KEY_PEM."
     )
+
+
+def get_signing_key_status(fingerprint: str = "", public_key_pem: str = "") -> Optional[str]:
+    if not fingerprint and not public_key_pem:
+        return None
+
+    try:
+        from security_keys.models import SecurityKey
+
+        key = SecurityKey.objects.filter(
+            fingerprint=fingerprint
+        ).only("status").first() if fingerprint else None
+        if key is None and public_key_pem:
+            key = SecurityKey.objects.filter(public_key=public_key_pem).only("status").first()
+        return key.status if key else None
+    except Exception:
+        return None
 
 
 def format_short_hash(sha256_hash: str) -> str:

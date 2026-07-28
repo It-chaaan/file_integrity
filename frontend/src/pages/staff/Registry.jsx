@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../components/DataTable';
 import { useDocuments } from '../../hooks/useData';
-import { formatFileSize } from '../../services/utils';
+import { formatFileSize, shortHash } from '../../services/utils';
 
 function Registry() {
   const navigate = useNavigate();
@@ -313,7 +313,7 @@ function Registry() {
                         color: '#374151'
                       }}
                     >
-                      {selectedDoc.document_hash}
+                      {selectedDoc.short_hash || (selectedDoc.document_hash && shortHash(selectedDoc.document_hash)) || 'â€”'}
                     </div>
                   </div>
                   <div className="col-12">
